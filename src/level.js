@@ -1,10 +1,11 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
+import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, cyl } from './models.js';
 
 export class Level {
-  constructor(game, def) {
-    this.game = game; this.def = def;
+  constructor(game, def, key) {
+    this.game = game; this.def = def; this.key = key; this._scatter = [];
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(def.sky || 0x6fc3ff);
     this.scene.fog = new THREE.Fog(def.sky || 0x6fc3ff, def.fogNear || 40, def.fogFar || 110);
@@ -16,6 +17,9 @@ export class Level {
     this.ground(def.ground || 0x6bbf59, def.size || 40);
     this.group = new THREE.Group(); this.scene.add(this.group);
     def.build(this);
+    this._placeScatter();
+    this.crumbTotal = this.pickups.filter(p => !p.goal && p.kind !== 'goldbone').length;
+    this.crumbHave = 0;
   }
 
   _light() {
@@ -62,7 +66,8 @@ export class Level {
     const disk = new THREE.Mesh(new THREE.CircleGeometry(1.4, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
     disk.position.y = 1.9; g.add(disk);
     g.position.set(x, 0, z); this.group.add(g);
-    const lab = makeLabel(need ? `${text} 🦴${need}` : text); lab.position.set(0, 4.2, 0); g.add(lab);
+    const prog = this.game.levelProgress(target); const locked = need > this.game.boneCount();
+    const lab = makeLabel(locked ? `${text} 🔒${need}` : `${text} ${prog.have}/${prog.total}`); lab.scale.set(6, 1.5, 1); lab.position.set(0, 4.6, 0); g.add(lab);
     this.portals.push({ x, z, target, group: g, disk, need, ring });
   }
 
@@ -102,7 +107,7 @@ export class Level {
     // Portale
     for (const po of this.portals) {
       po.ring.rotation.y += dt; po.disk.material.opacity = 0.3 + Math.sin(this.t * 3) * 0.1;
-      const locked = po.need > this.game.save.goldbones; po.ring.material.color.set(locked ? 0x777777 : 0xffcc33);
+      const locked = po.need > this.game.boneCount(); po.ring.material.color.set(locked ? 0x777777 : 0xffcc33);
       if (Math.hypot(po.x - pp.x, po.z - pp.z) < 1.3 && pp.y < 3) {
         if (locked) { this.game.toast(`Verschlossen – ${po.need} Goldknochen nötig`); pl.vel.z -= 5; pl.vel.x -= 5; }
         else this.game.enterLevel(po.target);
@@ -119,14 +124,49 @@ export class Level {
   }
 
   // Levelziel erreicht → Goldknochen erscheint (oder Boss startet)
+  // Zufällige Krümel erst nach dem Aufbau verteilen: nie in Blöcken, nie über Wasser/Gefahr, immer erreichbar.
+  scatter(n, kind = 'crumb') { this._scatter.push({ n, kind }); }
+  _placeScatter() {
+    const s = (this.def.size || 40) - 3, hazard = this.def.hazard;
+    for (const { n, kind } of this._scatter) {
+      let placed = 0, tries = 0;
+      while (placed < n && tries++ < n * 60) {
+        const x = (Math.random() * 2 - 1) * s, z = (Math.random() * 2 - 1) * s;
+        if (hazard && hazard(x, z)) continue;
+        let top = -Infinity;
+        for (const so of this.solids) if (so.active && x > so.min.x - 0.5 && x < so.max.x + 0.5 && z > so.min.z - 0.5 && z < so.max.z + 0.5) top = Math.max(top, so.max.y);
+        if (top > 2.6) continue;
+        if (this.def.minFloor !== undefined && top < this.def.minFloor) continue;
+        this.pickup(x, top + 0.3, z, kind); placed++;
+      }
+    }
+  }
+
+  // Goldknochen mit fester ID je Welt. Schon gesammelte erscheinen als Geist und zählen nicht doppelt.
+  goldbone(id, x, y, z, opts = {}) {
+    const owned = this.game.hasBone(this.key, id);
+    const p = this.pickup(x, y, z, 'goldbone', { hidden: opts.hidden, onTake: () => this.game.awardBone(this, id, opts.exit) });
+    p.boneId = id;
+    if (owned) p.mesh.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; } });
+    return p;
+  }
+
   checkGoal() {
     if (this.goal.need && this.goal.have >= this.goal.need && !this.goalReached) {
       this.goalReached = true;
       if (this.def.onGoal) this.def.onGoal(this); else this.spawnGoldbone(0, 1, 0);
     }
   }
-  spawnGoldbone(x, y, z) {
+  spawnGoldbone(x, y, z, id = 'boss') {
     this.game.audio.sfx('big'); this.game.toast('Ein GOLDKNOCHEN ist erschienen! 🦴');
-    this.pickup(x, y, z, 'goldbone', { onTake: () => this.game.levelComplete(this) });
+    this.goldbone(id, x, Math.max(y, 1), z, { exit: id === 'boss' });
+  }
+  onCrumb() {
+    this.crumbHave++;
+    if ((BONES[this.key] || []).includes('kruemel') && this.crumbHave === this.crumbTotal) {
+      const p = this.game.player.pos, f = this.game.player.yaw;
+      this.game.toast('Alle Krümel gefressen!', 2500);
+      this.spawnGoldbone(p.x + Math.sin(f) * 2.5, p.y + 0.8, p.z + Math.cos(f) * 2.5, 'kruemel');
+    }
   }
 }

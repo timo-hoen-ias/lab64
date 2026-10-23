@@ -4,7 +4,7 @@ import { Input } from './input.js';
 import { AudioEngine } from './audio.js';
 import { Player } from './player.js';
 import { Level } from './level.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
 
 const SAVE_KEY = 'moll-save-v1';
@@ -28,10 +28,26 @@ export class Game {
     this.loop();
   }
 
-  loadSave() { try { return Object.assign({ goldbones: 0, crumbs: 0, done: {}, bones: {} }, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { return { goldbones: 0, crumbs: 0, done: {}, bones: {} }; } }
+  loadSave() { try { const s = Object.assign({ crumbs: 0, bones: {} }, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); if (typeof s.bones !== 'object' || !s.bones) s.bones = {}; return s; } catch (e) { return { crumbs: 0, bones: {} }; } }
+  // Verzögerte Aktion, die verfällt, sobald das Level gewechselt wurde.
+  later(ms, fn) { const lvl = this.level; setTimeout(() => { if (this.level === lvl) fn(); }, ms); }
+  boneCount() { return Object.keys(this.save.bones).length; }
+  hasBone(level, id) { return !!this.save.bones[`${level}:${id}`]; }
+  levelProgress(level) { const ids = BONES[level] || []; return { have: ids.filter(id => this.hasBone(level, id)).length, total: ids.length }; }
+  awardBone(level, id, exit) {
+    const key = typeof level === 'string' ? level : level.key, fresh = !this.hasBone(key, id);
+    if (fresh) { this.save.bones[`${key}:${id}`] = true; this.persist(); }
+    this.audio.sfx('win'); this.input.vibrate(250); this.updateCounter();
+    this.toast(fresh ? `GOLDKNOCHEN! ${this.boneCount()}/${TOTAL_BONES}` : 'Den hattest du schon.', 3000);
+    if (exit) { this.player.frozen = true; this.later(2500, () => { this.player.frozen = false; this.enterLevel('hub'); }); }
+  }
   persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } }
 
-  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+  resize() {
+    const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h;
+    const portrait = h > w; this.camera.fov = portrait ? 80 : 60; this.camDist = portrait ? 14 : 9; this.camPitch = portrait ? 0.5 : 0.35; // Hochformat: mehr Überblick
+    this.camera.updateProjectionMatrix();
+  }
 
   start() {
     this.audio.init(); this.audio.resume();
@@ -41,7 +57,8 @@ export class Game {
   pause() {
     this.paused = true; const m = document.getElementById('menu'); m.classList.remove('hidden');
     document.getElementById('btnStart').textContent = 'Weiter';
-    document.getElementById('menuText').textContent = `Pause. Goldknochen: ${this.save.goldbones} / 10 · Krümel: ${this.save.crumbs}`;
+    const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
+    document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic();
   }
 
@@ -49,7 +66,7 @@ export class Game {
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     this.hideBoss(); this.suspicion(0);
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
-    else { this.level = new Level(this, LEVELS[key]); this.level.key = key; this.level.scene.add(this.player.mesh); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
+    else { this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
     this.level.key = key;
     this.hud.levelName.textContent = this.level.def.name;
     this.updateHearts(); this.updateCounter();
@@ -62,7 +79,7 @@ export class Game {
   updateCounter() {
     const l = this.level; if (!l || l.isRunner) return;
     const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀' }[l.goal.kind] || '⭐';
-    this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   🦴 ${this.save.goldbones}   ✦ ${this.save.crumbs}` : `🦴 ${this.save.goldbones}/8   ✦ ${this.save.crumbs}`;
+    this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   ✦ ${l.crumbHave}/${l.crumbTotal}   🦴 ${this.boneCount()}` : `🦴 ${this.boneCount()}/${TOTAL_BONES}   ✦ ${l.crumbHave}/${l.crumbTotal}`;
   }
   toast(text, ms = 2600) { const t = this.hud.toast; t.textContent = text; t.classList.add('show'); clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove('show'), ms); }
   hint(text) { if (text && this._hint !== text) { this.toast(text, 1200); } this._hint = text; }
@@ -83,15 +100,10 @@ export class Game {
   collect(p, level) {
     if (p.kind === 'goldbone') { this.audio.sfx('win'); return; }
     if (p.goal) { level.goal.have++; this.audio.sfx('big'); this.input.vibrate(60); level.checkGoal(); }
-    else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); }
+    else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); level.onCrumb(); }
     this.updateCounter();
   }
-  levelComplete(level) {
-    if (!this.save.done[level.key]) { this.save.done[level.key] = true; this.save.goldbones++; }
-    this.persist(); this.updateCounter(); this.toast(`Level geschafft! Goldknochen ${this.save.goldbones}/8`, 3500);
-    this.player.frozen = true; setTimeout(() => { this.player.frozen = false; this.enterLevel('hub'); }, 2500);
-  }
-  onDeath() { this.toast('Moll braucht ein Nickerchen … zurück zum Garten.', 3000); this.audio.sfx('lose'); setTimeout(() => this.enterLevel('hub'), 1800); this.player.hp = 3; }
+  onDeath() { this.toast('Moll braucht ein Nickerchen … zurück zum Garten.', 3000); this.audio.sfx('lose'); this.later(1800, () => this.enterLevel('hub')); this.player.hp = 3; }
 
   // ------------------------------------------------------------- Kamera
   updateCamera(dt) {
@@ -115,6 +127,7 @@ export class Game {
     const dt = Math.min(0.05, this.clock.getDelta());
     this.input.update();
     if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
+    else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet
     if (!this.paused && this.level) {
       if (this.level.isRunner) this.level.update(dt);
       else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); }

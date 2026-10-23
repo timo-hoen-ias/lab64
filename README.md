@@ -22,4 +22,10 @@ Läuft auch direkt über GitHub Pages (Branch `main`, Ordner `/`).
 | Nase (halten) | F | Y | NASE |
 | Pause | Esc | Start | II |
 
+![Welten](docs/screenshots/welten-v2.png)
+
+**Stand:** 32 Goldknochen in 9 Bereichen (Boss, alle Krümel, Geheimversteck, Kletterweg), 6 Bosse plus Ratten-Albtraum.
+
+Test: `node tests/playtest.mjs` (Server auf Port 8077, Playwright nötig).
+
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).

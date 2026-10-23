@@ -93,7 +93,26 @@ src/audio.js      – prozedurale Musik und Effekte (WebAudio)
 vendor/           – three.js r160 (lokal, offline-fähig)
 ```
 
-## 7. Roadmap
+## 7. Stand Prototyp (v0.2)
+
+32 Goldknochen sind spielbar:
+
+| Welt | Knochen | Wie |
+|---|---|---|
+| Garten | 2 | Hügel-Plattformen · hinter dem Haus erschnüffeln |
+| Küche, Straße, Büro, Grillpark, Hafen, Dorf, Kanal | je 4 | **Boss** (bzw. Hauptmission) · **alle Krümel** · **Geheimversteck** (Nase) · **Kletterweg** |
+| Rattenrennen | 2 | gewinnen · gewinnen mit 30+ Würstchen |
+| Kanal-Boss | – | kommt erst durch den Sieg im Albtraum |
+
+Kletterwege: Küche Wandregale, Straße Ladenschild aufs Dach, Büro Aktenschränke, Grillpark Holzstapel, Hafen Containertreppe auf den Kranarm, Dorf Kirchturm, Kanal Mauervorsprünge.
+
+Portalkosten: Küche 0 · Straße 2 · Büro 4 · Grillpark 7 · Rattenrennen 9 · Hafen 12 · Dorf 15 · Kanal 19.
+
+Bosse werden nach jedem Treffer ca. 30 % schneller (Phase 2/3). Bereits gesammelte Knochen erscheinen durchsichtig.
+
+`tests/playtest.mjs` (Playwright) holt automatisch alle 32 Knochen, besiegt alle Bosse und gewinnt beide Rennen.
+
+## 8. Roadmap
 1. **Prototyp (jetzt):** alle Welten spielbar, je 1 Hauptmission + Boss
 2. **Vertical Slice Küche:** 6 Goldknochen, Bauchrutscher, Feinschliff
 3. **Modelle:** Blender-Low-Poly (glTF) statt Grundkörpern, richtige Rigs für Moll

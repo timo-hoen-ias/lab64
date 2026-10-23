@@ -5,6 +5,21 @@ import { box, cyl, cone, sphere } from './models.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+// Goldknochen je Welt (IDs). Summe = Gesamtziel des Spiels.
+export const BONES = {
+  hub: ['huegel', 'geheim'],
+  kueche: ['boss', 'kruemel', 'geheim', 'kletter'],
+  strasse: ['boss', 'kruemel', 'geheim', 'kletter'],
+  buero: ['boss', 'kruemel', 'geheim', 'kletter'],
+  park: ['boss', 'kruemel', 'geheim', 'kletter'],
+  rattenrennen: ['sieg', 'gierig'],
+  hafen: ['boss', 'kruemel', 'geheim', 'kletter'],
+  dorf: ['boss', 'kruemel', 'geheim', 'kletter'],
+  kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
+};
+export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
+export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
+
 export const LEVELS = {
   // ------------------------------------------------------------------ HUB
   hub: {
@@ -21,17 +36,18 @@ export const LEVELS = {
       // Bäume & Plattform-Hügel
       [[-22, -20], [22, -22], [-26, 18], [25, 15], [10, 26], [-8, 26]].forEach(([x, z]) => l.tree(x, z, rnd(1, 1.5)));
       l.box(16, 0, -2, 4, 1.2, 4, 0x8fd17a); l.box(19, 0, 2, 4, 2.4, 4, 0x8fd17a); l.box(22, 0, -2, 4, 3.6, 4, 0x8fd17a);
-      l.pickup(22, 4.2, -2, 'bone', { value: 5 });
-      for (let i = 0; i < 12; i++) l.pickup(rnd(-28, 28), 0.3, rnd(-6, 28), 'crumb');
+      l.goldbone('huegel', 22, 4.4, -2);
+      l.goldbone('geheim', 0, 0.6, -24, { hidden: true }); // hinter dem Haus erschnüffeln
+      l.scatter(20);
       // Portale
       l.portal(-10, -4, 'Küche', 'kueche', 0xff9f43, 0);
-      l.portal(10, -4, 'Einkaufsstraße', 'strasse', 0x54a0ff, 1);
-      l.portal(-20, 4, 'Büro', 'buero', 0x9b9b9b, 2);
-      l.portal(20, 10, 'Grillpark', 'park', 0x5f27cd, 3);
-      l.portal(-18, 20, 'Hafen', 'hafen', 0x48dbfb, 4);
-      l.portal(0, 22, 'Dorf', 'dorf', 0xfeca57, 5);
-      l.portal(-26, -10, 'Rattenrennen', 'rattenrennen', 0xff7675, 3);
-      l.portal(18, 24, 'Kanal', 'kanal', 0x2f3542, 7);
+      l.portal(10, -4, 'Einkaufsstraße', 'strasse', 0x54a0ff, 2);
+      l.portal(-20, 4, 'Büro', 'buero', 0x9b9b9b, 4);
+      l.portal(20, 10, 'Grillpark', 'park', 0x5f27cd, 7);
+      l.portal(-18, 20, 'Hafen', 'hafen', 0x48dbfb, 12);
+      l.portal(0, 22, 'Dorf', 'dorf', 0xfeca57, 15);
+      l.portal(-26, -10, 'Rattenrennen', 'rattenrennen', 0xff7675, 9);
+      l.portal(18, 24, 'Kanal', 'kanal', 0x2f3542, 19);
       l.label('Lauf in einen Ring!', 0, 3.2, 2);
     }
   },
@@ -52,12 +68,15 @@ export const LEVELS = {
       l.box(0, 0, 2, 8, 1.6, 5, 0xd2b48c); // Tisch
       l.box(-5, 0, 6, 1.4, 0.9, 1.4, 0x8b5a2b); l.box(5, 0, 6, 1.4, 0.9, 1.4, 0x8b5a2b); // Stühle
       l.deco(cyl(1.2, 1.0, 0.6, 0xd63031, 6, 1.8, -14, 14), 6, 1.8, -14); // Topf
+      l.box(-6, 3.5, -16.5, 4, 0.3, 2, 0xf5f5f5); l.box(2, 5.5, -16.5, 4, 0.3, 2, 0xf5f5f5); // Wandregale
+      l.goldbone('kletter', 2, 6.3, -16.5);
+      l.goldbone('geheim', 17, 0.6, -10, { hidden: true }); // hinter dem Kühlschrank
       // Schinken
       [[-12, 1.5, -16], [-6, 1.5, -16], [6, 1.9, -14], [14, 4.4, -10], [0, 1.7, 2], [-16, 0.3, 10], [16, 0.3, 14], [-15, 0.3, -2]].forEach(([x, y, z]) => l.pickup(x, y, z, 'ham', { goal: true }));
-      for (let i = 0; i < 14; i++) l.pickup(rnd(-15, 15), 0.3, rnd(-8, 15), 'crumb');
+      l.scatter(20);
       l.label('Sammle 8 Schinken!', 0, 4, 10);
     },
-    onGoal(l) { l.game.toast('Was brummt da?! Der STAUBSAUGER!'); l.game.audio.sfx('vacuum'); setTimeout(() => l.setBoss(new Vacuum(l.game, 0, 8, 13)), 1200); }
+    onGoal(l) { l.game.toast('Was brummt da?! Der STAUBSAUGER!'); l.game.audio.sfx('vacuum'); l.game.later(1200, () => l.setBoss(new Vacuum(l.game, 0, 8, 13))); }
   },
 
   // -------------------------------------------------------- EINKAUFSSTRASSE
@@ -75,15 +94,18 @@ export const LEVELS = {
       // Markise-Plattformen und Bänke
       [[-15.5, 2.8, -24], [-15.5, 2.8, -8], [15.5, 2.8, -8]].forEach(([x, y, z]) => l.box(x, y, z, 5, 0.3, 8, 0xffffff));
       [[-12, 20], [12, 20], [-12, -30], [12, -30]].forEach(([x, z]) => { l.box(x, 0.5, z, 3, 0.6, 1, 0x7a4a1f); l.box(x, 1.1, z + 0.4, 3, 0.5, 0.2, 0x7a4a1f); });
+      l.box(15.5, 0.5, -14, 2, 1.5, 2, 0x7a4a1f); l.box(15.5, 4.6, -8, 3, 0.3, 3, 0xffeaa7); // Kiste + Ladenschild
+      l.goldbone('kletter', 24, 7.2, -8);
+      l.goldbone('geheim', -33, 0.6, 1, { hidden: true }); // hinter den Läden
       // Mülleimer (Treppen) und Autos
       [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
       [[-4, -20, 0xd63031], [4, 12, 0x0984e3]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
       // Essensreste (12 Ziele)
       [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, 2.7, -20, 'bread'], [4, 2.7, 12, 'sausage'], [-12, 1.2, -30, 'fish'], [12, 1.2, -30, 'bread'], [15.5, 3.3, -8, 'sausage'], [-30, 0.8, 24, 'fish'], [30, 0.8, 24, 'bread'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
-      for (let i = 0; i < 20; i++) l.pickup(rnd(-30, 30), 0.8, rnd(-30, 30), 'crumb');
+      l.scatter(30);
       l.label('12 Essensreste finden – Vorsicht, Kater!', 0, 4, 26);
     },
-    onGoal(l) { l.game.toast('Ein Fauchen vom Dach … DER KATER!'); setTimeout(() => l.setBoss(new Cat(l.game, 0, 0, 13)), 1000); }
+    onGoal(l) { l.game.toast('Ein Fauchen vom Dach … DER KATER!'); l.game.later(1000, () => l.setBoss(new Cat(l.game, 0, 0, 13))); }
   },
 
   // ----------------------------------------------------------------- BÜRO
@@ -113,13 +135,14 @@ export const LEVELS = {
       });
       // Aktenschrank-Treppe + Regal mit Krümeln
       l.box(-22, 0, -20, 3, 1.5, 3, 0x95a5a6); l.box(-22, 0, -16, 3, 3, 3, 0x95a5a6); l.box(-22, 0, -12, 3, 4.5, 3, 0x95a5a6);
-      l.pickup(-22, 5, -12, 'bone', { value: 5 });
+      l.goldbone('kletter', -22, 5.2, -12);
+      l.goldbone('geheim', 24, 0.6, -24, { hidden: true });
       // Kantine: Dose
       l.box(22, 0, 18, 6, 0.8, 6, 0xd63031); l.label('Kantine', 22, 3.5, 18);
-      for (let i = 0; i < 16; i++) l.pickup(rnd(-22, 22), 0.3, rnd(-22, 22), 'crumb');
+      l.scatter(24);
       l.label('6 Leckerli in Schubladen – beiß dran!', 0, 4, 16);
     },
-    onGoal(l) { l.game.toast('Aus der Kantine: ein Klappern. DER DOSENÖFFNER!'); setTimeout(() => { const b = new CanOpener(l.game, 10, 8); l.group.add(b.can); l.setBoss(b); }, 1000); }
+    onGoal(l) { l.game.toast('Aus der Kantine: ein Klappern. DER DOSENÖFFNER!'); l.game.later(1000, () => { const b = new CanOpener(l.game, 10, 8); l.group.add(b.can); l.setBoss(b); }); }
   },
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
@@ -134,9 +157,12 @@ export const LEVELS = {
       [[-14, 14], [-24, 4], [-12, -14], [8, -14], [24, 0], [14, 12], [-4, 10], [8, 20], [-22, -20], [26, -22]].forEach(([x, z]) => l.bush(x, z, 2.6));
       [[-30, -30], [30, -30], [30, 30], [-10, -28], [12, -30], [-32, 10]].forEach(([x, z]) => l.tree(x, z, 1.6));
       [[-6, -6], [6, 6]].forEach(([x, z]) => { l.box(x, 0, z, 2, 1.2, 1.2, 0x2d3436); l.deco(box(2.2, 0.1, 1.4, 0x636e72), x, 1.25, z); });
+      l.box(-28, 0, -12, 3, 1.2, 3, 0x8d6e4a); l.box(-28, 0, -16, 3, 2.4, 3, 0x8d6e4a); l.box(-28, 0, -20, 3, 3.6, 3, 0x8d6e4a); // Holzstapel
+      l.goldbone('kletter', -28, 4.4, -20);
+      l.goldbone('geheim', 26, 0.6, -22, { hidden: true }); // im Busch
       // Der dicke Mann
       l.addEnemy(new FatMan(l.game, path, (x, z) => { l.pickup(x, 0.3, z, 'sausage', { goal: true }); l.game.audio.sfx('collect'); }));
-      for (let i = 0; i < 10; i++) l.pickup(rnd(-30, 30), 0.3, rnd(-30, 30), 'crumb');
+      l.scatter(24);
       l.label('Folge ihm leise. Sammle, was er verliert. Büsche = Versteck.', -20, 4, 26);
     },
     onGoal(l) { l.game.toast('Seine Tüte ist leer – und er hat nichts gemerkt!'); l.spawnGoldbone(0, 1, 0); }
@@ -144,7 +170,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- HAFEN
   hafen: {
-    name: 'Der Hafen', sky: 0x74b9ff, ground: 0x1e90ff, size: 36, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42 },
+    name: 'Der Hafen', sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42 },
     build(l) {
       l.spawn.set(0, 2.5, 26);
       // Kai (Holz) – alles darunter ist Wasser
@@ -154,6 +180,11 @@ export const LEVELS = {
       const crates = [[-10, 2, 4], [-7, 2, 4], [-8.5, 4.5, 4], [12, 2, 12], [15, 2, 12], [12, 2, 15], [13.5, 4.5, 13.5], [-20, 2, -10], [-20, 4.5, -10], [-20, 7, -10], [24, 2, -18], [20, 2, -22]];
       crates.forEach(([x, y, z]) => l.box(x, y, z, 2.5, 2.5, 2.5, 0xc0905a));
       l.box(28, 2, 0, 2, 14, 2, 0xf1c40f); l.box(24, 14, -4, 12, 1, 1.4, 0xf1c40f); // Kran
+      // Containertreppe hoch zum Kranarm
+      [[22, -12, 4, 0xe74c3c], [24.6, -12, 6, 0x3498db], [24.6, -9.4, 8, 0x27ae60], [22, -9.4, 10, 0xe67e22], [19.4, -9.4, 12, 0x9b59b6], [19.4, -6.8, 13.6, 0xe74c3c]]
+        .forEach(([x, z, top, c]) => l.box(x, 2, z, 2.4, top - 2, 2.4, c));
+      l.goldbone('kletter', 28, 16.6, 0);
+      l.goldbone('geheim', -31, 2.6, -5, { hidden: true });
       l.box(-20, 2, 20, 8, 1.6, 8, 0x2d3436); // Poller-Plattform
       [[-16, 2, 0], [-16, 2, 20], [16, 2, 0], [16, 2, 20]].forEach(([x, y, z]) => l.deco(cyl(0.5, 0.6, 1.2, 0x2d3436, x, y + 0.6, z, 8), x, y + 0.6, z));
       // Boot
@@ -161,7 +192,7 @@ export const LEVELS = {
       l.deco(box(5, 0.2, 5, 0xffffff), 0, 6, -36);
       // Versteckte Fische (per Nase) – hinter Kisten, auf Kran, im Boot
       [[-8.5, 7.2, 4], [13.5, 7.2, 13.5], [-20, 9.7, -10], [22, 2.3, -22], [19, 15.3, -4], [-20, 3.8, 20], [0, 2.9, -36], [-30, 2.3, -22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'fish', { goal: true, hidden: true }));
-      for (let i = 0; i < 14; i++) l.pickup(rnd(-22, 22), 2.3, rnd(-6, 26), 'crumb');
+      l.scatter(24);
       l.label('Die Möwe hat 8 Fische versteckt. Halte NASE gedrückt!', 0, 6, 20);
       // Möwe kreist zur Deko
       l.gull = new BirdBoss(l.game, 'seagull', 0, 0, 'Die Möwe'); l.gull.decor = true; l.group.add(l.gull.mesh);
@@ -171,7 +202,7 @@ export const LEVELS = {
       // ins Wasser gefallen?
       if (l.game.player.pos.y < 1.5) { l.game.toast('Platsch! Nass bis auf die Knochen.'); l.game.player.hurt(1); l.game.player.respawn(); }
     },
-    onGoal(l) { l.game.toast('KREEEE! Die Möwe will ihre Beute zurück!'); l.gullActive = true; l.group.remove(l.gull.mesh); setTimeout(() => { const b = new BirdBoss(l.game, 'seagull', 0, 10, 'Die Möwe'); b.pos.y = 8; l.setBoss(b); }, 1000); }
+    onGoal(l) { l.game.toast('KREEEE! Die Möwe will ihre Beute zurück!'); l.gullActive = true; l.group.remove(l.gull.mesh); l.game.later(1000, () => { const b = new BirdBoss(l.game, 'seagull', 0, 10, 'Die Möwe'); b.pos.y = 8; l.setBoss(b); }); }
   },
 
   // ----------------------------------------------------------------- DORF
@@ -185,7 +216,12 @@ export const LEVELS = {
       const houses = [[-24, -20, 0xffccbc], [-24, 0, 0xc5e1a5], [-24, 20, 0xb3e5fc], [24, -20, 0xfff59d], [24, 0, 0xd1c4e9], [24, 20, 0xffab91], [-8, -28, 0xf8bbd0], [10, -28, 0xb2dfdb]];
       houses.forEach(([x, z, c]) => { l.box(x, 0, z, 10, 5, 10, c); l.box(x, 5, z, 10.5, 0.4, 10.5, 0x8d6e63); l.deco(cone(7.5, 3.5, 0xb71c1c, 0, 0, 0, 4), x, 7.1, z, Math.PI / 4); });
       // Aufstiege: Fässer + Karren
-      [[-18, -20], [18, 0], [-14, -28]].forEach(([x, z]) => { l.box(x, 0, z, 2, 1.6, 2, 0x795548); l.box(x + (x < 0 ? -2.3 : 2.3), 0, z, 2, 3.2, 2, 0x795548); });
+      // Fass-Treppen: [niedrig x, hoch x, z] – das hohe Fass steht direkt am Haus
+      [[-15.6, -17.8, -20], [15.6, 17.8, 0], [15.6, 17.8, -20], [-16.4, -14.2, -28]].forEach(([lx, hx, z]) => { l.box(lx, 0, z, 2, 1.6, 2, 0x795548); l.box(hx, 0, z, 2, 3.4, 2, 0x795548); });
+      l.box(30, 0, -30, 4, 8, 4, 0xbcaaa4); l.deco(cone(3, 4, 0x5d4037, 0, 0, 0, 4), 30, 10, -30, Math.PI / 4); // Kirchturm
+      l.box(28.5, 8, -30, 1, 0.3, 4, 0xbcaaa4);
+      l.goldbone('kletter', 30, 8.8, -30);
+      l.goldbone('geheim', -33, 0.6, 33, { hidden: true });
       l.box(16, 0, 20, 4, 1.5, 3, 0x6d4c41); l.box(16, 1.5, 21, 4, 1.5, 1, 0x6d4c41); // Karren
       // Marktstände
       [[-8, 8], [8, 8], [-8, -8], [8, -8]].forEach(([x, z]) => { l.box(x, 0, z, 4, 1.2, 2, 0x8d6e63); l.box(x, 3.2, z, 4.6, 0.2, 3, (x + z) % 16 ? 0xef5350 : 0x42a5f5); });
@@ -193,15 +229,15 @@ export const LEVELS = {
       [[-24, 5.6, -20, 'bread'], [24, 5.6, 0, 'bread'], [-8, 5.6, -28, 'bread'], [-8, 1.5, 8, 'bread'], [8, 1.5, -8, 'bread'], [0, 1.5, 0, 'bread'], [16, 3.3, 20, 'bread'], [30, 0.3, 30, 'bread']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true, hidden: true }));
       // Taubenschwärme
       [[-12, 0], [12, 12], [0, -14], [14, -10]].forEach(([x, z]) => l.addEnemy(new Pigeon(l.game, x, z)));
-      for (let i = 0; i < 16; i++) l.pickup(rnd(-30, 30), 0.3, rnd(-30, 30), 'crumb');
+      l.scatter(30);
       l.label('Die Tauben haben 8 Brote versteckt. NASE benutzen, Tauben beißen!', 0, 5, 24);
     },
-    onGoal(l) { l.game.toast('Von der Kirchturmspitze: GURR! Die Obertaube!'); setTimeout(() => { const b = new BirdBoss(l.game, 'pigeon', 0, 0, 'Die Obertaube'); b.mesh.scale.setScalar(2.2); b.radius = 1.8; l.setBoss(b); }, 1000); }
+    onGoal(l) { l.game.toast('Von der Kirchturmspitze: GURR! Die Obertaube!'); l.game.later(1000, () => { const b = new BirdBoss(l.game, 'pigeon', 0, 0, 'Die Obertaube'); b.mesh.scale.setScalar(2.2); b.radius = 1.8; l.setBoss(b); }); }
   },
 
   // ---------------------------------------------------------------- KANAL
   kanal: {
-    name: 'Der Kanal', sky: 0x2f3542, ground: 0x3d3d3d, size: 26, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13 },
+    name: 'Der Kanal', sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13 },
     build(l) {
       l.spawn.set(-12, 2, 20); l.wallRing(26, 8, 0x57606f);
       // Abwasserrinne in der Mitte, Gehwege links/rechts
@@ -211,12 +247,15 @@ export const LEVELS = {
       [[-10], [4], [16]].forEach(([z]) => { const p = cyl(0.9, 0.9, 10, 0x8395a7, 0, 1.4, z, 10); p.rotation.z = Math.PI / 2; l.deco(p, 0, 1.4, z); l.solids.push({ min: { x: -5, y: 0.5, z: z - 0.7 }, max: { x: 5, y: 2.1, z: z + 0.7 }, active: true }); });
       // Laternen
       [[-18, -20], [18, -20], [-18, 0], [18, 0], [-18, 20], [18, 20]].forEach(([x, z]) => { l.box(x, 1, z, 0.4, 5, 0.4, 0x2f3542); const lamp = new THREE.PointLight(0x9ad7ff, 1.2, 14); lamp.position.set(x, 6.2, z); l.scene.add(lamp); l.deco(sphere(0.5, 0x9ad7ff, x, 6.2, z, 6), x, 6.2, z); });
+      l.box(22, 1, -10, 3, 1.5, 3, 0x57606f); l.box(22, 1, -14, 3, 3, 3, 0x57606f); l.box(22, 1, -18, 3, 4.5, 3, 0x57606f); // Mauervorsprünge
+      l.goldbone('kletter', 22, 6.8, -18);
+      l.goldbone('geheim', -24, 1.6, 24, { hidden: true });
       // Käse (die Ratte hortet)
       [[-16, 1.3, -22], [16, 1.3, -22], [-10, 1.3, 10], [10, 1.3, -6], [0, 2.4, 4], [16, 1.3, 22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'cheese', { goal: true }));
-      for (let i = 0; i < 12; i++) l.pickup(rnd(-22, 22), 1.3, rnd(-22, 22), 'crumb');
+      l.scatter(20);
       l.label('Käse sammeln. Hier unten wohnt etwas Großes …', 0, 4, 18);
     },
     update(l) { if (l.game.player.pos.y < 0.6 && Math.abs(l.game.player.pos.x) < 5) { l.game.toast('Igitt – Kanalbrühe!'); l.game.player.hurt(1); l.game.player.respawn(); } },
-    onGoal(l) { l.game.toast('Rote Augen im Dunkeln. DIE KANALRATTE!'); setTimeout(() => l.setBoss(new RatBoss(l.game, 0, -4)), 1000); }
+    onGoal(l) { l.game.toast('Rote Augen im Dunkeln. DIE KANALRATTE!'); l.game.later(1000, () => l.setBoss(new RatBoss(l.game, 0, -4))); }
   },
 };

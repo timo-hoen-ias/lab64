@@ -119,9 +119,12 @@ export class RunnerLevel {
       if (this.score > this.ratScore) {
         this.game.audio.sfx('win');
         this.game.toast(dream ? 'Moll gewinnt! Du wachst auf … mit Käsegeschmack im Maul.' : 'Moll ist schneller als die Ratte! Goldknochen!', 3500);
-        if (!this.game.save.done[this.mode]) { this.game.save.done[this.mode] = true; this.game.save.goldbones++; }
-        this.game.persist(); setTimeout(() => this.game.enterLevel('hub'), 3000);
-      } else { this.game.audio.sfx('lose'); this.game.toast(dream ? 'Die Ratte lacht. Der Traum beginnt von vorn …' : 'Die Ratte war gieriger. Nochmal!'); setTimeout(() => this.game.enterLevel(this.mode), 2500); }
+        this.game.later(1200, () => {
+          if (dream) this.game.awardBone('kanal', 'boss', false);
+          else { this.game.awardBone('rattenrennen', 'sieg', false); if (this.score >= 30) this.game.later(1200, () => this.game.awardBone('rattenrennen', 'gierig', false)); else this.game.toast('Tipp: Mit 30+ Würstchen gibt es einen zweiten Goldknochen.', 3000); }
+        });
+        this.game.later(4200, () => this.game.enterLevel('hub'));
+      } else { this.game.audio.sfx('lose'); this.game.toast(dream ? 'Die Ratte lacht. Der Traum beginnt von vorn …' : 'Die Ratte war gieriger. Nochmal!'); this.game.later(2500, () => this.game.enterLevel(this.mode)); }
     }
   }
   onBite() { }
