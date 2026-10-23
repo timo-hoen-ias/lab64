@@ -1,0 +1,197 @@
+// Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
+import * as THREE from 'three';
+
+const mat = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
+export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+  m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m;
+};
+export const sphere = (r, color, x = 0, y = 0, z = 0, seg = 8) => {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, seg, seg), mat(color)); m.position.set(x, y, z); m.castShadow = true; return m;
+};
+export const cyl = (rt, rb, h, color, x = 0, y = 0, z = 0, seg = 10) => {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(color)); m.position.set(x, y, z); m.castShadow = true; return m;
+};
+export const cone = (r, h, color, x = 0, y = 0, z = 0, seg = 8) => {
+  const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), mat(color)); m.position.set(x, y, z); m.castShadow = true; return m;
+};
+
+// ---------- Moll, der braune Labrador ------------------------------------
+export function makeDog() {
+  const g = new THREE.Group();
+  const brown = 0x8b5a2b, dark = 0x5a3715, nose = 0x2a1a0e;
+  const body = box(0.9, 0.6, 1.5, brown, 0, 0.75, 0); g.add(body);
+  const chest = box(0.95, 0.5, 0.5, brown, 0, 0.72, 0.55); g.add(chest);
+  const neck = box(0.5, 0.5, 0.45, brown, 0, 1.05, 0.75); g.add(neck);
+  const head = new THREE.Group(); head.position.set(0, 1.3, 0.95);
+  head.add(box(0.7, 0.6, 0.65, brown));
+  head.add(box(0.4, 0.35, 0.5, brown, 0, -0.1, 0.5)); // Schnauze
+  head.add(sphere(0.12, nose, 0, -0.02, 0.78)); // Nase
+  head.add(sphere(0.08, 0x111111, 0.22, 0.12, 0.3)); head.add(sphere(0.08, 0x111111, -0.22, 0.12, 0.3)); // Augen
+  const earL = box(0.18, 0.5, 0.3, dark, 0.4, -0.05, -0.05); earL.rotation.z = -0.25; head.add(earL);
+  const earR = box(0.18, 0.5, 0.3, dark, -0.4, -0.05, -0.05); earR.rotation.z = 0.25; head.add(earR);
+  const tongue = box(0.16, 0.05, 0.3, 0xff6b8a, 0, -0.3, 0.62); head.add(tongue);
+  g.add(head);
+  const legs = [];
+  [[0.3, 0.45], [-0.3, 0.45], [0.3, -0.5], [-0.3, -0.5]].forEach(([x, z]) => {
+    const leg = new THREE.Group(); leg.position.set(x, 0.55, z);
+    leg.add(box(0.26, 0.6, 0.28, brown, 0, -0.3, 0)); leg.add(box(0.28, 0.14, 0.34, dark, 0, -0.6, 0.03));
+    g.add(leg); legs.push(leg);
+  });
+  const tail = new THREE.Group(); tail.position.set(0, 0.95, -0.75);
+  const tailMesh = box(0.18, 0.18, 0.7, brown, 0, 0.15, -0.3); tailMesh.rotation.x = -0.6; tail.add(tailMesh);
+  g.add(tail);
+  g.userData = { head, legs, tail, body, earL, earR, tongue, t: 0 };
+  return g;
+}
+
+// Hundeanimation: speed (0..1), airborne, dt
+export function animateDog(dog, speed, airborne, dt, bite = 0) {
+  const u = dog.userData; u.t += dt * (4 + speed * 10);
+  const s = airborne ? 0 : speed;
+  u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI : 0)) * 0.8 * s; });
+  if (airborne) { u.legs[0].rotation.x = u.legs[1].rotation.x = -0.9; u.legs[2].rotation.x = u.legs[3].rotation.x = 0.7; }
+  u.tail.rotation.y = Math.sin(u.t * 1.7) * (0.5 + s * 0.4);
+  u.head.rotation.x = airborne ? -0.3 : Math.sin(u.t) * 0.05 * s;
+  u.earL.rotation.z = -0.25 - (airborne ? 0.6 : Math.abs(Math.sin(u.t)) * 0.25 * s);
+  u.earR.rotation.z = 0.25 + (airborne ? 0.6 : Math.abs(Math.sin(u.t)) * 0.25 * s);
+  u.body.scale.y = 1 + Math.sin(u.t * 2) * 0.03 * s;
+  u.tongue.visible = speed > 0.5 || bite > 0;
+  if (bite > 0) { u.head.rotation.x = -0.4 + bite * 0.9; u.head.position.z = 0.95 + bite * 0.5; }
+  else u.head.position.z = 0.95;
+}
+
+// ---------- Gegner / Figuren -------------------------------------------
+export function makeCat(color = 0x3b3b3b) {
+  const g = new THREE.Group();
+  g.add(box(1.0, 0.7, 1.7, color, 0, 0.85, 0));
+  const head = new THREE.Group(); head.position.set(0, 1.4, 1.0);
+  head.add(box(0.75, 0.65, 0.6, color)); head.add(cone(0.16, 0.35, color, 0.25, 0.45, 0)); head.add(cone(0.16, 0.35, color, -0.25, 0.45, 0));
+  head.add(sphere(0.09, 0xd8ff50, 0.2, 0.08, 0.3)); head.add(sphere(0.09, 0xd8ff50, -0.2, 0.08, 0.3));
+  head.add(sphere(0.05, 0x111111, 0.2, 0.08, 0.37)); head.add(sphere(0.05, 0x111111, -0.2, 0.08, 0.37));
+  head.add(sphere(0.08, 0xff9aa9, 0, -0.12, 0.33)); g.add(head);
+  const legs = [];
+  [[0.35, 0.6], [-0.35, 0.6], [0.35, -0.6], [-0.35, -0.6]].forEach(([x, z]) => { const l = new THREE.Group(); l.position.set(x, 0.55, z); l.add(box(0.26, 0.7, 0.28, color, 0, -0.35, 0)); g.add(l); legs.push(l); });
+  const tail = cyl(0.08, 0.1, 1.2, color, 0, 1.2, -1.2); tail.rotation.x = 0.7; g.add(tail);
+  g.userData = { head, legs, tail, t: 0 };
+  return g;
+}
+
+export function makeVacuum() {
+  const g = new THREE.Group();
+  const body = cyl(0.9, 1.0, 0.9, 0xcc3333, 0, 0.5, 0, 14); g.add(body);
+  g.add(cyl(0.6, 0.9, 0.3, 0xa62828, 0, 1.1, 0, 14));
+  g.add(sphere(0.3, 0x333333, 0, 1.3, 0));
+  const hose = cyl(0.12, 0.12, 2.2, 0x444444, 0, 0.9, 1.3); hose.rotation.x = Math.PI / 2 - 0.3; g.add(hose);
+  const nozzle = box(1.4, 0.3, 0.5, 0x222222, 0, 0.15, 2.3); g.add(nozzle);
+  g.add(sphere(0.14, 0xffffff, 0.35, 0.85, 0.85)); g.add(sphere(0.14, 0xffffff, -0.35, 0.85, 0.85));
+  g.add(sphere(0.07, 0x111111, 0.35, 0.85, 0.98)); g.add(sphere(0.07, 0x111111, -0.35, 0.85, 0.98));
+  [[0.6, 0.6], [-0.6, 0.6], [0, -0.7]].forEach(([x, z]) => { const w = cyl(0.2, 0.2, 0.15, 0x222222, x, 0.2, z); w.rotation.z = Math.PI / 2; g.add(w); });
+  g.userData = { nozzle, body, t: 0 };
+  return g;
+}
+
+export function makeCanOpener() {
+  const g = new THREE.Group();
+  const armL = box(0.5, 4.5, 0.4, 0xbfc5cc, -0.6, 2.5, 0); const armR = box(0.5, 4.5, 0.4, 0xbfc5cc, 0.6, 2.5, 0);
+  armL.rotation.z = 0.12; armR.rotation.z = -0.12; g.add(armL, armR);
+  g.add(box(1.4, 0.9, 0.6, 0x8a9099, 0, 4.9, 0));
+  const blade = cyl(0.6, 0.6, 0.15, 0xdfe6ee, 0, 0.5, 0.2, 16); blade.rotation.x = Math.PI / 2; g.add(blade);
+  const knob = cyl(0.25, 0.25, 0.9, 0x555555, 0, 4.9, 0.8); knob.rotation.x = Math.PI / 2; g.add(knob);
+  g.add(sphere(0.18, 0xffffff, 0.3, 5.1, 0.35)); g.add(sphere(0.18, 0xffffff, -0.3, 5.1, 0.35));
+  g.add(sphere(0.09, 0x111111, 0.3, 5.1, 0.5)); g.add(sphere(0.09, 0x111111, -0.3, 5.1, 0.5));
+  g.userData = { blade, knob, t: 0 };
+  return g;
+}
+
+export function makeBird(kind = 'seagull') {
+  const g = new THREE.Group();
+  const c = kind === 'seagull' ? 0xf4f4f4 : 0x7d8aa0, wing = kind === 'seagull' ? 0xd9d9d9 : 0x5b6880, beak = kind === 'seagull' ? 0xffb21c : 0x333333;
+  const s = kind === 'seagull' ? 1.6 : 1.0;
+  g.add(box(0.5 * s, 0.4 * s, 1.0 * s, c, 0, 0.4 * s, 0));
+  const head = sphere(0.28 * s, c, 0, 0.7 * s, 0.55 * s); g.add(head);
+  g.add(cone(0.1 * s, 0.4 * s, beak, 0, 0.68 * s, 0.9 * s).rotateX(Math.PI / 2));
+  g.add(sphere(0.06 * s, 0x111111, 0.15 * s, 0.78 * s, 0.7 * s)); g.add(sphere(0.06 * s, 0x111111, -0.15 * s, 0.78 * s, 0.7 * s));
+  const wL = box(1.2 * s, 0.08 * s, 0.6 * s, wing, 0.8 * s, 0.5 * s, 0); const wR = box(1.2 * s, 0.08 * s, 0.6 * s, wing, -0.8 * s, 0.5 * s, 0);
+  const pivL = new THREE.Group(); pivL.position.set(0.25 * s, 0.5 * s, 0); wL.position.set(0.6 * s, 0, 0); pivL.add(wL);
+  const pivR = new THREE.Group(); pivR.position.set(-0.25 * s, 0.5 * s, 0); wR.position.set(-0.6 * s, 0, 0); pivR.add(wR);
+  g.add(pivL, pivR);
+  g.add(box(0.3 * s, 0.05 * s, 0.4 * s, wing, 0, 0.45 * s, -0.6 * s));
+  g.add(cyl(0.03, 0.03, 0.3 * s, beak, 0.12 * s, 0.1 * s, 0)); g.add(cyl(0.03, 0.03, 0.3 * s, beak, -0.12 * s, 0.1 * s, 0));
+  g.userData = { wings: [pivL, pivR], t: 0 };
+  return g;
+}
+
+export function makeRat(scale = 1) {
+  const g = new THREE.Group();
+  const c = 0x6f6f72;
+  g.add(box(0.7, 0.5, 1.2, c, 0, 0.45, 0)); g.add(box(0.5, 0.45, 0.6, c, 0, 0.55, 0.8));
+  g.add(cone(0.18, 0.45, 0xffb6c1, 0, 0.5, 1.3).rotateX(Math.PI / 2));
+  g.add(sphere(0.18, 0xffb6c1, 0.28, 0.85, 0.65)); g.add(sphere(0.18, 0xffb6c1, -0.28, 0.85, 0.65));
+  g.add(sphere(0.07, 0xff2222, 0.18, 0.65, 1.05)); g.add(sphere(0.07, 0xff2222, -0.18, 0.65, 1.05));
+  const tail = cyl(0.03, 0.08, 1.4, 0xffb6c1, 0, 0.35, -1.2); tail.rotation.x = Math.PI / 2 + 0.3; g.add(tail);
+  const legs = [];
+  [[0.25, 0.5], [-0.25, 0.5], [0.25, -0.4], [-0.25, -0.4]].forEach(([x, z]) => { const l = box(0.15, 0.35, 0.15, 0xffb6c1, x, 0.18, z); g.add(l); legs.push(l); });
+  g.scale.setScalar(scale);
+  g.userData = { legs, tail, t: 0 };
+  return g;
+}
+
+export function makeFatMan() {
+  const g = new THREE.Group();
+  g.add(cyl(0.5, 0.9, 1.5, 0x3a5fa8, 0, 1.0, 0, 12)); // Hose
+  g.add(cyl(1.0, 0.95, 1.3, 0xf2c744, 0, 2.3, 0, 12)); // Hemd / Bauch
+  g.add(sphere(0.55, 0xf5c9a2, 0, 3.4, 0, 10)); // Kopf
+  g.add(cyl(0.6, 0.6, 0.2, 0x8b1e1e, 0, 3.85, 0, 12)); g.add(cyl(0.35, 0.35, 0.3, 0x8b1e1e, 0, 4.05, 0, 12)); // Mütze
+  g.add(sphere(0.07, 0x111111, 0.2, 3.5, 0.5)); g.add(sphere(0.07, 0x111111, -0.2, 3.5, 0.5));
+  g.add(box(0.25, 0.08, 0.1, 0x3b2412, 0, 3.2, 0.52)); // Schnurrbart
+  const armL = box(0.35, 1.3, 0.35, 0xf2c744, 1.05, 2.3, 0); const armR = box(0.35, 1.3, 0.35, 0xf2c744, -1.05, 2.3, 0);
+  g.add(armL, armR);
+  const bag = box(0.9, 1.0, 0.6, 0xd9a066, 1.1, 1.3, 0.3); g.add(bag); // Einkaufstüte
+  g.add(box(0.5, 0.2, 0.5, 0xffe08a, 1.1, 1.9, 0.3)); g.add(cyl(0.18, 0.18, 0.5, 0xe8a04a, 0.9, 2.0, 0.3)); // Brot + Wurst oben in der Tüte
+  const legs = [];
+  [[0.35], [-0.35]].forEach(([x]) => { const l = box(0.4, 0.9, 0.4, 0x3a5fa8, x, 0.45, 0); g.add(l); legs.push(l); });
+  g.userData = { legs, arms: [armL, armR], t: 0 };
+  return g;
+}
+
+export function makeLabel(text, color = '#fff8e7', bg = 'rgba(59,36,18,.75)', size = 44) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = bg; x.beginPath(); x.roundRect(10, 20, 492, 88, 30); x.fill();
+  x.font = `900 ${size}px Trebuchet MS, sans-serif`; while (x.measureText(text).width > 460 && size > 16) { size -= 2; x.font = `900 ${size}px Trebuchet MS, sans-serif`; } x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = color;
+  x.fillText(text, 256, 66);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(4, 1, 1); return sp;
+}
+
+// Sammelobjekte
+export function makeFood(kind) {
+  const g = new THREE.Group();
+  switch (kind) {
+    case 'ham': g.add(cyl(0.35, 0.4, 0.45, 0xf08c8c, 0, 0.25, 0, 10)); g.add(cyl(0.12, 0.12, 0.9, 0xfff2cc, 0, 0.25, 0, 8).rotateZ(Math.PI / 2)); break;
+    case 'treat': g.add(box(0.7, 0.2, 0.25, 0xd9a066, 0, 0.2, 0)); g.add(sphere(0.16, 0xd9a066, 0.35, 0.2, 0.1)); g.add(sphere(0.16, 0xd9a066, 0.35, 0.2, -0.1)); g.add(sphere(0.16, 0xd9a066, -0.35, 0.2, 0.1)); g.add(sphere(0.16, 0xd9a066, -0.35, 0.2, -0.1)); break;
+    case 'fish': g.add(box(0.8, 0.3, 0.2, 0x7fb6d8, 0, 0.2, 0)); g.add(cone(0.2, 0.35, 0x7fb6d8, -0.55, 0.2, 0).rotateZ(Math.PI / 2)); g.add(sphere(0.05, 0x111111, 0.25, 0.25, 0.11)); break;
+    case 'bread': g.add(box(0.6, 0.35, 0.4, 0xe8b86d, 0, 0.2, 0)); g.add(box(0.5, 0.1, 0.35, 0xc98a3e, 0, 0.42, 0)); break;
+    case 'sausage': g.add(cyl(0.14, 0.14, 0.8, 0xc8502e, 0, 0.2, 0, 8).rotateZ(Math.PI / 2)); break;
+    case 'cheese': g.add(box(0.6, 0.35, 0.5, 0xffd94a, 0, 0.2, 0)); g.add(sphere(0.08, 0xd9b300, 0.15, 0.4, 0.1)); g.add(sphere(0.06, 0xd9b300, -0.18, 0.3, -0.15)); break;
+    case 'bone': g.add(box(0.7, 0.18, 0.18, 0xffe9a8, 0, 0.3, 0)); [[0.35, 0.1], [0.35, -0.1], [-0.35, 0.1], [-0.35, -0.1]].forEach(([x, z]) => g.add(sphere(0.14, 0xffe9a8, x, 0.3, z))); break;
+    case 'goldbone': g.add(box(0.9, 0.22, 0.22, 0xffcc33, 0, 0.5, 0)); [[0.45, 0.12], [0.45, -0.12], [-0.45, 0.12], [-0.45, -0.12]].forEach(([x, z]) => g.add(sphere(0.18, 0xffcc33, x, 0.5, z))); break;
+    default: g.add(sphere(0.18, 0xd98c4a, 0, 0.2, 0)); // Krümel
+  }
+  g.userData.spin = Math.random() * Math.PI * 2;
+  return g;
+}
+
+export function makeTree(scale = 1) {
+  const g = new THREE.Group();
+  g.add(cyl(0.25 * scale, 0.35 * scale, 1.5 * scale, 0x7a4a1f, 0, 0.75 * scale, 0, 7));
+  g.add(cone(1.3 * scale, 2 * scale, 0x4caa4c, 0, 2.3 * scale, 0, 7)); g.add(cone(1.0 * scale, 1.6 * scale, 0x5fc25f, 0, 3.3 * scale, 0, 7));
+  return g;
+}
+export function makeBush(w = 2) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 4; i++) g.add(sphere(w * 0.45, i % 2 ? 0x3d9a3d : 0x4fb24f, (Math.random() - 0.5) * w * 0.6, 0.5 + Math.random() * 0.3, (Math.random() - 0.5) * w * 0.6, 6));
+  return g;
+}

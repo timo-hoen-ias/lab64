@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Moll – Der Labrador</title>
+<style>
+  :root{
+    --ui:#fff8e7; --ink:#3b2412; --accent:#f4a52a; --good:#7bd36a; --bad:#e9553f;
+    --sa-t:env(safe-area-inset-top,0px); --sa-b:env(safe-area-inset-bottom,0px);
+    --sa-l:env(safe-area-inset-left,0px); --sa-r:env(safe-area-inset-right,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#6fc3ff;font-family:"Trebuchet MS",Verdana,sans-serif;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  canvas#game{display:block;width:100%;height:100%}
+  #hud{position:fixed;inset:0;pointer-events:none;color:var(--ui);text-shadow:0 2px 0 var(--ink),0 0 6px rgba(0,0,0,.4);font-weight:700}
+  #hud .top{position:absolute;top:calc(var(--sa-t) + 10px);left:calc(var(--sa-l) + 14px);right:calc(var(--sa-r) + 14px);display:flex;justify-content:space-between;align-items:flex-start;font-size:clamp(14px,2.4vw,22px)}
+  #hud .stat{background:rgba(59,36,18,.55);padding:6px 12px;border-radius:14px;border:2px solid rgba(255,248,231,.5)}
+  #hearts span{color:var(--bad);font-size:1.3em}
+  #toast{position:absolute;left:50%;top:calc(var(--sa-t) + 70px);transform:translateX(-50%);background:rgba(59,36,18,.75);padding:10px 18px;border-radius:14px;font-size:clamp(15px,2.6vw,24px);opacity:0;transition:opacity .25s;max-width:90vw;text-align:center}
+  #toast.show{opacity:1}
+  #bossbar{position:absolute;left:50%;bottom:calc(var(--sa-b) + 160px);transform:translateX(-50%);width:min(70vw,460px);display:none}
+  #bossbar .name{font-size:clamp(14px,2.4vw,20px);margin-bottom:4px;text-align:center}
+  #bossbar .bar{height:16px;border:3px solid var(--ui);border-radius:10px;background:rgba(0,0,0,.4);overflow:hidden}
+  #bossbar .fill{height:100%;background:linear-gradient(#ff8a65,#e9553f);width:100%;transition:width .2s}
+  #sniff{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-size:60px;display:none;filter:drop-shadow(0 3px 0 var(--ink))}
+
+  /* Touch controls */
+  #touch{position:fixed;inset:0;pointer-events:none;display:none}
+  body.touch #touch{display:block}
+  #stick{position:absolute;left:calc(var(--sa-l) + 30px);bottom:calc(var(--sa-b) + 30px);width:140px;height:140px;border-radius:50%;background:rgba(255,248,231,.18);border:3px solid rgba(255,248,231,.45);pointer-events:auto}
+  #knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,248,231,.85);box-shadow:0 3px 0 var(--ink)}
+  .btn{position:absolute;width:72px;height:72px;border-radius:50%;background:var(--accent);border:3px solid var(--ui);box-shadow:0 4px 0 var(--ink);color:var(--ink);font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;pointer-events:auto;text-shadow:none}
+  .btn:active,.btn.on{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+  #bJump{right:calc(var(--sa-r) + 30px);bottom:calc(var(--sa-b) + 40px)}
+  #bAct{right:calc(var(--sa-r) + 115px);bottom:calc(var(--sa-b) + 30px);background:var(--good)}
+  #bSniff{right:calc(var(--sa-r) + 60px);bottom:calc(var(--sa-b) + 125px);width:58px;height:58px;background:#9ad7ff;font-size:13px}
+  #bPause{top:calc(var(--sa-t) + 60px);right:calc(var(--sa-r) + 14px);width:44px;height:44px;background:rgba(59,36,18,.6);color:var(--ui);border-width:2px;font-size:16px}
+  #camZone{position:absolute;right:0;top:25%;width:45%;height:45%;pointer-events:auto}
+
+  /* Menu overlay */
+  #menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#ffd56b,#f4a52a 45%,#c7641e);padding:calc(var(--sa-t)+16px) max(16px,var(--sa-r)) calc(var(--sa-b)+16px) max(16px,var(--sa-l))}
+  #menu .card{background:var(--ui);color:var(--ink);border-radius:26px;padding:28px 30px;max-width:520px;width:100%;box-shadow:0 10px 0 var(--ink);text-align:center;border:5px solid var(--ink)}
+  #menu h1{margin:0 0 4px;font-size:clamp(36px,8vw,64px);letter-spacing:-1px;line-height:1}
+  #menu h1 small{display:block;font-size:.35em;letter-spacing:4px;text-transform:uppercase;color:#a0561b}
+  #menu p{margin:10px 0;font-size:15px;line-height:1.45}
+  #menu button{font:inherit;font-weight:900;font-size:20px;padding:14px 28px;border-radius:16px;border:4px solid var(--ink);background:var(--accent);color:var(--ink);box-shadow:0 5px 0 var(--ink);cursor:pointer;margin:6px}
+  #menu button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+  #menu .keys{font-size:13px;color:#6b4a2b;margin-top:12px}
+  #menu.hidden{display:none}
+  #dogIcon{font-size:70px;line-height:1;filter:drop-shadow(0 4px 0 var(--ink))}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="top">
+    <div class="stat" id="levelName">Molls Garten</div>
+    <div class="stat" id="hearts"><span>♥</span><span>♥</span><span>♥</span></div>
+    <div class="stat" id="counter">🦴 0</div>
+  </div>
+  <div id="toast"></div>
+  <div id="sniff">👃</div>
+  <div id="bossbar"><div class="name">Boss</div><div class="bar"><div class="fill"></div></div></div>
+</div>
+
+<div id="touch">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="camZone"></div>
+  <div class="btn" id="bJump">SPRUNG</div>
+  <div class="btn" id="bAct">BISS</div>
+  <div class="btn" id="bSniff">NASE</div>
+  <div class="btn" id="bPause">II</div>
+</div>
+
+<div id="menu">
+  <div class="card">
+    <div id="dogIcon">🐕</div>
+    <h1>MOLL<small>Der Labrador</small></h1>
+    <p id="menuText">Ein brauner Labrador. Eine Welt voller Schinken. Und ein Staubsauger, der alles kaputt macht.</p>
+    <button id="btnStart">Spielen</button>
+    <button id="btnReset" style="background:#ddd;font-size:14px;padding:8px 14px">Spielstand löschen</button>
+    <div class="keys">Tastatur: WASD/Pfeile · Leertaste Sprung · Shift/E Biss · F Nase · Q/R Kamera · Esc Pause<br>Gamepad: Stick links laufen · Stick rechts Kamera · A Sprung · X Biss · Y Nase · Start Pause<br>Touch: Stick links · Wischen rechts = Kamera · Buttons rechts</div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

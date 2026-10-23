@@ -1,0 +1,124 @@
+// Spielzustand, Kamera, HUD, Levelwechsel, Speicherstand.
+import * as THREE from 'three';
+import { Input } from './input.js';
+import { AudioEngine } from './audio.js';
+import { Player } from './player.js';
+import { Level } from './level.js';
+import { LEVELS } from './levels.js';
+import { RunnerLevel } from './runner.js';
+
+const SAVE_KEY = 'moll-save-v1';
+
+export class Game {
+  constructor() {
+    this.canvas = document.getElementById('game');
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+    this.input = new Input(); this.audio = new AudioEngine();
+    this.player = new Player(this);
+    this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
+    this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
+    this.paused = true; this.level = null; this.clock = new THREE.Clock();
+    this.save = this.loadSave();
+    window.addEventListener('resize', () => this.resize()); this.resize();
+    document.getElementById('btnStart').addEventListener('click', () => this.start());
+    document.getElementById('btnReset').addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); this.save = this.loadSave(); this.toast('Spielstand gelöscht'); });
+    this.enterLevel('hub', true);
+    this.loop();
+  }
+
+  loadSave() { try { return Object.assign({ goldbones: 0, crumbs: 0, done: {}, bones: {} }, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { return { goldbones: 0, crumbs: 0, done: {}, bones: {} }; } }
+  persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } }
+
+  resize() { const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
+
+  start() {
+    this.audio.init(); this.audio.resume();
+    document.getElementById('menu').classList.add('hidden'); this.paused = false;
+    if (this.level) this.audio.playTheme(this.level.def.music);
+  }
+  pause() {
+    this.paused = true; const m = document.getElementById('menu'); m.classList.remove('hidden');
+    document.getElementById('btnStart').textContent = 'Weiter';
+    document.getElementById('menuText').textContent = `Pause. Goldknochen: ${this.save.goldbones} / 10 · Krümel: ${this.save.crumbs}`;
+    this.audio.stopMusic();
+  }
+
+  enterLevel(key, silent = false) {
+    if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    this.hideBoss(); this.suspicion(0);
+    if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
+    else { this.level = new Level(this, LEVELS[key]); this.level.key = key; this.level.scene.add(this.player.mesh); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
+    this.level.key = key;
+    this.hud.levelName.textContent = this.level.def.name;
+    this.updateHearts(); this.updateCounter();
+    if (!silent) { this.audio.sfx('portal'); this.audio.playTheme(this.level.def.music); }
+    if (!this.level.isRunner) { const intro = this.level.intro; if (key !== 'hub') this.toast(this.level.def.name + (intro ? ' – ' + intro : ''), 4500); else if (intro) this.toast(intro, 3500); }
+  }
+
+  // ------------------------------------------------------------- HUD
+  updateHearts() { this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, 3 - this.player.hp)); }
+  updateCounter() {
+    const l = this.level; if (!l || l.isRunner) return;
+    const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀' }[l.goal.kind] || '⭐';
+    this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   🦴 ${this.save.goldbones}   ✦ ${this.save.crumbs}` : `🦴 ${this.save.goldbones}/8   ✦ ${this.save.crumbs}`;
+  }
+  toast(text, ms = 2600) { const t = this.hud.toast; t.textContent = text; t.classList.add('show'); clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove('show'), ms); }
+  hint(text) { if (text && this._hint !== text) { this.toast(text, 1200); } this._hint = text; }
+  showBoss(b) { this.hud.boss.style.display = 'block'; this.hud.boss.querySelector('.name').textContent = b.name; }
+  updateBossBar(b) { this.hud.boss.querySelector('.fill').style.width = `${Math.max(0, b.hp / b.maxHp * 100)}%`; }
+  hideBoss() { this.hud.boss.style.display = 'none'; }
+  sniffHint(p, d) {
+    const s = this.hud.sniff; if (!p) { s.style.display = 'none'; return; }
+    s.style.display = 'block'; const k = Math.max(0, 1 - d / 25); s.style.transform = `translate(-50%,-50%) scale(${0.6 + k * 1.2})`; s.textContent = d < 6 ? '👃‼️' : d < 14 ? '👃❗' : '👃';
+    if (d < 6 && !this._sniffS) { this.audio.sfx('sniff'); this._sniffS = true; } else if (d >= 6) this._sniffS = false;
+  }
+  suspicion(v) {
+    let el = this._sus; if (!el) { el = this._sus = document.createElement('div'); el.style.cssText = 'position:absolute;left:50%;top:38%;transform:translateX(-50%);font-size:64px;display:none;filter:drop-shadow(0 3px 0 #3b2412)'; document.getElementById('hud').appendChild(el); }
+    if (v <= 0.02) { el.style.display = 'none'; return; } el.style.display = 'block'; el.textContent = v > 0.66 ? '‼️' : v > 0.33 ? '❗' : '👀'; el.style.opacity = 0.4 + v * 0.6;
+  }
+
+  // ---------------------------------------------------------- Ereignisse
+  collect(p, level) {
+    if (p.kind === 'goldbone') { this.audio.sfx('win'); return; }
+    if (p.goal) { level.goal.have++; this.audio.sfx('big'); this.input.vibrate(60); level.checkGoal(); }
+    else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); }
+    this.updateCounter();
+  }
+  levelComplete(level) {
+    if (!this.save.done[level.key]) { this.save.done[level.key] = true; this.save.goldbones++; }
+    this.persist(); this.updateCounter(); this.toast(`Level geschafft! Goldknochen ${this.save.goldbones}/8`, 3500);
+    this.player.frozen = true; setTimeout(() => { this.player.frozen = false; this.enterLevel('hub'); }, 2500);
+  }
+  onDeath() { this.toast('Moll braucht ein Nickerchen … zurück zum Garten.', 3000); this.audio.sfx('lose'); setTimeout(() => this.enterLevel('hub'), 1800); this.player.hp = 3; }
+
+  // ------------------------------------------------------------- Kamera
+  updateCamera(dt) {
+    const c = this.input.consumeCam(); this.camYaw -= c.x; this.camPitch = Math.max(0.1, Math.min(1.2, this.camPitch + c.y));
+    const p = this.player.pos; const target = new THREE.Vector3(p.x, p.y + 1.2, p.z);
+    const off = new THREE.Vector3(Math.sin(this.camYaw) * Math.cos(this.camPitch), Math.sin(this.camPitch), Math.cos(this.camYaw) * Math.cos(this.camPitch)).multiplyScalar(this.camDist);
+    // Kamera-Kollision: Wände zwischen Hund und Kamera verkürzen den Abstand
+    if (!this.level._camMeshes) this.level._camMeshes = this.level.solids.filter(s => s.mesh && s.max.y - s.min.y > 2.2).map(s => s.mesh);
+    this._ray = this._ray || new THREE.Raycaster();
+    this._ray.set(target, off.clone().normalize()); this._ray.far = this.camDist;
+    const hit = this._ray.intersectObjects(this.level._camMeshes, false)[0];
+    if (hit) off.setLength(Math.max(1.5, hit.distance - 0.4));
+    const want = target.clone().add(off);
+    // Kamera nicht unter den Boden / in Blöcke
+    want.y = Math.max(want.y, 1.2);
+    this.camera.position.lerp(want, Math.min(1, dt * (hit ? 20 : 6))); this.camera.lookAt(target);
+  }
+
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    const dt = Math.min(0.05, this.clock.getDelta());
+    this.input.update();
+    if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
+    if (!this.paused && this.level) {
+      if (this.level.isRunner) this.level.update(dt);
+      else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); }
+    }
+    if (this.level) this.renderer.render(this.level.scene, this.camera);
+  }
+}
