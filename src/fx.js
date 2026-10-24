@@ -455,7 +455,7 @@ export function makeAmbient(kind, n, radius = 14, height = 8) {
   for (let i = 0; i < n; i++) { P.push({ x: (Math.random() * 2 - 1) * radius, y: Math.random() * height, z: (Math.random() * 2 - 1) * radius, ph: Math.random() * 7, sp: 0.6 + Math.random() * 0.8, r: Math.random() * 6 }); m.setColorAt(i, col.set(K.colors[i % K.colors.length])); }
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
   let t = 0; const ox = { v: 0 }, oz = { v: 0 };
-  m.userData.update = (dt, c, floor = 0) => {
+  m.userData.update = (dt, c, floor = 0, hide = null) => { // hide(x, y, z): Teilchen dort nicht zeigen (z.B. Regen unter einem Dach)
     t += dt;
     for (let i = 0; i < n; i++) {
       const a = P[i];
@@ -467,6 +467,7 @@ export function makeAmbient(kind, n, radius = 14, height = 8) {
       if (K.blink) sz *= Math.max(0.15, Math.sin(t * 2.2 * a.sp + a.ph));
       a.r += dt * (K.flat ? 3 : 1) * a.sp;
       q.setFromEuler(e.set(K.flat ? a.r : 0.3, a.r * 0.6, K.flat ? Math.sin(a.r) : 0));
+      if (hide && hide(a.x, floor + a.y, a.z)) sz = 0;
       M.compose(p.set(a.x, floor + a.y, a.z), q, K.streak ? s.set(sz * 0.5, sz * 7, sz * 0.5) : s.set(sz, sz, sz)); m.setMatrixAt(i, M);
     }
     m.instanceMatrix.needsUpdate = true;

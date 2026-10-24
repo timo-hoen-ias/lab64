@@ -5,7 +5,7 @@ import { box, cyl, sphere, cone, makeNpcDog } from './models.js';
 import { FX } from './fx.js';
 
 // Ball: Radius und Sitz im Maul (Mittelpunkt, im Koordinatensystem von Molls Kopf: vorn an der Schnauze, auf Höhe der Lefzen)
-const BALL_R = 0.26, MOUTH = new THREE.Vector3(0, -0.31, 0.95);
+const BALL_R = 0.26, BONE_R = 0.13, MOUTH = new THREE.Vector3(0, -0.31, 0.95), MOUTH_BONE = new THREE.Vector3(0, -0.3, 0.88);
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _ax = new THREE.Vector3(), _q = new THREE.Quaternion();
 
 // Tasten: TRILLER = C / Gamepad B / Touch 🌀, BELLEN = V / Gamepad RB / Touch 📢
@@ -131,17 +131,22 @@ export function installGadgets(Level) {
     },
     updraftAt(p) { return (this.updrafts || []).find(u => Math.hypot(u.x - p.x, u.z - p.z) < u.r && p.y > u.y0 - 1 && p.y < u.y0 + u.h + 1); },
     // ---- Apportieren: Gegenstand, den man trägt, und ein Ziel, das ihn annimmt
-    fetchItem(x, y, z, kind = 'ball') {
+    fetchItem(x, y, z, kind = 'ball', o = {}) {
       const m = new THREE.Group();
-      let spin = null;
+      let spin = null, r = BALL_R;
       if (kind === 'ball') { // Kugel in eigener Gruppe um den Mittelpunkt, damit sie beim Rollen nicht eiert
         spin = new THREE.Group(); spin.position.y = BALL_R; m.add(spin);
-        spin.add(sphere(BALL_R, 0xc6e83a, 0, 0, 0, 12)); spin.add(new THREE.Mesh(new THREE.TorusGeometry(BALL_R, 0.025, 4, 18), new THREE.MeshLambertMaterial({ color: 0xffffff })));
+        spin.add(sphere(BALL_R, o.color ?? 0xc6e83a, 0, 0, 0, 12)); spin.add(new THREE.Mesh(new THREE.TorusGeometry(BALL_R, 0.025, 4, 18), new THREE.MeshLambertMaterial({ color: o.stripe ?? 0xffffff })));
+      } else if (kind === 'quietsch') { // Quietsche-Knochen: liegt quer, rutscht und kreiselt statt zu rollen, quiekt beim Beißen
+        r = BONE_R; spin = new THREE.Group(); spin.position.y = BONE_R; m.add(spin); const c = o.color ?? 0xff8fb1;
+        spin.add(cyl(0.08, 0.08, 0.62, c, 0, 0, 0, 8).rotateZ(Math.PI / 2));
+        [-1, 1].forEach(sx => [-1, 1].forEach(sz => spin.add(sphere(0.12, c, sx * 0.34, 0, sz * 0.08, 8))));
+        spin.add(sphere(0.05, 0xffffff, 0, 0.07, 0, 6)); // Quietscher
       }
       else if (kind === 'key') { m.add(cyl(0.22, 0.22, 0.08, 0xffcc33, 0, 0.3, 0, 10).rotateX(Math.PI / 2)); m.add(box(0.1, 0.1, 0.6, 0xffcc33, 0, 0.3, 0.4)); }
       else m.add(box(0.14, 0.14, 1.3, 0x8d6e4a, 0, 0.15, 0));
       m.position.set(x, y, z); this.group.add(m);
-      const it = { x, y, z, kind, mesh: m, spin, carried: false, done: false, vx: 0, vy: 0, vz: 0, home: { x, y, z } }; (this.fetchItems ||= []).push(it); return it;
+      const it = { x, y, z, kind, mesh: m, spin, r, roll: kind === 'ball', squeak: kind === 'quietsch', carried: false, done: false, vx: 0, vy: 0, vz: 0, home: { x, y, z } }; (this.fetchItems ||= []).push(it); return it;
     },
     fetchGoal(x, y, z, r, kind, cb) { const fg = { x, y, z, r, kind, cb, done: false }; (this.fetchGoals ||= []).push(fg); return fg; },
     fetchNear(p) { return (this.fetchItems || []).find(it => !it.carried && !it.done && Math.hypot(it.x - p.x, it.z - p.z) < (it.spin ? 2.4 : 1.9) && Math.abs(it.y - p.y) < 1.5); }, // Ball liegt oft vor der Schnauze
@@ -150,31 +155,32 @@ export function installGadgets(Level) {
       if (it.spin) { // Ball fällt aus dem Maul (dort, wo er gerade ist) und rollt mit Molls Schwung weiter
         const v = vel || { x: 0, y: 0, z: 0 }; it.vx = v.x * 0.8 + (at.x - this.game.player.pos.x) * 0.6; it.vz = v.z * 0.8 + (at.z - this.game.player.pos.z) * 0.6; it.vy = Math.max(0, v.y) + 1;
         if (!this._ballFree(it, it.x, it.y, it.z)) { it.x = at.x; it.z = at.z; it.y = Math.max(it.y, this.groundAt(at.x, at.z, at.y + 0.5)); }
-        it.mesh.position.set(it.x, it.y, it.z); this._fetchGoalCheck(it, at); return;
+        it.mesh.position.set(it.x, it.y, it.z); this.toySqueak(it); this._fetchGoalCheck(it, at); return;
       }
       it.x = at.x; it.z = at.z; it.y = Math.max(this.groundAt(at.x, at.z, at.y + 0.5), this.def.floorY ?? -Infinity, -50); it.mesh.position.set(it.x, it.y, it.z);
       this._fetchGoalCheck(it, at);
     },
     _fetchGoalCheck(it, at = it) {
       const fg = (this.fetchGoals || []).find(f => !f.done && f.kind === it.kind && Math.hypot(f.x - at.x, f.z - at.z) < f.r && Math.abs(f.y - it.y) < 2);
-      if (fg) { fg.done = true; it.done = true; this.game.audio.sfx('big'); FX.sparkle(this.game.fx, it); fg.cb(it); }
+      if (fg) { fg.done = true; it.done = !it.spin; // Spielzeug bleibt danach spielbar
+        this.game.audio.sfx('big'); FX.sparkle(this.game.fx, it); fg.cb(it); }
     },
     // Ball-Physik: Schwerkraft, Hangabtrieb, Rollreibung, Abprallen an Kisten/Wänden/steilem Gelände, Schwimmen im Wasser.
-    // it.x/y/z ist der Auflagepunkt unten am Ball, der Mittelpunkt liegt BALL_R darüber.
+    // it.x/y/z ist der Auflagepunkt unten am Ball, der Mittelpunkt liegt it.r darüber.
     _ballGround(x, z, y) { return Math.max(this.groundAt(x, z, y + 0.3), this.def.floorY ?? -Infinity); },
     _ballFree(it, x, y, z) { // frei = kein Körper und kein Gelände ragt in die Kugel
-      for (const s of this.solids) if (s.active && s !== it.solidIgnore && x + BALL_R > s.min.x && x - BALL_R < s.max.x && z + BALL_R > s.min.z && z - BALL_R < s.max.z && y + 0.12 < s.max.y && y + BALL_R * 2 > s.min.y) return false;
+      for (const s of this.solids) if (s.active && s !== it.solidIgnore && x + it.r > s.min.x && x - it.r < s.max.x && z + it.r > s.min.z && z - it.r < s.max.z && y + 0.12 < s.max.y && y + it.r * 2 > s.min.y) return false;
       const h = this.heightAt(x, z, y); return !(h > y + 0.25);
     },
     _rollBall(it, dt, pl) {
       const G = 22, ground = this._ballGround(it.x, it.z, it.y), wy = this.waterAt ? this.waterAt(it.x, it.z) : null;
       const onGround = it.y <= ground + 0.02 && it.vy <= 0.5;
-      if (wy !== null && it.y + BALL_R * 0.8 < wy) { // Wasser: Auftrieb, starke Bremse, Ball dümpelt an der Oberfläche
-        it.vy += (wy - BALL_R * 0.8 - it.y) * 18 * dt - it.vy * 3 * dt; const k = Math.exp(-1.5 * dt); it.vx *= k; it.vz *= k;
+      if (wy !== null && it.y + it.r * 0.8 < wy) { // Wasser: Auftrieb, starke Bremse, Ball dümpelt an der Oberfläche
+        it.vy += (wy - it.r * 0.8 - it.y) * 18 * dt - it.vy * 3 * dt; const k = Math.exp(-1.5 * dt); it.vx *= k; it.vz *= k;
       } else if (onGround) {
         const e = 0.25, gx = (this._ballGround(it.x + e, it.z, it.y) - this._ballGround(it.x - e, it.z, it.y)) / (2 * e), gz = (this._ballGround(it.x, it.z + e, it.y) - this._ballGround(it.x, it.z - e, it.y)) / (2 * e);
-        if (Math.abs(gx) < 2 && Math.abs(gz) < 2) { it.vx -= G * 0.71 * gx * dt; it.vz -= G * 0.71 * gz * dt; } // rollende Kugel: 5/7 der Hangkraft; Kanten (Sprung im Boden) zählen nicht
-        const sp = Math.hypot(it.vx, it.vz), dec = Math.min(sp, (1.5 + sp * 0.6) * dt); // Rollreibung + Luftwiderstand
+        const slide = it.roll ? 0.71 : 0.35; if (Math.abs(gx) < 2 && Math.abs(gz) < 2 && (it.roll || Math.hypot(gx, gz) > 0.35)) { it.vx -= G * slide * gx * dt; it.vz -= G * slide * gz * dt; } // Knochen rutscht erst auf steilen Hängen // rollende Kugel: 5/7 der Hangkraft; Kanten (Sprung im Boden) zählen nicht
+        const sp = Math.hypot(it.vx, it.vz), dec = Math.min(sp, (it.roll ? 1.5 + sp * 0.6 : 5 + sp * 0.8) * dt); // Rollreibung + Luftwiderstand
         if (sp > 0) { it.vx -= it.vx / sp * dec; it.vz -= it.vz / sp * dec; }
         if (Math.hypot(it.vx, it.vz) < 0.03 && Math.hypot(gx, gz) < 0.02) it.vx = it.vz = 0;
       } else it.vy -= G * dt;
@@ -182,16 +188,16 @@ export function installGadgets(Level) {
       if (pl && !pl.frozen && Math.abs(pl.pos.y - it.y) < 1.2) {
         // Molls Körper als Kapsel von der Hüfte bis zur Schnauze
         const fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw), t = Math.max(-0.75, Math.min(1.45, (it.x - pl.pos.x) * fx + (it.z - pl.pos.z) * fz));
-        const cx = pl.pos.x + fx * t, cz = pl.pos.z + fz * t, dx = it.x - cx, dz = it.z - cz, d = Math.hypot(dx, dz), R = 0.45 + BALL_R;
+        const cx = pl.pos.x + fx * t, cz = pl.pos.z + fz * t, dx = it.x - cx, dz = it.z - cz, d = Math.hypot(dx, dz), R = 0.45 + it.r;
         if (d < R && d > 1e-4) {
           const nx = dx / d, nz = dz / d, rel = (pl.vel.x - it.vx) * nx + (pl.vel.z - it.vz) * nz;
-          if (rel > 0) { it.vx += nx * rel * 1.1; it.vz += nz * rel * 1.1; if (rel > 4) { it.vy = Math.max(it.vy, rel * 0.25); this.game.audio.sfx('click'); } }
+          if (rel > 0) { it.vx += nx * rel * 1.1; it.vz += nz * rel * 1.1; if (rel > 4) { it.vy = Math.max(it.vy, rel * 0.25); if (it.squeak) this.toySqueak(it); else this.game.audio.sfx('click'); } }
           if (this._ballFree(it, cx + nx * R, it.y, cz + nz * R)) { it.x = cx + nx * R; it.z = cz + nz * R; }
         }
       }
       // Bewegung achsenweise, an Hindernissen abprallen
       const sp = Math.hypot(it.vx, it.vz); if (sp > 25) { it.vx *= 25 / sp; it.vz *= 25 / sp; }
-      const n = Math.max(1, Math.ceil(sp * dt / (BALL_R * 0.8))), h = dt / n;
+      const n = Math.max(1, Math.ceil(sp * dt / (it.r * 0.8))), h = dt / n;
       for (let i = 0; i < n; i++) {
         const nx = it.x + it.vx * h; if (this._ballFree(it, nx, it.y, it.z)) it.x = nx; else if (this._ballFree(it, nx, it.y + 0.3, it.z) && onGround) { it.x = nx; it.y += 0.3; } else { it.vx *= -0.5; this._ballBonk(it, it.vx); }
         const nz = it.z + it.vz * h; if (this._ballFree(it, it.x, it.y, nz)) it.z = nz; else if (this._ballFree(it, it.x, it.y + 0.3, nz) && onGround) { it.z = nz; it.y += 0.3; } else { it.vz *= -0.5; this._ballBonk(it, it.vz); }
@@ -201,13 +207,14 @@ export function installGadgets(Level) {
       if (it.y < g2) { it.y = g2; if (it.vy < -3) { it.vy *= -0.45; this._ballBonk(it, it.vy); } else it.vy = 0; }
       if (it.vy > 0 && !this._ballFree(it, it.x, it.y, it.z)) it.vy = 0; // Decke
       const b = this.bounds; if (b) { // nicht aus dem Bereich rollen
-        if (it.x < b.min.x + BALL_R) { it.x = b.min.x + BALL_R; it.vx = Math.abs(it.vx) * 0.5; } if (it.x > b.max.x - BALL_R) { it.x = b.max.x - BALL_R; it.vx = -Math.abs(it.vx) * 0.5; }
-        if (it.z < b.min.z + BALL_R) { it.z = b.min.z + BALL_R; it.vz = Math.abs(it.vz) * 0.5; } if (it.z > b.max.z - BALL_R) { it.z = b.max.z - BALL_R; it.vz = -Math.abs(it.vz) * 0.5; }
+        if (it.x < b.min.x + it.r) { it.x = b.min.x + it.r; it.vx = Math.abs(it.vx) * 0.5; } if (it.x > b.max.x - it.r) { it.x = b.max.x - it.r; it.vx = -Math.abs(it.vx) * 0.5; }
+        if (it.z < b.min.z + it.r) { it.z = b.min.z + it.r; it.vz = Math.abs(it.vz) * 0.5; } if (it.z > b.max.z - it.r) { it.z = b.max.z - it.r; it.vz = -Math.abs(it.vz) * 0.5; }
       }
       if (it.y < (this.killY ?? -25)) { Object.assign(it, { x: it.home.x, y: it.home.y + 2, z: it.home.z, vx: 0, vy: 0, vz: 0 }); FX.sparkle(this.game.fx, it); }
       // Drehung passend zur zurückgelegten Strecke
       const dist = Math.hypot(it.vx, it.vz) * dt;
-      if (dist > 1e-5) { _ax.set(it.vz, 0, -it.vx).normalize(); _q.setFromAxisAngle(_ax, dist / BALL_R); it.spin.quaternion.premultiply(_q); }
+      if (dist > 1e-5 && it.roll) { _ax.set(it.vz, 0, -it.vx).normalize(); _q.setFromAxisAngle(_ax, dist / it.r); it.spin.quaternion.premultiply(_q); }
+      else if (dist > 1e-5) it.spin.rotation.set(0, it.spin.rotation.y + dist * 2.5, 0); // Knochen kreiselt flach über den Boden
       it.mesh.position.set(it.x, it.y, it.z);
       if (!it.done && Math.hypot(it.vx, it.vz) > 0.05) this._fetchGoalCheck(it); // auch reingerollt oder reingestupst zählt
     },
@@ -215,19 +222,25 @@ export function installGadgets(Level) {
       for (const s of this.solids) if (s.active && x + 0.42 > s.min.x && x - 0.42 < s.max.x && z + 0.42 > s.min.z && z - 0.42 < s.max.z && y + 0.45 < s.max.y && y + 1.15 > s.min.y) return false;
       return true;
     },
+    toySqueak(it) { if (!it.squeak || this.t - (it._sq ?? -9) < 0.25) return; it._sq = this.t; this.game.audio.sfx('squeak'); it._squish = 1; },
+    // Beißen ohne Apportieren: Spielzeug vor der Schnauze bekommt einen Schubs (Quietsche-Knochen quiekt)
+    toyBite(point, r) {
+      const pl = this.game.player, fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw);
+      for (const it of this.fetchItems || []) if (it.spin && !it.carried && Math.hypot(it.x - point.x, it.z - point.z) < r + it.r && Math.abs(it.y - point.y) < 1.5) { it.vx += fx * 5; it.vz += fz * 5; it.vy = Math.max(it.vy, 3); this.toySqueak(it); }
+    },
     _ballBonk(it, v) { if (Math.abs(v) > 2.5 && Math.hypot(it.x - this.game.player.pos.x, it.z - this.game.player.pos.z) < 25) this.game.audio.sfx('click'); },
     // Ball im Maul: Mittelpunkt sitzt vorn zwischen den Lefzen (Kopf-Knochen), folgt Kopfnicken, Kopfdrehen, Trab/Galopp und Biss.
     // Ragt er in eine Wand oder in den Boden, wird er herausgeschoben statt hindurchzuragen.
     _holdBall(it, pl) {
       const u = pl.mesh.userData; pl.mesh.updateMatrixWorld(true);
-      _v.copy(MOUTH); u.head.localToWorld(_v);
-      let x = _v.x, y = _v.y - BALL_R, z = _v.z;
+      _v.copy(it.roll ? MOUTH : MOUTH_BONE); u.head.localToWorld(_v); // Knochen quer im Maul
+      let x = _v.x, y = _v.y - it.r, z = _v.z;
       // Stößt der Ball an eine Kiste oder Wand, hält er Moll davon ab: sie wird um genau so viel zurückgeschoben (Ball bleibt im Maul)
       let px = 0, pz = 0;
       for (const s of this.solids) {
-        if (!s.active || !(x + px + BALL_R > s.min.x && x + px - BALL_R < s.max.x && z + pz + BALL_R > s.min.z && z + pz - BALL_R < s.max.z && y + 0.12 < s.max.y && y + BALL_R * 2 > s.min.y)) continue;
+        if (!s.active || !(x + px + it.r > s.min.x && x + px - it.r < s.max.x && z + pz + it.r > s.min.z && z + pz - it.r < s.max.z && y + 0.12 < s.max.y && y + it.r * 2 > s.min.y)) continue;
         if (s.max.y - y < 0.45) continue; // niedrige Kante: Moll steigt ohnehin hoch
-        const o = [[s.min.x - BALL_R - x - px, 0], [s.max.x + BALL_R - x - px, 0], [0, s.min.z - BALL_R - z - pz], [0, s.max.z + BALL_R - z - pz]].sort((a, b) => Math.hypot(...a) - Math.hypot(...b))[0];
+        const o = [[s.min.x - it.r - x - px, 0], [s.max.x + it.r - x - px, 0], [0, s.min.z - it.r - z - pz], [0, s.max.z + it.r - z - pz]].sort((a, b) => Math.hypot(...a) - Math.hypot(...b))[0];
         px += o[0]; pz += o[1];
       }
       if ((px || pz) && Math.hypot(px, pz) < 1.2 && this._dogFree(pl.pos.x + px, pl.pos.y, pl.pos.z + pz)) {
@@ -235,13 +248,14 @@ export function installGadgets(Level) {
         if (px * pl.vel.x < 0) pl.vel.x = 0; if (pz * pl.vel.z < 0) pl.vel.z = 0;
       }
       if (!this._ballFree(it, x, y, z)) { // sonst (z.B. steiles Gelände) zur Kopfmitte hin zurückziehen, bis er frei ist
-        const sx = x, sy = y, sz = z; _w.set(0, -0.1, 0.3); u.head.localToWorld(_w); _w.y -= BALL_R;
+        const sx = x, sy = y, sz = z; _w.set(0, -0.1, 0.3); u.head.localToWorld(_w); _w.y -= it.r;
         for (let k = 1; k <= 8 && !this._ballFree(it, x, y, z); k++) { const t = k / 8; x = sx + (_w.x - sx) * t; y = sy + (_w.y - sy) * t; z = sz + (_w.z - sz) * t; }
       }
-      y = Math.max(y, this._ballGround(x, z, y + BALL_R)); // nie in den Boden
+      y = Math.max(y, this._ballGround(x, z, y + it.r)); // nie in den Boden
       it.x = x; it.y = y; it.z = z; it.vx = pl.vel.x; it.vy = pl.vel.y; it.vz = pl.vel.z;
       it.mesh.position.set(x, y, z); it.mesh.rotation.set(0, 0, 0);
       u.head.getWorldQuaternion(it.spin.quaternion);
+      if (it.squeak) { if (pl.onGround && it._air) this.toySqueak(it); it._air = !pl.onGround; } // Landung mit Knochen im Maul: quiek
     },
 
     // ---- Treffer verteilen: Trillern, Bellen, Bauchklatscher
@@ -287,6 +301,7 @@ export function installGadgets(Level) {
         const f = { x: Math.sin(pl.yaw), z: Math.cos(pl.yaw) }; it.mesh.position.set(pl.pos.x + f.x * 1.15, pl.pos.y + 0.95, pl.pos.z + f.z * 1.15); it.mesh.rotation.y = pl.yaw + Math.PI / 2;
       } else if (it.spin) this._rollBall(it, Math.min(dt, 1 / 20), pl);
       else if (!it.done) it.mesh.rotation.y += dt;
+      for (const it of this.fetchItems || []) if (it._squish > 0) { it._squish = Math.max(0, it._squish - dt * 6); const k = it._squish; it.spin.scale.set(1 + 0.25 * k, 1 - 0.3 * k, 1 + 0.25 * k); } // Quietsch-Stauchung federt zurück
     },
   });
 }

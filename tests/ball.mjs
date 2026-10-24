@@ -71,6 +71,15 @@ console.log('  Eindringtiefe in Kopf/Schnauze (m):', Object.fromEntries(Object.e
 await tp(open[0], 0.2, open[1], Math.PI / 2); await sim(1, { act: true }); await sim(30); const bd = await ball(); res.ablegen = !bd.carried && await ev(() => { const l = window.game.level, it = l.fetchItems.find(i => i.kind === 'ball'); return l._ballFree(it, it.x, it.y, it.z); });
 console.log('  Abgelegt, liegt frei:', res.ablegen);
 
+// 5) Weitere Spielzeuge: Quietsche-Knochen aufheben (quer im Maul, frei), Bälle zählen; kein Regen im Haus
+const toys = await ev(() => { const f = window.game.level.fetchItems; return { baelle: f.filter(i => i.kind === 'ball').length, knochen: f.filter(i => i.kind === 'quietsch').length }; });
+const kn = await ev(() => { const it = window.game.level.fetchItems.find(i => i.kind === 'quietsch'); return [it.x, it.z]; });
+await tp(open[0], 0.2, open[1], Math.PI / 2); await ev(([x, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'quietsch'); Object.assign(it, { x, y: 0, z, vx: 0, vy: 0, vz: 0 }); }, [open[0] + 1.6, open[1]]);
+await sim(2); await sim(1, { act: true }); const penK = await sim(30, {}, [0, 1]);
+res.knochen = toys.baelle >= 5 && toys.knochen >= 2 && await ev(() => window.game.player.carry?.kind === 'quietsch') && penK < 1;
+console.log('  Spielzeug:', toys, '| Quietsche-Knochen im Maul:', res.knochen);
+res.dach = await ev(() => { const l = window.game.level; return l.sheltered(0, 2, -18) && !l.sheltered(0, 2, 5); }); console.log('  Kein Regen im Haus, draußen schon:', res.dach);
+
 console.log('Fehler:', errs.length ? errs : 'keine');
 const ok = Object.values(res).every(Boolean) && !errs.length; console.log(ok ? 'BALL OK' : 'BALL FEHLER', res);
 await b.close(); process.exit(ok ? 0 : 1);

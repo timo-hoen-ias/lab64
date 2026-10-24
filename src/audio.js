@@ -354,6 +354,7 @@ export class AudioEngine {
       case 'stomp': this._tone(70, t, 0.35, 'sine', 0.45, null, -40); this._noise(t, 0.25, 0.35); break;
       case 'dig': this._noise(t, 0.12, 0.2); this._noise(t + 0.18, 0.12, 0.2); this._noise(t + 0.36, 0.15, 0.22); break;
       case 'break': this._noise(t, 0.3, 0.35); this._tone(240, t, 0.15, 'square', 0.12, null, -180); break;
+      case 'squeak': this._tone(820, t, 0.07, 'square', 0.12, null, 700); this._tone(1450, t + 0.06, 0.11, 'square', 0.1, null, -500); this._tone(1100, t, 0.17, 'sine', 0.08, null, 300); break; // Quietsche-Spielzeug
       case 'click': this._click(t, 0.8); this._tone(660, t, 0.08, 'square', 0.12); break;
       case 'honk': this._tone(392, t, 0.25, 'square', 0.16); this._tone(494, t, 0.25, 'square', 0.12); this._tone(392, t + 0.3, 0.3, 'square', 0.16); this._tone(494, t + 0.3, 0.3, 'square', 0.12); break;
       // Intro: das Y löst sich (Lotsenpfeife abwärts) und schlägt irgendwo unten auf
