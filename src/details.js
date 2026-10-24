@@ -252,7 +252,7 @@ export function installDetails(Level) {
       return m;
     },
     // ---- Rauch (Schornstein, Grill, Lok): o.on() = nur wenn sichtbar
-    smoke(x, y, z, o = {}) {
+    puffs(x, y, z, o = {}) {
       const rate = o.rate ?? 2.5;
       this.ticks.push(dt => { if (o.on && !o.on()) return; if (Math.random() < dt * rate) this.game.fx.burst({ x: x + rnd(-0.2, 0.2), y, z: z + rnd(-0.2, 0.2) }, { n: 1, color: o.color ?? [0xdfe6e9, 0xb2bec3], speed: 0.3, up: o.up ?? 1.6, life: o.life ?? 2.2, size: o.size ?? 0.45, gravity: 0, drag: 0.3 }); });
     },
@@ -302,11 +302,10 @@ const outside = l => () => l.game.player.pos.x < 1000; // nicht in einem Innenra
 const WORLDS = {
   // ---------------------------------------------------------------- Molls Garten
   hub(l, g) {
-    // Kuckucksuhr im Wohnzimmer (Rückwand), Kamin knistert, Rauch aus dem Schornstein
+    // Kuckucksuhr im Wohnzimmer (Rückwand), Kamin knistert
     l.wallClock(0, 3.4, -23.36, 0, { auto: [45, 70], say: 'Kuckuck! Kuckuck! Die Uhr erschrickt sich.' });
     l.sound(-5.6, 0.8, -17, 'crackle', { every: [0.35, 0.8], r: 9 });
     l.fun(-5.6, 0.5, -17, { bark: () => { l.sfxAt('crackle', -5.6, 0.5, -17, 20, 1.2); g.fx.burst({ x: -5.5, y: 0.8, z: -17 }, { n: 26, color: [0xff9f43, 0xffd32a, 0xff5e57], speed: 2.5, up: 5, life: 0.9, size: 0.12, gravity: -1 }); l.once('kamin', 'Fffft! Der Kamin faucht zurück.'); }, barkR: 7 });
-    l.smoke(3.5, 9.3, -16.7, { on: () => l.roof.visible, rate: 3 });
     // Wassernapf
     l.fun(-2.2, 0.3, -13.6, { r: 0.8, bite: () => { g.audio.sfx('slurp'); g.fx.burst({ x: -2.2, y: 0.5, z: -13.6 }, { n: 10, color: [0x9ad7ff, 0xffffff], speed: 2, up: 3, life: 0.5, size: 0.1 }); l.once('napf', 'Schlabber, schlabber – frisches Wasser!'); } });
     // Hundekörbchen: Bauchklatscher rein = Quietschen der Federn
@@ -365,7 +364,7 @@ const WORLDS = {
     l.fun(12, 1, -10, { r: 2.2, h: 3, bite: () => { g.audio.sfx('creak'); g.fx.burst({ x: 11.6, y: 2, z: -10 }, { n: 16, color: [0xdff9fb, 0xffffff], speed: 2, up: 1, life: 0.8, size: 0.2, gravity: 0 }); g.toast(pick(['Brrr, kalt! Und leider nur Senf drin.', 'Der Kühlschrank ist zu. Moll guckt sehr traurig.', 'Kalter Hauch … riecht nach Wurst!']), 2600); } });
     // Topf auf dem Herd: Deckel klappert, Dampf steigt auf
     const lid = new THREE.Group(); lid.add(cyl(1.18, 1.18, 0.08, 0xb2bec3, 0, 0, 0, 14)); lid.add(sphere(0.15, 0x2d3436, 0, 0.1, 0, 6)); l.put(compact(lid), 6, 2.14, -14);
-    l.smoke(6, 2.4, -14, { color: [0xffffff, 0xdfe6e9], rate: 4, size: 0.35, life: 1.4 });
+    l.puffs(6, 2.4, -14, { color: [0xffffff, 0xdfe6e9], rate: 4, size: 0.35, life: 1.4 });
     l.sound(6, 2.2, -14, v => { g.audio.sfx('tick', v); g.audio.sfx('bubble', v * 0.6); l.tween(0.25, k => { lid.position.y = 2.14 + Math.sin(k * Math.PI) * 0.12; lid.rotation.z = Math.sin(k * 20) * 0.06; }); }, { every: [1.5, 3.5], r: 10 });
     // Toaster auf der Arbeitsplatte: Biss = Toast springt raus
     const toaster = new THREE.Group(); toaster.add(box(1.2, 0.75, 0.7, 0xdfe6e9, 0, 0.375, 0)); toaster.add(box(0.12, 0.2, 0.1, 0x2d3436, 0.65, 0.5, 0)); l.put(compact(toaster), -15, 1.4, -16.4);
@@ -438,7 +437,7 @@ const WORLDS = {
     l.sound(124, 1, 10, 'brrr', { every: 1.05, r: 14, vol: 0.6 });
     l.fun(116, 18.5, -3, { r: 1.8, h: 1, bite: f => { f.cd = 3; g.audio.sfx('gurgle'); g.toast(pick(['BESETZT!', 'Eine Stimme aus dem Klo: „Moment noch!“', 'Plätscher … „Ist ja gut, ich bin gleich fertig!“']), 2500); } });
     // Bahnhof: Lok pfeift beim Anbellen und dampft, Bahnhofsuhr mit echten Zeigern und Glocke
-    l.smoke(-32.5, 5.6, 110, { rate: 1.5, size: 0.6 });
+    l.puffs(-32.5, 5.6, 110, { rate: 1.5, size: 0.6 });
     l.fun(-31, 1, 110, { h: 3, bark: () => { l.sfxAt('toot', -31, 4, 110, 60, 1, 0.3); for (let i = 0; i < 6; i++) g.fx.burst({ x: -32.5, y: 5.8, z: 110 }, { n: 2, color: [0xffffff, 0xdfe6e9], speed: 1, up: 3 + i * 0.5, life: 2, size: 0.8, gravity: 0, drag: 0.5 }); l.once('lok', 'TUUUT! Die Lok grüßt zurück.'); }, barkR: 18, barkCd: 3 });
     const hands = new THREE.Group(), hh = new THREE.Group(), mm = new THREE.Group(); hh.add(box(0.14, 0.7, 0.05, 0x2d3436, 0, 0.3, 0)); mm.add(box(0.1, 1.1, 0.05, 0x2d3436, 0, 0.5, 0)); hands.add(hh, mm); l.put(hands, 20, 13, 121.25, Math.PI);
     l.ticks.push(() => { const d = new Date(), mi = d.getMinutes() + d.getSeconds() / 60; mm.rotation.z = -mi / 60 * TAU; hh.rotation.z = -((d.getHours() % 12) + mi / 60) / 12 * TAU; });
@@ -472,7 +471,7 @@ const WORLDS = {
     l.sound(0, F2 + 3, -18, 'hum', { every: 1.2, r: 14, vol: 0.9 });
     l.fun(-2, F2, -18, { r: 6, h: 6, bark: () => { g.audio.sfx('ring', 0.6); g.toast(pick(['SERVER: „ERROR 404 – Leckerli nicht gefunden.“', 'SERVER: „Bitte nicht anbellen, ich rechne gerade.“', 'SERVER: „Neustart in 3 … 2 … 1 … WUFF.“']), 3000); }, barkR: 9, barkCd: 3 });
     // Kaffeemaschine dampft und blubbert
-    l.smoke(12, F2 + 3.7, 22, { rate: 2, size: 0.3, life: 1.6 });
+    l.puffs(12, F2 + 3.7, 22, { rate: 2, size: 0.3, life: 1.6 });
     l.sound(12, F2 + 2.5, 22, 'gurgle', { every: [5, 9], r: 8 });
   },
 
@@ -480,7 +479,7 @@ const WORLDS = {
   park(l, g) {
     // Grills: Rauch, Brutzeln, Bellen = Stichflamme
     [[-6, -6], [6, 6]].forEach(([x, z]) => {
-      l.smoke(x, 1.5, z, { rate: 3, size: 0.5 });
+      l.puffs(x, 1.5, z, { rate: 3, size: 0.5 });
       l.sound(x, 1.3, z, 'sizzle', { every: [0.6, 1.2], r: 12, vol: 0.7 });
       l.fun(x, 0, z, { r: 1.2, h: 1, bark: () => { l.sfxAt('crackle', x, 1.3, z, 20, 1.2); g.fx.burst({ x, y: 1.5, z }, { n: 26, color: [0xff9f43, 0xffd32a, 0xff5e57], speed: 1.5, up: 6, life: 0.7, size: 0.22, gravity: 0 }); l.once('grill', 'WUSCH! Stichflamme – die Würstchen sind jetzt extra knusprig.'); }, barkR: 8, barkCd: 2 });
     });
@@ -499,11 +498,9 @@ const WORLDS = {
     const cm = l.put(compact(car), 112, 0.4, 8); let cs = 0;
     l.ticks.push(dt => { cs *= Math.exp(-dt * 0.4); cm.rotation.y += cs * dt; });
     l.fun(112, 0.4, 8, { r: 3, spin: () => { cs = Math.min(9, cs + 4); g.audio.sfx('whirl', 0.7); l.once('karussell', 'Wiiiiie! Das Karussell dreht sich.'); } });
-    // Enten auf dem See: quaken, Bellen = Flattern
-    const ducks = [0, 1, 2].map(i => ({ m: l.put(makeDuck(i ? 0x8d6e63 : 0xfafafa, 0xff9f43, 1.2), -18, -0.35, 105), a: i * 0.5, flap: 0 }));
-    l.ticks.push(dt => ducks.forEach((d, i) => { d.flap = Math.max(0, d.flap - dt); d.a += dt * (0.12 + d.flap * 0.3); const x = -18 + Math.cos(d.a) * 12, z = 105 + Math.sin(d.a) * 8; d.m.rotation.y = Math.atan2(-Math.sin(d.a) * 12, Math.cos(d.a) * 8); d.m.position.set(x, -0.35 + d.flap * 0.15 * Math.abs(Math.sin(d.flap * 30)), z); }));
-    l.sound(-18, 0, 105, 'quack', { every: [4, 9], r: 26 });
-    l.fun(-18, 0, 105, { r: 13, bark: () => { ducks.forEach(d => d.flap = 2); g.audio.sfx('quack', 0.9, 0.2); l.sfxAt('flap', -18, 0, 105, 30, 0.8, 0.1); }, barkR: 24, barkCd: 3 });
+    // Enten auf dem See (critters.js) quaken, Bellen = empörtes Geschnatter
+    l.sound(-10, 0, 100, 'quack', { every: [4, 9], r: 30 });
+    l.fun(-10, 0, 100, { r: 25, bark: () => { g.audio.sfx('quack', 0.9, 0.2); g.audio.sfx('quack', 0.6, 0.6); l.sfxAt('flap', -10, 0, 100, 40, 0.8, 0.1); }, barkR: 30, barkCd: 3 });
     const boat = l.findAt(-14, -0.1, 88); if (boat) l.ticks.push((dt, t) => { boat.position.y = -0.1 + Math.sin(t * 1.3) * 0.06; boat.rotation.z = Math.sin(t * 0.9) * 0.05; });
     // Specht im Wald, Vögel überall
     l.sound(-100, 6, 10, v => { for (let i = 0; i < 8; i++) g.audio.sfx('tock', v, i * 0.07); }, { every: [7, 14], r: 50 });
@@ -535,7 +532,7 @@ const WORLDS = {
     l.ticks.push((dt, t) => { swing *= Math.exp(-dt * 1.2); bm.userData.bp.rotation.z = Math.sin(t * 8) * 0.5 * swing; });
     l.fun(2.8, 2, 27.2, { r: 1, h: 2, bite: ring, bark: ring, barkR: 8, barkCd: 1.2, spin: ring });
     // Frachtschiff antwortet aufs Bellen mit dem Horn
-    l.smoke(76, 15.2, 92, { rate: 1.5, size: 0.7, color: [0x636e72, 0x95a5a6] });
+    l.puffs(76, 15.2, 92, { rate: 1.5, size: 0.7, color: [0x636e72, 0x95a5a6] });
     l.fun(60, 6.4, 92, { r: 22, h: 6, bark: () => { l.sfxAt('horn', 60, 8, 92, 90, 1, 0.6); for (let i = 0; i < 5; i++) g.fx.burst({ x: 76, y: 15.5, z: 92 }, { n: 2, color: [0x636e72, 0xb2bec3], speed: 1, up: 4 + i, life: 2.5, size: 1, gravity: 0, drag: 0.4 }); l.once('horn', 'TUUUUUT! Das Frachtschiff hupt zurück.'); }, barkR: 45, barkCd: 4 });
     // Bojen schaukeln
     [[-5, 45], [10, 60], [25, 72], [15, 88], [-2, 100]].forEach(([x, z], i) => {
