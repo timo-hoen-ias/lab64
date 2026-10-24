@@ -5,12 +5,12 @@ import { makeDog, animateDog, compact, headTrack } from './models.js';
 import { animateIdle } from './idle.js';
 import { makeBlobShadow, FX, characterLook } from './fx.js';
 
-const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15, STEP = 0.45; // STEP: so hohe Kanten steigt Moll im Laufen einfach hoch
+const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15, STEP = 0.45, SUB = 0.25; // STEP: so hohe Kanten steigt Moll im Laufen einfach hoch
 
 export class Player {
   constructor(game) {
     this.game = game;
-    this.mesh = characterLook(compact(makeDog())); this.shadow = makeBlobShadow(0.85); this.turn = 0;
+    this.mesh = characterLook(compact(makeDog())); this.mesh.rotation.order = 'YXZ'; this.tiltX = 0; this.tiltZ = 0; this.shadow = makeBlobShadow(0.85); this.turn = 0;
     this.pos = new THREE.Vector3(0, 1, 0);
     this.vel = new THREE.Vector3();
     this.yaw = 0; this.onGround = false; this.canDouble = true; this.coyote = 0;
@@ -123,12 +123,18 @@ export class Player {
     }
     this.sniffing = !this.frozen && input.held('sniff');
 
-    // Kollision: achsenweise
-    const solids = level.solids;
-    const wasGround = this.onGround; this.onGround = false; this._wasGround = wasGround;
-    this.pos.x += this.vel.x * dt; this._resolve(solids, 'x'); this._terrainSide(level, 'x', this.vel.x * dt);
-    this.pos.z += this.vel.z * dt; this._resolve(solids, 'z'); this._terrainSide(level, 'z', this.vel.z * dt);
-    this._dt = dt; this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
+    // Kollision: achsenweise, in Teilschritten von höchstens SUB Metern (sonst rutscht Moll bei Tempo/Ruckeln durch dünne Wände und Platten)
+    const solids = level.solids, wasGround = this.onGround;
+    const n = Math.min(8, Math.ceil(Math.max(Math.abs(this.vel.x), Math.abs(this.vel.y), Math.abs(this.vel.z)) * dt / SUB) || 1), h = dt / n;
+    let ground = wasGround, landed = false;
+    for (let i = 0; i < n; i++) {
+      this.onGround = false; this._wasGround = ground;
+      let d = this.vel.x * h; this.pos.x += d; this._resolve(solids, 'x', d); this._terrainSide(level, 'x', d);
+      d = this.vel.z * h; this.pos.z += d; this._resolve(solids, 'z', d); this._terrainSide(level, 'z', d);
+      this._dt = h; this.pos.y += (this.vel.y || (ground ? -0.5 : 0)) * h; this._resolve(solids, 'y'); this._terrainY(level, ground); // stehend leicht nach unten tasten
+      ground = this.onGround; landed = landed || ground;
+    }
+    this.onGround = landed;
     if (this.stomp && (this.onGround || wet)) { // Bauchklatscher gelandet
       this.stomp = false; if (!wet) { level.onStomp(this.pos); this.game.audio.sfx('stomp'); this.game.shake(0.35); this.game.input.vibrate(200); this.squash = 0.4; }
     }
@@ -155,10 +161,20 @@ export class Player {
     const b = level.bounds;
     this.pos.x = Math.max(b.min.x, Math.min(b.max.x, this.pos.x)); this.pos.z = Math.max(b.min.z, Math.min(b.max.z, this.pos.z));
 
+    // Auf Schrägen kippt Moll mit (Pfoten bleiben am Boden): Neigung aus dem Boden vor/hinter und links/rechts von ihr
+    let pitch = 0, roll = 0;
+    if (this.onGround && !wet && level.terrain && level.terrain.length && Math.abs(level.heightAt(this.pos.x, this.pos.z, this.pos.y + 0.1) - this.pos.y) < 0.05) {
+      const sn = Math.sin(this.yaw), cs = Math.cos(this.yaw), r = 0.45;
+      const at = (dx, dz) => { const v = level.groundAt(this.pos.x + dx, this.pos.z + dz, this.pos.y + 0.6); return v > -Infinity ? v : this.pos.y; };
+      pitch = Math.atan2(at(sn * r, cs * r) - at(-sn * r, -cs * r), 2 * r); roll = Math.atan2(at(cs * r, -sn * r) - at(-cs * r, sn * r), 2 * r);
+    }
+    const kt = Math.min(1, dt * 12);
+    this.tiltX += (THREE.MathUtils.clamp(-pitch, -0.6, 0.6) - this.tiltX) * kt; this.tiltZ += (THREE.MathUtils.clamp(roll, -0.5, 0.5) - this.tiltZ) * kt;
     // Mesh
     this.mesh.position.copy(this.pos); this.mesh.rotation.y = this.yaw + (this.whirlA || 0);
     if (this.flipT > 0) { this.flipT -= dt; this.mesh.rotation.x = -this.flipT * Math.PI * 4; }
-    else this.mesh.rotation.x = this.diving ? THREE.MathUtils.clamp(-this.vel.y * 0.12, -0.7, 0.7) : 0; // Kopf voran tauchen
+    else this.mesh.rotation.x = this.diving ? THREE.MathUtils.clamp(-this.vel.y * 0.12, -0.7, 0.7) : this.tiltX; // Kopf voran tauchen
+    this.mesh.rotation.z = this.tiltZ;
     // Squash beim Landen, Stretch beim Absprung (Volumen bleibt ungefähr gleich)
     if (this.squash > 0) { this.squash -= dt; const s = 1 - this.squash * 0.8; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else if (this.stretch > 0) { this.stretch -= dt; const s = 1 + this.stretch * 1.2; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
@@ -270,7 +286,7 @@ export class Player {
     p.y = y; return true;
   }
 
-  _resolve(solids, axis) {
+  _resolve(solids, axis, moved = 0) {
     const p = this.pos;
     for (const s of solids) {
       if (!s.active) continue;
@@ -281,11 +297,19 @@ export class Player {
         else if (this.vel.y > 0) { p.y = mn.y - HEIGHT; this.vel.y = 0; }
       } else if (this._wasGround && mx.y - p.y <= STEP && this._stepUp(solids, mx.y)) {
         continue; // kleine Kante (z.B. Rampenende an einer Plattform): hochsteigen statt anhalten
-      } else if (axis === 'x') {
-        if (this.vel.x > 0) p.x = mn.x - HALF; else if (this.vel.x < 0) p.x = mx.x + HALF; this.vel.x = 0;
       } else {
-        if (this.vel.z > 0) p.z = mn.z - HALF; else if (this.vel.z < 0) p.z = mx.z + HALF; this.vel.z = 0;
+        // Zurück auf die Seite, von der Moll kam; steckte sie schon vorher drin (Nische, geschoben), auf kürzestem Weg raus
+        const prev = p[axis] - moved;
+        if (prev + HALF <= mn[axis] + 0.01) p[axis] = mn[axis] - HALF;
+        else if (prev - HALF >= mx[axis] - 0.01) p[axis] = mx[axis] + HALF;
+        else { this._pushOut(s); continue; }
+        this.vel[axis] = 0;
       }
     }
+  }
+  _pushOut(s) {
+    const p = this.pos, o = [[v => p.x = v, s.min.x - HALF, p.x + HALF - s.min.x, 'x'], [v => p.x = v, s.max.x + HALF, s.max.x - p.x + HALF, 'x'],
+      [v => p.z = v, s.min.z - HALF, p.z + HALF - s.min.z, 'z'], [v => p.z = v, s.max.z + HALF, s.max.z - p.z + HALF, 'z']];
+    const best = o.reduce((a, b) => b[2] < a[2] ? b : a); best[0](best[1]); this.vel[best[3]] = 0;
   }
 }
