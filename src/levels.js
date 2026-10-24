@@ -8,13 +8,14 @@ import { PARK } from './worlds/park.js';
 import { HAFEN } from './worlds/hafen.js';
 import { DORF } from './worlds/dorf.js';
 import { STRASSE } from './worlds/strasse.js';
+import { KUECHE } from './worlds/kueche.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 // Goldknochen je Welt (IDs). Summe = Gesamtziel des Spiels.
 export const BONES = {
   hub: ['huegel', 'geheim'],
-  kueche: ['boss', 'kruemel', 'geheim', 'kletter'],
+  kueche: ['boss', 'kruemel', 'geheim', 'kletter', 'vorrat', 'regal', 'treppe', 'uhr', 'keller', 'socken'],
   strasse: ['boss', 'kruemel', 'geheim', 'kletter', 'daecher', 'kaufhaus', 'baustelle', 'brunnen', 'eisdiele', 'bahnhof'],
   buero: ['boss', 'kruemel', 'geheim', 'kletter'],
   park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
@@ -25,7 +26,7 @@ export const BONES = {
   kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
-export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
+export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
 
 export const LEVELS = {
   strand: STRAND,
@@ -95,7 +96,7 @@ export const LEVELS = {
       l.goldbone('huegel', 20, 4.4, 6);
       l.scatter(20);
       // ---- Portale (schauen zur Gartenmitte)
-      l.portal(-9, -4, 'Küche', 'kueche', 0xff9f43, 0);
+      l.portal(-9, -4, 'Erdgeschoss', 'kueche', 0xff9f43, 0);
       l.portal(9, -4, 'Einkaufsstraße', 'strasse', 0x54a0ff, 2);
       l.portal(-22, -6, 'Büro', 'buero', 0x9b9b9b, 4);
       l.portal(22, -6, 'Grillpark', 'park', 0x8e44ad, 7);
@@ -124,31 +125,7 @@ export const LEVELS = {
   },
 
   // ---------------------------------------------------------------- KÜCHE
-  kueche: {
-    name: 'Die Küche', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 18, need: 8, goalKind: 'ham', music: { scale: 'mixo', root: 294, bpm: 132, seed: 3, style: 'kitchen' },
-    build(l) {
-      l.spawn.set(0, 1, 12); l.wallRing(18, 7, 0xfdf4e3);
-      // Fliesenmuster
-      for (let x = -16; x < 16; x += 4) for (let z = -16; z < 16; z += 4) if ((x + z) % 8 === 0) { const t = box(4, 0.05, 4, 0xd6bf94, x + 2, 0.03, z + 2); l.group.add(t); }
-      // Küchenzeile mit Treppen aus Schubladen
-      l.box(-12, 0, -14, 12, 1, 4, 0xa0522d); l.box(-12, 1, -16.5, 12, 0.4, 2, 0xf5f5f5);
-      l.box(-16, 0, -11, 3, 0.6, 2, 0xa0522d); l.box(-13.5, 0, -11, 2, 1.0, 2, 0xa0522d); // Treppe
-      l.box(6, 0, -14, 10, 1.5, 4, 0xa0522d); l.box(6, 1.5, -14, 10, 0.3, 4, 0x777777); // Herd
-      l.box(14, 0, -10, 4, 4, 6, 0xf0f0f0); l.box(14, 4, -10, 4, 0.3, 6, 0xdddddd); // Kühlschrank
-      l.box(11, 0, -5, 2, 1, 2, 0xc9a66b); l.box(13, 0, -2.5, 2, 2, 2, 0xc9a66b); l.box(15, 0, 0, 2, 3, 2, 0xc9a66b); // Hocker-Treppe zum Kühlschrank
-      l.box(0, 0, 2, 8, 1.6, 5, 0xd2b48c); // Tisch
-      l.box(-5, 0, 6, 1.4, 0.9, 1.4, 0x8b5a2b); l.box(5, 0, 6, 1.4, 0.9, 1.4, 0x8b5a2b); // Stühle
-      l.deco(cyl(1.2, 1.0, 0.6, 0xd63031, 6, 1.8, -14, 14), 6, 1.8, -14); // Topf
-      l.box(-6, 3.5, -16.5, 4, 0.3, 2, 0xf5f5f5); l.box(2, 5.5, -16.5, 4, 0.3, 2, 0xf5f5f5); // Wandregale
-      l.goldbone('kletter', 2, 6.3, -16.5);
-      l.goldbone('geheim', 17, 0.6, -10, { hidden: true }); // hinter dem Kühlschrank
-      // Schinken
-      [[-12, 1.5, -16], [-6, 1.5, -16], [6, 1.9, -14], [14, 4.4, -10], [0, 1.7, 2], [-16, 0.3, 10], [16, 0.3, 14], [-15, 0.3, -2]].forEach(([x, y, z]) => l.pickup(x, y, z, 'ham', { goal: true }));
-      l.scatter(20);
-      l.label('Sammle 8 Schinken!', 0, 4, 10);
-    },
-    onGoal(l) { l.game.toast('Was brummt da?! Der STAUBSAUGER!'); l.game.audio.sfx('vacuum'); l.game.later(1200, () => l.setBoss(new Vacuum(l.game, 0, 8, 13))); }
-  },
+  kueche: KUECHE,
 
   // -------------------------------------------------------- EINKAUFSSTRASSE
   strasse: STRASSE,
