@@ -2,6 +2,7 @@
 // Moll läuft auf den linken 3 Spuren, die Ratte auf den rechten 3. Käse sammeln, Hindernissen ausweichen, vor der Ratte am Ziel sein.
 import * as THREE from 'three';
 import { makeDog, animateDog, makeRat, makeFood, box, cyl, sphere } from './models.js';
+import { makeSky, FX } from './fx.js';
 
 const LANE_W = 2.2, SPEED = 18, LENGTH = 700, SEG = 40;
 
@@ -12,7 +13,7 @@ export class RunnerLevel {
     this.th = dream
       ? { sky: 0x3a2b12, floor: 0xffd94a, wall: 0xe0b526, hole: 0x3a2b12, low: 0x7d5a2e, tall: 0x6f6f72, item: 'cheese', ceil: true }
       : { sky: 0x9fdcff, floor: 0x6d6d6d, wall: 0xe17055, hole: 0x2d3436, low: 0x2d3436, tall: 0x0984e3, item: 'sausage', ceil: false };
-    this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(this.th.sky); this.scene.fog = new THREE.Fog(this.th.sky, 25, 80);
+    this.scene = new THREE.Scene(); this.sky = makeSky(this.th.sky, dream); this.scene.add(this.sky.mesh); this.scene.background = this.sky.horizon.clone(); this.scene.fog = new THREE.Fog(this.sky.horizon, 25, 80);
     this.scene.add(new THREE.HemisphereLight(dream ? 0xfff0b0 : 0xffffff, 0x5a4010, 0.9));
     const sun = new THREE.DirectionalLight(0xffe08a, 1); sun.position.set(5, 20, -10); this.scene.add(sun);
     this.def = dream
@@ -74,8 +75,8 @@ export class RunnerLevel {
     const sw = input.swipe();
     if (sw === 'left') this.lane = Math.max(0, this.lane - 1);
     if (sw === 'right') this.lane = Math.min(2, this.lane + 1);
-    if ((sw === 'up' || input.pressed('jump')) && this.y <= 0.01) { this.vy = 12; this.game.audio.sfx('jump'); }
-    this.vy -= 32 * dt; this.y = Math.max(0, this.y + this.vy * dt); if (this.y === 0) this.vy = 0;
+    if ((sw === 'up' || input.pressed('jump')) && this.y <= 0.01) { this.vy = 12; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.dog.position, 6); }
+    this.vy -= 32 * dt; this.y = Math.max(0, this.y + this.vy * dt); if (this.y === 0) { if (this.vy < -3) FX.dust(this.game.fx, this.dog.position, 8); this.vy = 0; }
     const speed = SPEED + this.t * 0.4;
     this.z += speed * dt;
     if (this.hurtT > 0) this.hurtT -= dt;
@@ -95,12 +96,12 @@ export class RunnerLevel {
     const dx = this.laneX('dog', this.lane);
     for (const o of this.obstacles) if (o.side === 'dog' && o.lane === this.lane && Math.abs(o.z - this.z) < 1.2 && !o.hit) {
       if (o.kind === 'low' && this.y > 0.9) continue;
-      o.hit = true; this.hurtT = 0.8; this.z -= 3; this.score = Math.max(0, this.score - 1); this.game.audio.sfx('hurt'); input.vibrate(200);
+      o.hit = true; this.hurtT = 0.8; FX.hit(this.game.fx, { x: dx, y: 1, z: this.z + 0.8 }); this.game.shake(0.3); this.z -= 3; this.score = Math.max(0, this.score - 1); this.game.audio.sfx('hurt'); input.vibrate(200);
     }
     for (const it of this.items) {
       if (it.taken) continue;
       it.mesh.rotation.y += dt * 3;
-      if (it.side === 'dog' && it.lane === this.lane && Math.abs(it.z - this.z) < 1.3 && this.y < 1.2) { it.taken = true; it.mesh.visible = false; this.score++; this.game.audio.sfx('collect'); }
+      if (it.side === 'dog' && it.lane === this.lane && Math.abs(it.z - this.z) < 1.3 && this.y < 1.2) { it.taken = true; it.mesh.visible = false; this.score++; this.game.audio.sfx('collect'); FX.crumb(this.game.fx, it.mesh.position); this.game.pop(this.game.hud.counter); }
       if (it.side === 'rat' && it.lane === this.ratLane && Math.abs(it.z - ratZ) < 1.3) { it.taken = true; it.mesh.visible = false; this.ratScore++; }
     }
     // Figuren
@@ -110,7 +111,7 @@ export class RunnerLevel {
     const rx = this.laneX('rat', this.ratLane); this.rat.position.x += (rx - this.rat.position.x) * Math.min(1, dt * 10); this.rat.position.y = this.ratY; this.rat.position.z = ratZ;
     const u = this.rat.userData; u.t += dt * 14; u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t + i) * 0.7);
     // Kamera
-    const cam = this.game.camera; this.camPos.set(0, 5.5, this.z - 9); cam.position.lerp(this.camPos, Math.min(1, dt * 8)); cam.lookAt(0, 2, this.z + 8);
+    const cam = this.game.camera; this.sky.mesh.position.copy(cam.position); this.camPos.set(0, 5.5, this.z - 9); cam.position.lerp(this.camPos, Math.min(1, dt * 8)); cam.lookAt(0, 2, this.z + 8);
     this.game.hud.counter.textContent = `${icon} Moll ${this.score} : Ratte ${this.ratScore}   ${Math.max(0, Math.floor(LENGTH - this.z))} m`;
 
     if (this.z >= LENGTH) {

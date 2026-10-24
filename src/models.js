@@ -1,7 +1,8 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
+import { toonGradient } from './fx.js';
 
-const mat = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
+const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
   m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m;
@@ -19,44 +20,72 @@ export const cone = (r, h, color, x = 0, y = 0, z = 0, seg = 8) => {
 // ---------- Moll, der braune Labrador ------------------------------------
 export function makeDog() {
   const g = new THREE.Group();
-  const brown = 0x8b5a2b, dark = 0x5a3715, nose = 0x2a1a0e;
-  const body = box(0.9, 0.6, 1.5, brown, 0, 0.75, 0); g.add(body);
-  const chest = box(0.95, 0.5, 0.5, brown, 0, 0.72, 0.55); g.add(chest);
-  const neck = box(0.5, 0.5, 0.45, brown, 0, 1.05, 0.75); g.add(neck);
+  const brown = 0x8b5a2b, dark = 0x5a3715, light = 0xa8743f, nose = 0x2a1a0e;
+  const rig = new THREE.Group(); g.add(rig); // alles außer Schatten hängt am Rig → Squash/Stretch und Neigung
+  const body = box(0.9, 0.6, 1.5, brown, 0, 0.75, 0); rig.add(body);
+  const chest = box(0.95, 0.5, 0.5, brown, 0, 0.72, 0.55); rig.add(chest);
+  rig.add(box(0.7, 0.12, 1.2, light, 0, 0.44, 0)); // Bauch
+  const neck = box(0.5, 0.5, 0.45, brown, 0, 1.05, 0.75); rig.add(neck);
+  rig.add(box(0.58, 0.14, 0.5, 0xd63031, 0, 1.1, 0.78)); // Halsband
+  const tag = cyl(0.09, 0.09, 0.04, 0xffcc33, 0, 0.98, 1.05, 10); tag.rotation.x = Math.PI / 2; rig.add(tag); // Hundemarke
   const head = new THREE.Group(); head.position.set(0, 1.3, 0.95);
   head.add(box(0.7, 0.6, 0.65, brown));
-  head.add(box(0.4, 0.35, 0.5, brown, 0, -0.1, 0.5)); // Schnauze
+  head.add(box(0.4, 0.35, 0.5, light, 0, -0.1, 0.5)); // Schnauze
+  head.add(box(0.72, 0.08, 0.2, dark, 0, 0.27, 0.25)); // Stirn / Augenbrauen
   head.add(sphere(0.12, nose, 0, -0.02, 0.78)); // Nase
-  head.add(sphere(0.08, 0x111111, 0.22, 0.12, 0.3)); head.add(sphere(0.08, 0x111111, -0.22, 0.12, 0.3)); // Augen
+  const eyes = [];
+  [0.22, -0.22].forEach(x => {
+    const e = new THREE.Group(); e.position.set(x, 0.12, 0.3);
+    e.add(sphere(0.085, 0x111111)); e.add(sphere(0.03, 0xffffff, x > 0 ? 0.025 : -0.025, 0.035, 0.065, 6)); // Glanzpunkt
+    head.add(e); eyes.push(e);
+  });
   const earL = box(0.18, 0.5, 0.3, dark, 0.4, -0.05, -0.05); earL.rotation.z = -0.25; head.add(earL);
   const earR = box(0.18, 0.5, 0.3, dark, -0.4, -0.05, -0.05); earR.rotation.z = 0.25; head.add(earR);
   const tongue = box(0.16, 0.05, 0.3, 0xff6b8a, 0, -0.3, 0.62); head.add(tongue);
-  g.add(head);
+  rig.add(head);
   const legs = [];
   [[0.3, 0.45], [-0.3, 0.45], [0.3, -0.5], [-0.3, -0.5]].forEach(([x, z]) => {
     const leg = new THREE.Group(); leg.position.set(x, 0.55, z);
     leg.add(box(0.26, 0.6, 0.28, brown, 0, -0.3, 0)); leg.add(box(0.28, 0.14, 0.34, dark, 0, -0.6, 0.03));
-    g.add(leg); legs.push(leg);
+    rig.add(leg); legs.push(leg);
   });
   const tail = new THREE.Group(); tail.position.set(0, 0.95, -0.75);
   const tailMesh = box(0.18, 0.18, 0.7, brown, 0, 0.15, -0.3); tailMesh.rotation.x = -0.6; tail.add(tailMesh);
-  g.add(tail);
-  g.userData = { head, legs, tail, body, earL, earR, tongue, t: 0 };
+  rig.add(tail);
+  g.userData = { rig, head, legs, tail, body, earL, earR, tongue, eyes, t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
   return g;
 }
 
-// Hundeanimation: speed (0..1), airborne, dt
-export function animateDog(dog, speed, airborne, dt, bite = 0) {
+// Hundeanimation: speed (0..1), airborne, dt, bite (0..1), vy (Fallgeschwindigkeit), turn (Drehrate)
+export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0) {
   const u = dog.userData; u.t += dt * (4 + speed * 10);
   const s = airborne ? 0 : speed;
-  u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI : 0)) * 0.8 * s; });
-  if (airborne) { u.legs[0].rotation.x = u.legs[1].rotation.x = -0.9; u.legs[2].rotation.x = u.legs[3].rotation.x = 0.7; }
-  u.tail.rotation.y = Math.sin(u.t * 1.7) * (0.5 + s * 0.4);
-  u.head.rotation.x = airborne ? -0.3 : Math.sin(u.t) * 0.05 * s;
-  u.earL.rotation.z = -0.25 - (airborne ? 0.6 : Math.abs(Math.sin(u.t)) * 0.25 * s);
-  u.earR.rotation.z = 0.25 + (airborne ? 0.6 : Math.abs(Math.sin(u.t)) * 0.25 * s);
-  u.body.scale.y = 1 + Math.sin(u.t * 2) * 0.03 * s;
-  u.tongue.visible = speed > 0.5 || bite > 0;
+  // Galopp: Vorder- und Hinterbeine versetzt, dazu Körper-Wippen
+  u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t + (i % 2 ? 0.5 : 0) + (i > 1 ? Math.PI : 0)) * 0.9 * s; });
+  if (airborne) {
+    const k = THREE.MathUtils.clamp(vy / 10, -1, 1); // hoch: Beine gestreckt, runter: zum Landen bereit
+    u.legs[0].rotation.x = u.legs[1].rotation.x = -0.6 - k * 0.5; u.legs[2].rotation.x = u.legs[3].rotation.x = 0.4 + k * 0.5;
+  }
+  u.rig.position.y = airborne ? 0 : Math.abs(Math.sin(u.t)) * 0.1 * s;
+  u.rig.rotation.x = airborne ? -THREE.MathUtils.clamp(vy * 0.03, -0.35, 0.35) : Math.sin(u.t * 2) * 0.04 * s;
+  // In Kurven reinlehnen
+  u.lean += (THREE.MathUtils.clamp(-turn * 0.08, -0.3, 0.3) * speed - u.lean) * Math.min(1, dt * 8); u.rig.rotation.z = u.lean;
+  // Leerlauf: Atmen, Umschauen, Schwanzwedeln
+  u.idle = speed < 0.05 && !airborne ? u.idle + dt : 0;
+  const idle = Math.min(1, u.idle * 2);
+  u.look = idle * Math.sin(u.idle * 0.9) * 0.5 * (Math.sin(u.idle * 0.33) > 0 ? 1 : 0.3);
+  u.head.rotation.y = u.look;
+  u.tail.rotation.y = Math.sin(u.t * 1.7 + u.idle * 14 * idle) * (0.5 + s * 0.4 + idle * 0.3);
+  u.tail.rotation.x = airborne ? 0.5 : -0.1 * idle;
+  u.head.rotation.x = airborne ? -0.3 : Math.sin(u.t) * 0.06 * s + Math.sin(u.idle * 2.2) * 0.04 * idle;
+  u.earL.rotation.z = -0.25 - (airborne ? 0.4 + vy * 0.04 : Math.abs(Math.sin(u.t)) * 0.3 * s);
+  u.earR.rotation.z = 0.25 + (airborne ? 0.4 + vy * 0.04 : Math.abs(Math.sin(u.t)) * 0.3 * s);
+  u.body.scale.y = 1 + Math.sin(u.t * 2) * 0.03 * s + Math.sin(u.idle * 3) * 0.03 * idle;
+  u.tongue.visible = speed > 0.5 || bite > 0 || idle > 0.9;
+  u.tongue.position.y = -0.3 + Math.sin(u.idle * 6) * 0.015;
+  // Blinzeln
+  u.blink -= dt; const closed = u.blink < 0.12; if (u.blink < 0) u.blink = 2 + Math.random() * 3;
+  u.eyes.forEach(e => { e.scale.y = closed ? 0.15 : 1; });
   if (bite > 0) { u.head.rotation.x = -0.4 + bite * 0.9; u.head.position.z = 0.95 + bite * 0.5; }
   else u.head.position.z = 0.95;
 }
@@ -177,7 +206,13 @@ export function makeFood(kind) {
     case 'sausage': g.add(cyl(0.14, 0.14, 0.8, 0xc8502e, 0, 0.2, 0, 8).rotateZ(Math.PI / 2)); break;
     case 'cheese': g.add(box(0.6, 0.35, 0.5, 0xffd94a, 0, 0.2, 0)); g.add(sphere(0.08, 0xd9b300, 0.15, 0.4, 0.1)); g.add(sphere(0.06, 0xd9b300, -0.18, 0.3, -0.15)); break;
     case 'bone': g.add(box(0.7, 0.18, 0.18, 0xffe9a8, 0, 0.3, 0)); [[0.35, 0.1], [0.35, -0.1], [-0.35, 0.1], [-0.35, -0.1]].forEach(([x, z]) => g.add(sphere(0.14, 0xffe9a8, x, 0.3, z))); break;
-    case 'goldbone': g.add(box(0.9, 0.22, 0.22, 0xffcc33, 0, 0.5, 0)); [[0.45, 0.12], [0.45, -0.12], [-0.45, 0.12], [-0.45, -0.12]].forEach(([x, z]) => g.add(sphere(0.18, 0xffcc33, x, 0.5, z))); break;
+    case 'goldbone': {
+      g.add(box(0.9, 0.22, 0.22, 0xffcc33, 0, 0.5, 0)); [[0.45, 0.12], [0.45, -0.12], [-0.45, 0.12], [-0.45, -0.12]].forEach(([x, z]) => g.add(sphere(0.18, 0xffcc33, x, 0.5, z)));
+      g.traverse(o => { if (o.material) { o.material.emissive = new THREE.Color(0x8a5a00); } });
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1.0, 24), new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }));
+      halo.position.y = 0.5; g.add(halo); g.userData.halo = halo;
+      break;
+    }
     default: g.add(sphere(0.18, 0xd98c4a, 0, 0.2, 0)); // Krümel
   }
   g.userData.spin = Math.random() * Math.PI * 2;

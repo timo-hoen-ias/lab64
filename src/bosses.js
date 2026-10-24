@@ -1,5 +1,6 @@
 // Bosse und Gegner. Jeder hat: mesh, name, hp, maxHp, radius, dead, update(dt, level), onBite().
 import * as THREE from 'three';
+import { FX } from './fx.js';
 import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, box, cyl } from './models.js';
 
 class Boss {
@@ -19,20 +20,27 @@ class Boss {
   }
   touchPlayer(r = 1.5, dmg = 1) { if (this.dist() < r + this.radius * 0.5 && Math.abs(this.player.pos.y - this.pos.y) < 2.5) this.player.hurt(dmg); }
   damage(n = 1) {
-    this.hp -= n; this.flash = 0.3; this.rage = 1 + (this.maxHp - this.hp) * 0.3; // Phase 2+: schneller this.game.audio.sfx('hit'); this.game.input.vibrate(150);
+    this.hp -= n; this.flash = 0.3; this.rage = 1 + (this.maxHp - this.hp) * 0.3; // Phase 2+: schneller
+    this.game.audio.sfx('hit'); this.game.input.vibrate(150); this.game.shake(0.35);
+    FX.hit(this.game.fx, { x: this.pos.x, y: this.pos.y + 1.5, z: this.pos.z });
     this.mesh.traverse(o => { if (o.material) { o.material.emissive = new THREE.Color(0xff4444); } });
     if (this.hp <= 0) this.die();
   }
   onBite() { if (this.stun > 0 && !this.dead) { this.damage(1); this.stun = 0; } else if (!this.dead) this.game.toast('Nur angreifbar, wenn er benommen ist!'); }
   die() {
-    this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss();
+    this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss(); this.game.shake(0.6);
+    this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, { n: 40, color: [0xffffff, 0xdddddd, 0xffe066], speed: 9, up: 6, life: 1, size: 0.35, gravity: -10 });
     this.game.toast(`${this.name} besiegt!`);
     const lvl = this.game.level; this.game.later(800, () => lvl.spawnGoldbone(this.pos.x, this.pos.y + 1, this.pos.z));
   }
   baseUpdate(dt) {
     this.t += dt;
     if (this.flash > 0) { this.flash -= dt; if (this.flash <= 0) this.mesh.traverse(o => { if (o.material) o.material.emissive = new THREE.Color(0x000000); }); }
-    if (this.stun > 0) { this.stun -= dt; this.mesh.rotation.z = Math.sin(this.t * 20) * 0.1; return true; }
+    if (this.stun > 0) {
+      this.stun -= dt; this.mesh.rotation.z = Math.sin(this.t * 20) * 0.1;
+      if (Math.random() < dt * 12) { const a = this.t * 6; this.game.fx.burst({ x: this.pos.x + Math.cos(a) * this.radius, y: this.pos.y + this.radius * 2 + 0.6, z: this.pos.z + Math.sin(a) * this.radius }, { n: 1, color: [0xffe066, 0xffffff], speed: 0.3, up: 0.5, life: 0.6, size: 0.25, gravity: 0 }); } // Sternchen
+      return true;
+    }
     this.mesh.rotation.z = 0; return false;
   }
   clampArena(r) { const l = Math.hypot(this.pos.x - this.cx, this.pos.z - this.cz); if (l > r) { this.pos.x = this.cx + (this.pos.x - this.cx) / l * r; this.pos.z = this.cz + (this.pos.z - this.cz) / l * r; return true; } return false; }
