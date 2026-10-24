@@ -291,6 +291,9 @@ export class Level {
     if (o.label) { const l = makeSign(o.label, { w: 2.2 }); l.position.set(0, 3.25, -0.05); g.add(l); }
     this.group.add(g); this.doors.push({ x, y, z, to, group: g });
   }
+  // Dach über einer Fläche (Regen fällt dort nicht durch): Rechteck x0..x1, z0..z1, Dach in Höhe top
+  shelter(x0, x1, z0, z1, top) { (this.roofs ||= []).push({ x0, x1, z0, z1, top }); }
+  sheltered(x, y, z) { return (this.roofs || []).some(r => x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1 && y < r.top); }
   areaAt(x, z) { return this.areas.find(a => x >= a.min.x - 0.5 && x <= a.max.x + 0.5 && z >= a.min.z - 0.5 && z <= a.max.z + 0.5) || this.mainArea; }
   teleport(to) {
     const pl = this.game.player; pl.pos.set(to.x, to.y, to.z); pl.vel.set(0, 0, 0); pl.checkpoint.copy(pl.pos);
@@ -407,7 +410,12 @@ export class Level {
       else if (w.state === 'bow' && w.t <= 0) { w.state = 'clear'; w.t = 120 + Math.random() * 120; }
       const want = w.state === 'rain' ? 1 : 0; w.k += (want - w.k) * Math.min(1, dt * 0.35);
       w.bow += ((w.state === 'bow' ? 1 : 0) - w.bow) * Math.min(1, dt * 0.4);
-      this.rain.visible = w.k > 0.05; if (this.rain.visible) { this.rain.material.opacity = Math.min(1, w.k * 1.3) * 0.75; this.rain.userData.update(dt, cp, pp.y - 2); if (Math.random() < dt * 40 * w.k) this.game.fx.burst({ x: pp.x + (Math.random() - 0.5) * 18, y: this.groundAt(pp.x, pp.z, pp.y + 1) + 0.05, z: pp.z + (Math.random() - 0.5) * 18 }, { n: 2, color: 0xe8f4ff, speed: 1, up: 1.2, life: 0.25, size: 0.07, gravity: -8, flat: true }); }
+      this.rain.visible = w.k > 0.05 && !this.bounds.room; // in Innenräumen regnet es nicht
+      if (this.rain.visible) {
+        this.rain.material.opacity = Math.min(1, w.k * 1.3) * 0.75; this.rain.userData.update(dt, cp, pp.y - 2, this._dry ||= (x, y, z) => this.sheltered(x, y, z));
+        const sx = pp.x + (Math.random() - 0.5) * 18, sz = pp.z + (Math.random() - 0.5) * 18, sy = this.groundAt(sx, sz, pp.y + 1) + 0.05; // Spritzer auf dem Boden, nicht unterm Dach
+        if (Math.random() < dt * 40 * w.k && sy > -Infinity && !this.sheltered(sx, sy, sz)) this.game.fx.burst({ x: sx, y: sy, z: sz }, { n: 2, color: 0xe8f4ff, speed: 1, up: 1.2, life: 0.25, size: 0.07, gravity: -8, flat: true });
+      }
       this.sky.mesh.material.uniforms.dim.value = w.k * 0.85; this.sun.intensity = w.sunI * (1 - w.k * 0.65); this.hemi.intensity = w.hemiI * (1 - w.k * 0.4);
       if (!this._uw) this.scene.fog.color.copy(w.fog).lerp(this._grey ||= w.fog.clone().lerp(new THREE.Color(0x9aa5b1), 1), w.k * 0.6);
       CLOUDS.uCloudK.value = this._cloudBase + w.k * 0.12;
@@ -515,6 +523,7 @@ export class Level {
 
   onBite(point, r) {
     for (const e of this.enemies) if (!e.dead && e.mesh.position.distanceTo(point) < r + (e.radius || 1)) e.onBite && e.onBite();
+    this.toyBite?.(point, r);
     for (const it of this.interact) if (!it.used && Math.hypot(it.x - point.x, it.z - point.z) < it.r + 1 && Math.abs(it.y - point.y) < 2.5) { it.used = true; it.cb(it); }
   }
 

@@ -18,6 +18,7 @@ export const GARTEN = {
     const roof = new THREE.Group(); roof.add(cone(10.2, 4.2, 0xc0392b, 0, 0, 0, 4)); roof.add(box(1, 2.2, 1, 0x8d6e63, 3.5, 0.8, 1.5)); // Dach + Schornstein
     roof.scale.set(1, 1, 0.86); l.deco(roof, 0, H + 2.1, -18, 0); roof.children[0].rotation.y = Math.PI / 4; l.roof = roof;
     l.smoke(3.5, H + 4.1, -16.7); // Rauch aus dem Schornstein
+    l.shelter(-7.2, 7.2, -24.2, -11.8, H + 6); // kein Regen im Haus
     l.deco(box(14.6, 0.15, 12.6, 0xa47148), 0, 0.02, -18); // Holzboden
     [[-4.25, -11.95], [4.25, -11.95], [-4.25, -24.05], [4.25, -24.05]].forEach(([x, z]) => { l.deco(box(1.8, 1.4, 0.15, 0x9ad7ff), x, 2.4, z); l.deco(box(2.1, 0.15, 0.25, trim), x, 1.65, z); }); // Fenster
     [-18, -15].forEach(z => { l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), -7.05, 2.4, z); l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), 7.05, 2.4, z); });
@@ -52,12 +53,15 @@ export const GARTEN = {
     [[-28, -12, 1.3], [28, -14, 1.2], [-29, 14, 1.4], [29, 13, 1.3], [-10, 30, 1.2], [10, 30, 1.1]].forEach(([x, z, sc], i) => { l.deco(makeRoundTree(sc, i % 2 === 0), x, 0, z); l.solids.push({ min: { x: x - 0.4 * sc, y: 0, z: z - 0.4 * sc }, max: { x: x + 0.4 * sc, y: 2 * sc, z: z + 0.4 * sc }, active: true }); });
     [[-14, -29], [14, -29], [-30, 0], [30, 0]].forEach(([x, z]) => l.tree(x, z, rnd(1.1, 1.5)));
     // ---- Hundehütte, Zwerg, Briefkasten
-    l.box(-13, 0, 9, 3, 2.2, 3, 0xb5651d); l.deco(cone(2.4, 1.5, 0x8b1e1e, 0, 0, 0, 4), -13, 2.9, 9, Math.PI / 4); l.deco(box(1.2, 1.4, 0.1, 0x3b2412), -13, 0.7, 10.52);
+    l.box(-13, 0, 9, 3, 2.2, 3, 0xb5651d); l.deco(cone(2.4, 1.5, 0x8b1e1e, 0, 0, 0, 4), -13, 2.9, 9, Math.PI / 4); l.shelter(-14.7, -11.3, 7.3, 10.7, 3.6); l.deco(box(1.2, 1.4, 0.1, 0x3b2412), -13, 0.7, 10.52);
     l.deco(box(1.6, 0.25, 0.4, 0xffffff), -13, 1.8, 10.6); // Namensschild
     l.deco(makeGnome(), 3, 0, 13, -0.6); l.deco(makeGnome(), -11, 0, 15, 0.8);
     // Opa Bruno: bringt Moll das Apportieren bei und hat einen Leckerli-Laden (Krümel gegen Upgrades)
     l.teacher(-9, 9.5, 'apportieren', { shop: true });
     l.fetchItem(7, 0, 9, 'ball');
+    // Spielzeug zum Herumtollen (rollt, rutscht, quietscht): weitere Bälle und Quietsche-Knochen, im Haus und im Garten
+    [[-3, 5, 0xe74c3c], [10, -4, 0x3498db, 0xf1c40f], [-1.5, -16.5, 0xfd79a8], [12, 15, 0xf39c12]].forEach(([x, z, color, stripe]) => l.fetchItem(x, 0, z, 'ball', { color, stripe }));
+    [[-2.4, -20, 0xff8fb1], [-9, 4, 0x74b9ff], [16, -2, 0xfdcb6e]].forEach(([x, z, color]) => l.fetchItem(x, 0, z, 'quietsch', { color }));
     l.fetchGoal(-13, 0, 11.6, 2.6, 'ball', () => { l.game.talk('bruno.apportiert', { mesh: l.bruno.mesh }); l.spawnGoldbone(-13, 1, 13, 'apport'); });
     l.deco(cyl(0.08, 0.08, 1.2, 0x7a4a1f, 0, 0.6, 0, 6), 4, 0, 4); l.deco(box(0.5, 0.4, 0.7, 0x2e86de, 0, 1.3, 0), 4, 0, 4);
     // ---- Teich zum Schwimmen mit Steinrand, Seerosen, Schilf und Steg
@@ -124,7 +128,7 @@ export const GARTEN = {
     l.zone(58, 0, 30, () => {
       l.box(60, 0, 0, 3, 12, 3, 0x6d4c41); l.deco(sphere(6.5, 0x4caf50, 0, 0, 0, 8), 60, 19, 0);
       [[56, 4, 1.6], [56.5, 0, 3.2], [57, -4, 4.8], [60.5, -5, 6], [64, -3, 7.2], [66, 1.5, 8.4]].forEach(([x, z, h]) => l.box(x, h - 0.3, z, 2.6, 0.3, 2.6, 0x8d6e63)); // Astgabeln
-      l.box(60, 9.4, 4, 8, 0.4, 6, 0xa47148); l.box(60, 9.8, 6.8, 8, 3, 0.4, 0xa47148); l.thRoof = l.deco(cone(6, 2.6, 0xc0392b, 0, 0, 0, 4), 60, 14.1, 4, Math.PI / 4); // Baumhaus (Dach blendet aus, wenn Moll drin ist)
+      l.box(60, 9.4, 4, 8, 0.4, 6, 0xa47148); l.box(60, 9.8, 6.8, 8, 3, 0.4, 0xa47148); l.thRoof = l.deco(cone(6, 2.6, 0xc0392b, 0, 0, 0, 4), 60, 14.1, 4, Math.PI / 4); l.shelter(56, 64, 1, 7, 14); // Baumhaus (Dach blendet aus, wenn Moll drin ist)
       l.goldbone('baumhaus', 62, 10.6, 4);
       l.box(52, 0, 30, 0.6, 7, 0.6, 0x6d4c41); l.box(52, 7, 30, 2.4, 0.3, 2.4, 0x8d6e63); l.deco(cone(1.8, 1, 0xc0392b, 0, 0, 0, 4), 52, 8.4, 30, Math.PI / 4); // Vogelhaus
       [[47, 30, 1.4], [48, 33, 2.8], [50.5, 34, 4.2], [53, 33.5, 5.6]].forEach(([x, z, h]) => l.box(x, 0, z, 1.8, h, 1.8, 0xb5835a)); // Brennholz-Stapel
@@ -140,7 +144,7 @@ export const GARTEN = {
       const gx = -60, gz = 16;
       const glass = new THREE.MeshLambertMaterial({ color: 0xdff9fb, transparent: true, opacity: 0.35, depthWrite: false });
       [[gx, gz - 8, 20, 0.3], [gx, gz + 8, 20, 0.3], [gx - 10, gz, 0.3, 16], [gx + 10, gz - 5, 0.3, 6], [gx + 10, gz + 5, 0.3, 6]].forEach(([x, z, w, d]) => { l.box(x, 0, z, w, 9, d, 0xdff9fb, { dynamic: true }).mesh.material = glass; });
-      const roof = box(20.4, 0.3, 16.4, 0xc7ecee); roof.material = glass; roof.castShadow = false; l.deco(roof, gx, 9.1, gz);
+      const roof = box(20.4, 0.3, 16.4, 0xc7ecee); roof.material = glass; roof.castShadow = false; l.deco(roof, gx, 9.1, gz); l.shelter(gx - 10.2, gx + 10.2, gz - 8.2, gz + 8.2, 9.3);
       [[-10, -8], [10, -8], [-10, 8], [10, 8]].forEach(([x, z]) => l.deco(box(0.4, 9.4, 0.4, 0xecf0f1), gx + x, 4.7, gz + z));
       [[-6, -5, 1.5], [-2, -5, 3], [2, -5, 4.5], [6, -4, 6], [6, 1, 7.5]].forEach(([x, z, h]) => { l.box(gx + x, h - 0.3, gz + z, 3, 0.3, 2.4, 0x95a5a6); l.deco(cyl(0.6, 0.4, 0.8, 0xd35400, 0, 0.4, 0, 8), gx + x, h, gz + z); }); // Pflanzregale
       l.box(gx + 2, 7.2, gz + 4, 8, 0.3, 2.4, 0x95a5a6);
