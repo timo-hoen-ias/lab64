@@ -287,8 +287,10 @@ export function placeFoes(lvl, rand) {
   for (const it of lvl.interact) avoid.push({ x: it.x, z: it.z, r: 2.5 });
   const near = (x, z, list) => list.some(a => Math.hypot(a.x - x, a.z - z) < a.r);
   // Fläche frei und flach genug zum Herumlaufen? Liefert die Bodenhöhe oder null
+  // Treppen und Rampen bleiben frei: dort stünden Gegner genau im (engen) Weg
+  const ramp = (x, z) => lvl.terrain.some(t => t.kind === 'ramp' && x > t.min.x - 1.5 && x < t.max.x + 1.5 && z > t.min.z - 1.5 && z < t.max.z + 1.5);
   const spot = (x, z, y, r = 1.6) => {
-    if (def.hazard?.(x, z)) return null;
+    if (def.hazard?.(x, z) || ramp(x, z)) return null;
     const g = lvl.groundAt(x, z, y + 0.7); if (g === -Infinity || Math.abs(g - y) > 0.6 || wet(lvl, x, z, g) || wall(x, g, z)) return null;
     if (def.minFloor !== undefined && g < def.minFloor) return null;
     for (const [ax, az] of [[r, 0], [-r, 0], [0, r], [0, -r]]) { const g2 = lvl.groundAt(x + ax, z + az, g + 0.7); if (g2 === -Infinity || Math.abs(g2 - g) > 0.5 || wall(x + ax, g, z + az) || wet(lvl, x + ax, z + az, g2)) return null; }

@@ -128,22 +128,26 @@ export function makeSkyLife(radius) {
   return g;
 }
 
-// Low-Poly-Wolken, die langsam ziehen (scale > 1 = große, ferne Wolkenbänke)
+// Low-Poly-Wolken, die langsam ziehen (scale > 1 = große, ferne Wolkenbänke). Alle Wolkenbäusche einer Schicht sind
+// ein einziges InstancedMesh (ein Zeichenaufruf statt einer pro Bausch)
 export function makeClouds(n, radius, height, scale = 1) {
   const g = new THREE.Group(), geo = new THREE.IcosahedronGeometry(1, 0);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true, emissive: 0x9fb4c8, emissiveIntensity: 0.35 });
+  const clouds = [], puffs = [];
   for (let i = 0; i < n; i++) {
-    const c = new THREE.Group(), puffs = 3 + Math.floor(Math.random() * 3);
-    for (let k = 0; k < puffs; k++) {
-      const m = new THREE.Mesh(geo, mat), s = (2.2 + Math.random() * 2.2) * scale;
-      m.scale.set(s * 1.3, s * 0.75, s); m.position.set((k - puffs / 2) * 2.6 * scale, Math.random() * 1.2 * scale, (Math.random() - 0.5) * 2.5 * scale); c.add(m);
-    }
     const a = Math.random() * Math.PI * 2, r = radius * (0.5 + Math.random() * 0.6);
-    c.position.set(Math.cos(a) * r, height + Math.random() * 14, Math.sin(a) * r); c.rotation.y = Math.random() * Math.PI;
-    c.userData.speed = 0.6 + Math.random() * 0.8; c.userData.range = radius * 1.2;
-    g.add(c);
+    const c = new THREE.Object3D(); c.position.set(Math.cos(a) * r, height + Math.random() * 14, Math.sin(a) * r); c.rotation.y = Math.random() * Math.PI;
+    c.userData.speed = 0.6 + Math.random() * 0.8; c.userData.range = radius * 1.2; clouds.push(c);
+    const k = 3 + Math.floor(Math.random() * 3);
+    for (let j = 0; j < k; j++) {
+      const m = new THREE.Object3D(), s = (2.2 + Math.random() * 2.2) * scale;
+      m.scale.set(s * 1.3, s * 0.75, s); m.position.set((j - k / 2) * 2.6 * scale, Math.random() * 1.2 * scale, (Math.random() - 0.5) * 2.5 * scale); c.add(m); puffs.push(m);
+    }
   }
-  g.userData.update = dt => g.children.forEach(c => { c.position.x += c.userData.speed * dt; if (c.position.x > c.userData.range) c.position.x = -c.userData.range; });
+  const inst = new THREE.InstancedMesh(geo, mat, Math.max(1, puffs.length)); inst.count = puffs.length; inst.frustumCulled = false; g.add(inst);
+  const place = () => { clouds.forEach(c => c.updateMatrixWorld(true)); puffs.forEach((m, i) => inst.setMatrixAt(i, m.matrixWorld)); inst.instanceMatrix.needsUpdate = true; };
+  place();
+  g.userData.update = dt => { clouds.forEach(c => { c.position.x += c.userData.speed * dt; if (c.position.x > c.userData.range) c.position.x = -c.userData.range; }); place(); };
   return g;
 }
 
