@@ -16,6 +16,33 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async dorf() {
+    await shot('dorf_start', null, 0.25);
+    await grabBone('kletter'); await grabBone('muehle'); await shot('dorf_muehle', 0.3, 0.3);
+    await grabBone('burg'); await shot('dorf_burg', 2.6, 0.35);
+    await grabBone('teich'); await shot('dorf_teich', -1.2, 0.3);
+    // Scheune über die Tür
+    await tp(95.2, 0.2, -16); await W(900); console.log('  in der Scheune:', await ev(() => window.game.player.pos.x > 1900 && window.game.player.pos.x < 2200));
+    await shot('dorf_scheune', null, 0.3); await grabBone('scheune'); await grabAll("q.kind === 'crumb' && q.x > 1900 && q.x < 2200");
+    await tp(2000, 0.2, 10.6); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    // Hühner fangen
+    for (let i = 0; i < 5; i++) { const c = await ev(() => { const c = window.game.level.chickens.find(c => !c.caught); return c && [c.x, c.z]; }); if (!c) break; await ev(([x, z]) => { const c = window.game.level.chickens.find(c => !c.caught); c.a = 0; }, c); await tp(c[0], 0.2, c[1] - 1.4, 0); await bite(); }
+    console.log('  Hühner:', await ev(() => window.game.level.huhn)); await W(500); await grabBone('huehner'); await shot('dorf_hof', 1.6, 0.3);
+    // Kekse + Bäcker
+    await grabAll('q.special'); console.log('  Kekse:', await ev(() => window.game.level.kekse));
+    await tp(-18.2, 0.2, 0); await W(900); console.log('  in der Bäckerei:', await ev(() => window.game.player.pos.x > 2200));
+    await shot('dorf_baeckerei', null, 0.3); await tp(2296, 0.2, 5.6, Math.PI); await W(200); await bite(); await bite(); await W(600); await grabBone('baecker');
+    await grabAll("q.kind === 'crumb' && q.x > 2200");
+    await tp(2300, 0.2, 8.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    // Geheim + Brote mit Nase
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
+    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], q[1] - 0.3, q[2]); await W(450); }
+    await p.keyboard.up('KeyF'); console.log('  Brote:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    await W(2500); await tp(0, 0.2, 14); await W(800); await shot('dorf_boss', 0, 0.3);
+    for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
+    await W(1500); await grabBone('boss');
+  },
   async hafen() {
     await shot('hafen_start', null, 0.25);
     await tp(5, 2.6, 22); await W(600); console.log('  tauchen:', await ev(() => window.game.has('tauchen')));

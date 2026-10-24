@@ -8,7 +8,7 @@ const W = ms => p.waitForTimeout(ms);
 const tp = (x, y, z) => p.evaluate(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.hp = 3; }, [x, y, z]);
 const report = [];
 // Große Welten (Strand, Grillpark, …) testen tests/strand.mjs und tests/worlds.mjs
-for (const key of ['kueche', 'strasse', 'buero', 'dorf', 'kanal']) {
+for (const key of ['kueche', 'strasse', 'buero', 'kanal']) {
   await p.evaluate(k => window.game.enterLevel(k), key); await W(400);
   const info = await p.evaluate(() => { const l = window.game.level; return { crumbs: l.crumbTotal, cr: l.pickups.filter(q => !q.goal && q.kind !== 'goldbone').map(q => [q.x, q.y, q.z]) }; });
   // alle Krümel einsammeln
