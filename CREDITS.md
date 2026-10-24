@@ -7,6 +7,7 @@ Fertige Low-Poly-Modelle liegen als GLB unter `assets/` und werden über `src/as
 | Dateien | Herkunft |
 |---|---|
 | `assets/autos/*.glb` (rotes, blaues, gelbes Auto, Lieferwagen) | in Blender gebaut mit `tools/make_cars.py` |
+| `assets/pflanzen/*.glb`, `assets/deko/gartenzwerg.glb`, `assets/sammeln/{ice,bone,treat,sock,cup}.glb` | in Blender gebaut (einfarbige Materialien) |
 | `assets/sammeln/*.glb` (Goldknochen, Keks, Wurst, Brot, Schinken, Käse, Fisch, Pommes, Muschel) | für Moll64 generiert mit Scenario (Meshy, Text-zu-3D), verkleinert mit `tools/shrink_glb.py` |
 
 ## Heruntergeladene Modelle (CC0)
