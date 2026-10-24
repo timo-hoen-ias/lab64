@@ -373,8 +373,7 @@ export class AudioEngine {
       case 'chime': [[0, 0.16], [7, 0.05], [12, 0.06]].forEach(([s, v]) => this._tone(this._note(s, 988), t, 1.3, 'sine', v)); break;
       case 'rustle': for (let i = 0; i < 5; i++) this._noise(t + i * 0.07, 0.13, 0.1, 2400, 'highpass'); break;
       case 'plop': this._tone(240, t, 0.1, 'sine', 0.28, null, -130); this._noise(t, 0.05, 0.08, 900); break;
-      case 'bonk': this._tone(900, t, 0.07, 'triangle', 0.22, null, -300); this._tone(1350, t + 0.06, 0.09, 'triangle', 0.12); break;
-      case 'squeak': this._tone(950, t, 0.11, 'square', 0.08, null, 800); this._tone(1750, t + 0.11, 0.13, 'square', 0.07, null, -800); break;
+      case 'tonk': this._tone(900, t, 0.07, 'triangle', 0.22, null, -300); this._tone(1350, t + 0.06, 0.09, 'triangle', 0.12); break;
       case 'quack': [0, 0.2].forEach(d => this._filtered(270, t + d, 0.15, 'sawtooth', 0.25, S, 1200, { scoop: 1.3 })); break;
       case 'moo': this._filtered(140, t, 1.1, 'sawtooth', 0.3, S, 520, { scoop: 0.75, vib: 0.02 }); break;
       case 'cluck': [0, 0.11, 0.2, 0.44].forEach((d, i) => this._tone(i === 3 ? 950 : 640, t + d, 0.07, 'triangle', 0.15, null, -280)); break;

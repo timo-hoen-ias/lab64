@@ -173,7 +173,7 @@ export function installDetails(Level) {
         if (!d.rest) {
           d.vy -= 22 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt; d.m.rotation.x += dt * 4;
           if (d.bonk && d.vy < 0 && Math.hypot(d.x - pp.x, d.z - pp.z) < 0.9 && Math.abs(d.y - (pp.y + 1.3)) < 0.5) { // Tannenzapfen auf den Kopf
-            d.bonk = false; d.vy = 4; d.vx = rnd(-2, 2); d.vz = rnd(-2, 2); g.audio.sfx('bonk'); pl.squash = 0.35;
+            d.bonk = false; d.vy = 4; d.vx = rnd(-2, 2); d.vz = rnd(-2, 2); g.audio.sfx('tonk'); pl.squash = 0.35;
             g.fx.burst({ x: pp.x, y: pp.y + 1.6, z: pp.z }, { n: 8, color: [0xfff3a0, 0xffffff, 0xffd32a], speed: 2.5, up: 0.5, life: 0.6, size: 0.16, gravity: 0, flat: true });
             this.once('zapfen', 'TOCK! Ein Tannenzapfen auf den Kopf. Autsch … aber nur ein bisschen.');
           }
@@ -449,14 +449,14 @@ const WORLDS = {
   // ---------------------------------------------------------------- Hochhaus
   buero(l, g) {
     const F1 = 12, F2 = 24, cx = 2000;
-    // Bürouhr im Großraumbüro: Bellen = Zeiger rasen, „Feierabend!“
-    l.wallClock(0, 6, -31.3, 0, { cuckoo: false, s: 1.4, say: 'Die Bürouhr rattert: FEIERABEND! … ach nee, doch nicht.' });
+    // Amtsuhr in der Wartehalle (zwischen zwei Fenstern): Bellen = Zeiger rasen, „Feierabend!“
+    l.wallClock(4, 6, -31.15, 0, { cuckoo: false, s: 1.4, say: 'Die Amtsuhr rattert: FEIERABEND! … ach nee, doch nicht.' });
     // Telefon klingelt ab und zu; Biss = abheben
     const ph = new THREE.Group(); ph.add(box(0.7, 0.2, 0.5, 0xd63031, 0, 0.1, 0)); ph.add(box(0.3, 0.06, 0.3, 0xffffff, 0.12, 0.22, 0)); const hs = box(0.7, 0.14, 0.18, 0xd63031, 0, 0.3, -0.12); ph.add(hs); ph.userData = { hs };
     const phone = l.put(compact(ph), -16.8, 1.4, -11.8, 0.3), pz = { ring: 0 };
     l.sound(-16.8, 1.6, -11.8, v => { pz.ring = 2.2; g.audio.sfx('ring', v); g.audio.sfx('ring', v, 0.6); }, { every: [16, 28], r: 16 });
     l.ticks.push(dt => { if (pz.ring > 0) { pz.ring -= dt; hs.position.y = 0.3 + Math.abs(Math.sin(pz.ring * 40)) * 0.06; phone.rotation.z = Math.sin(pz.ring * 50) * 0.03; } else { hs.position.y = 0.3; phone.rotation.z = 0; } });
-    const calls = ['„Hallo? Hier ist die Katze vom Erdgeschoss. Miau!“ – Klick.', '„Spreche ich mit dem Chef?“ – „Wuff!“ – „Oh, Entschuldigung.“', '„Ihre Leckerli-Lieferung kommt morgen.“ Juhu!', '„Haben Sie Interesse an einem neuen Staubsauger?“ – NEIN!', 'Tuuut … tuuut … niemand dran.'];
+    const calls = ['„Hallo? Hier ist die Katze vom Erdgeschoss. Miau!“ – Klick.', '„Spreche ich mit der Amtsleitung?“ – „Wuff!“ – „Oh, Entschuldigung.“', '„Ihre Leckerli-Lieferung kommt morgen.“ Juhu!', '„Haben Sie Interesse an einem neuen Staubsauger?“ – NEIN!', 'Tuuut … tuuut … niemand dran.'];
     l.fun(-16.8, 1.4, -11.8, { r: 1, bite: f => { f.cd = 2; g.audio.sfx('click'); g.toast(pz.ring > 0 ? pick(calls.slice(0, 4)) : calls[4], 3500); pz.ring = 0; } });
     // Kopierer: Biss = Papierregen
     const copies = ['Brrrt! 50 Kopien von Molls Pfote.', 'Brrrt! Der Kopierer druckt ein Foto von Molls Po. Peinlich!', 'Papierstau. Natürlich.'];
@@ -467,9 +467,8 @@ const WORLDS = {
     l.ticks.push(dt => { panic = Math.max(0, panic - dt); for (const f of fish) { f.a += dt * f.v * (1 + panic * 3); const x = Math.sin(f.a) * 1.6; f.m.position.set(cx - 10 + x, f.y + Math.sin(f.a * 2.3) * 0.15, -8.12); f.m.rotation.y = Math.cos(f.a) > 0 ? Math.PI / 2 : -Math.PI / 2; } });
     l.sound(cx - 10, 1.5, -9, 'bubble', { every: [0.6, 1.5], r: 8, vol: 0.6 });
     l.fun(cx - 10, 0, -9, { h: 2, bark: () => { panic = 2.5; l.once('fische', 'Die Fische flitzen erschrocken im Kreis!'); }, barkR: 10 });
-    // Serverraum brummt; Bellen = Fehlermeldung
-    l.sound(0, F2 + 3, -18, 'hum', { every: 1.2, r: 14, vol: 0.9 });
-    l.fun(-2, F2, -18, { r: 6, h: 6, bark: () => { g.audio.sfx('ring', 0.6); g.toast(pick(['SERVER: „ERROR 404 – Leckerli nicht gefunden.“', 'SERVER: „Bitte nicht anbellen, ich rechne gerade.“', 'SERVER: „Neustart in 3 … 2 … 1 … WUFF.“']), 3000); }, barkR: 9, barkCd: 3 });
+    // Aktenarchiv: Bellen lässt Formulare von den Regalen segeln
+    l.fun(-2, F2, -18, { r: 6, h: 6, bark: () => { g.audio.sfx('rustle'); g.fx.burst({ x: -2, y: F2 + 6, z: -18 }, { n: 16, color: [0xffffff, 0xfff3e0], speed: 3, up: 2, life: 2.2, size: 0.4, gravity: -1.5, flat: true, drag: 1.2, spread: 5 }); g.toast(pick(['Antrag auf Extra-Leckerli … ABGELEHNT. Stempel drauf!', 'Formular 27b/6: „Erlaubnis zum Bellen“. Zu spät!', 'Eine Akte segelt runter: „Moll – sehr guter Hund“. Stimmt.']), 3000); }, barkR: 9, barkCd: 3 });
     // Kaffeemaschine dampft und blubbert
     l.puffs(12, F2 + 3.7, 22, { rate: 2, size: 0.3, life: 1.6 });
     l.sound(12, F2 + 2.5, 22, 'gurgle', { every: [5, 9], r: 8 });
