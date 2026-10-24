@@ -36,12 +36,17 @@ export class AudioEngine {
     this.master.connect(this.lowpass); this.lowpass.connect(this.ctx.destination);
     this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.35; this.musicGain.connect(this.master);
     this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.7; this.sfxGain.connect(this.master);
+    // Mobilbrowser setzen den Kontext nach Anrufen, Sperrbildschirm oder Tab-Wechsel auf 'suspended'/'interrupted' → bei nächster Gelegenheit fortsetzen
+    const wake = () => this.resume();
+    ['pointerdown', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, wake, { passive: true }));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
+    this.ctx.onstatechange = () => { if (this.ctx.state !== 'running' && !document.hidden) wake(); };
   }
   underwater(on) {
     if (!this.ctx) return; const t = this.ctx.currentTime; this.lowpass.frequency.cancelScheduledValues(t);
     this.lowpass.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.08 : 0.2); if (on) this.sfx('splash');
   }
-  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => { }); }
 
   _note(semi, base = 220) { return base * Math.pow(2, semi / 12); }
 
@@ -83,20 +88,25 @@ export class AudioEngine {
     }
     const prog = st.prog || [0, 3, 4, 0];
     const degFreq = (d, oct = 0) => this._note(scale[((d % 7) + 7) % 7] + 12 * (Math.floor(d / 7) + oct), root);
-    const out = this.musicGain;
+    // Eigener Lautstärkeregler je Stück: weich einblenden, beim Wechsel ausblenden (Crossfade statt hartem Schnitt)
+    const out = this.ctx.createGain(), t0 = this.ctx.currentTime;
+    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(1, t0 + 0.6); out.connect(this.musicGain);
     let dest = out;
     if (st.echo) { // Hall/Echo für Kanal und Albtraum
       const dl = this.ctx.createDelay(1), fb = this.ctx.createGain(), wet = this.ctx.createGain(), inp = this.ctx.createGain();
       dl.delayTime.value = step * 3; fb.gain.value = 0.35; wet.gain.value = 0.5;
       inp.connect(out); inp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(out); dest = inp;
     }
-    const song = { stop: false, step: 0, nodes: [dest] };
+    const song = { stop: false, step: 0, gain: out, nodes: [dest, out] };
     this.song = song;
-    const start = this.ctx.currentTime + 0.05;
+    let start = this.ctx.currentTime + 0.05;
     const schedule = () => {
       if (song.stop) return;
       const now = this.ctx.currentTime;
-      while (start + song.step * step < now + 0.4) {
+      // Hing der Hauptthread (Ruckler beim Einblenden eines Bereichs, Hintergrund-Tab), lägen die nächsten Noten in der Vergangenheit
+      // und blieben stumm → Takt neu ansetzen, damit die Musik sofort weiterläuft statt abzubrechen.
+      if (start + song.step * step < now + 0.02) start = now + 0.05 - song.step * step;
+      while (start + song.step * step < now + 1.0) {
         const i = song.step % len, b = i % bar, chord = prog[Math.floor(i / bar) % prog.length];
         const t = start + song.step * step + (song.step % 2 ? (theme.swing ?? st.swing ?? 0.03) : 0);
         const m = mel[i];
@@ -111,13 +121,13 @@ export class AudioEngine {
         // Schlagzeug
         const dr = st.drums;
         if (dr.kick && dr.kick.includes(b)) this._tone(85, t, 0.14, 'sine', 0.3, out, -60);
-        if (dr.snare && dr.snare.includes(b)) this._drumNoise(t, 0.09, 0.12);
-        if (dr.hat && dr.hat.includes(b)) this._drumNoise(t, 0.025, 0.035);
+        if (dr.snare && dr.snare.includes(b)) this._drumNoise(t, 0.09, 0.12, out);
+        if (dr.hat && dr.hat.includes(b)) this._drumNoise(t, 0.025, 0.035, out);
         if (dr.click && dr.click.includes(b)) this._tone(1800, t, 0.03, 'square', 0.04, out);
-        if (dr.roll && i % (bar * 4) >= bar * 4 - 2) this._drumNoise(t + step / 2, 0.05, 0.08);
+        if (dr.roll && i % (bar * 4) >= bar * 4 - 2) this._drumNoise(t + step / 2, 0.05, 0.08, out);
         song.step++;
       }
-      song.timer = setTimeout(schedule, 120);
+      song.timer = setTimeout(schedule, 100);
     };
     schedule();
   }
@@ -153,11 +163,11 @@ export class AudioEngine {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.setValueAtTime(vol, t + dur * 0.75); g.gain.linearRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest); o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
   }
-  _drumNoise(t, dur, vol) {
+  _drumNoise(t, dur, vol, dest = this.musicGain) {
     const n = Math.floor(this.ctx.sampleRate * dur), b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
     const s = this.ctx.createBufferSource(); s.buffer = b; const g = this.ctx.createGain(); g.gain.value = vol;
-    s.connect(g); g.connect(this.musicGain); s.start(t);
+    s.connect(g); g.connect(dest); s.start(t);
   }
   // Kurzer, heller Klick (Zähne)
   _click(t, vol) {
@@ -186,7 +196,12 @@ export class AudioEngine {
     return h;
   }
   stopLoops() { (this.loops || []).forEach(l => l.stop()); this.loops = []; }
-  stopMusic() { if (this.song) { const sg = this.song; sg.stop = true; clearTimeout(sg.timer); setTimeout(() => sg.nodes.forEach(n => n.disconnect()), 1500); this.song = null; } }
+  stopMusic() {
+    if (!this.song) return;
+    const sg = this.song, t = this.ctx.currentTime; sg.stop = true; clearTimeout(sg.timer); this.song = null;
+    sg.gain.gain.cancelScheduledValues(t); sg.gain.gain.setValueAtTime(sg.gain.gain.value, t); sg.gain.gain.linearRampToValueAtTime(0, t + 0.5); // ausblenden, bereits geplante Noten verklingen leise
+    setTimeout(() => sg.nodes.forEach(n => n.disconnect()), 1600);
+  }
 
   // ---- Effekte -------------------------------------------------------
   sfx(name) {
