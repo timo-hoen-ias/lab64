@@ -1,5 +1,5 @@
 // Einheitliche Eingabe: Tastatur, Touch (virtueller Stick + Buttons + Kamera-Wischen) und Gamepad.
-// Alle Abfragen laufen über input.move (x,y in -1..1), input.cam (x,y), input.pressed('jump'|'act'|'sniff'|'pause')
+// Alle Abfragen laufen über input.move (x,y in -1..1), input.cam (x,y), input.pressed('jump'|'act'|'sniff'|'spin'|'bark'|'pause')
 // sowie input.held(name). Für den Runner-Modus liefert input.swipe() einmalige Richtungen.
 
 export class Input {
@@ -7,7 +7,7 @@ export class Input {
     this.move = { x: 0, y: 0 };
     this.cam = { x: 0, y: 0 };
     this.keys = new Set();
-    this._held = { jump: false, act: false, sniff: false, pause: false, left: false, right: false, up: false, down: false };
+    this._held = { jump: false, act: false, sniff: false, spin: false, bark: false, pause: false, left: false, right: false, up: false, down: false };
     this._prev = { ...this._held };
     this._pressedThisFrame = {};
     this._swipe = null;
@@ -20,7 +20,7 @@ export class Input {
 
   _setupKeyboard() {
     const map = {
-      Space: 'jump', ShiftLeft: 'act', ShiftRight: 'act', KeyE: 'act', KeyF: 'sniff', Escape: 'pause', Enter: 'jump',
+      Space: 'jump', ShiftLeft: 'act', ShiftRight: 'act', KeyE: 'act', KeyF: 'sniff', KeyC: 'spin', KeyX: 'spin', KeyV: 'bark', KeyB: 'bark', Escape: 'pause', Enter: 'jump',
       ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down'
     };
     window.addEventListener('keydown', e => {
@@ -103,7 +103,7 @@ export class Input {
       const up = () => { this._held[name] = false; el.classList.remove('on'); };
       el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up);
     };
-    bind('bJump', 'jump'); bind('bAct', 'act'); bind('bSniff', 'sniff'); bind('bPause', 'pause');
+    bind('bJump', 'jump'); bind('bAct', 'act'); bind('bSniff', 'sniff'); bind('bSpin', 'spin'); bind('bBark', 'bark'); bind('bPause', 'pause');
   }
 
   _setupGamepad() {
@@ -123,7 +123,7 @@ export class Input {
     this.cam.x += cx * 0.05; this.cam.y += cy * 0.05;
     const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
     this._gp = {
-      jump: b(0), act: b(2) || b(1), sniff: b(3) || b(5), pause: b(9),
+      jump: b(0), act: b(2), sniff: b(3) || b(4), spin: b(1) || b(7), bark: b(5) || b(6), pause: b(9),
       left: b(14) || mx < -0.6, right: b(15) || mx > 0.6, up: b(12) || my > 0.6, down: b(13) || my < -0.6
     };
   }

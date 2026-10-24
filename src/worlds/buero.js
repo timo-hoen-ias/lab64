@@ -44,6 +44,15 @@ export const BUERO = {
     });
     l.box(-22, 0, -20, 3, 1.5, 3, 0x95a5a6); l.box(-22, 0, -16, 3, 3, 3, 0x95a5a6); l.box(-22, 0, -12, 3, 4.5, 3, 0x95a5a6);
     l.goldbone('kletter', -22, 5.2, -12);
+    // ---- Fähigkeit dieser Welt: Bauchklatscher. Drei Not-Aus-Knöpfe am Boden öffnen den Paketautomaten; Kartons zerbrechen
+    l.teacher(-5, 20, 'bauchklatscher', { y: 0, say: 'Opa Bruno: „Die drei roten Knöpfe am Boden lassen sich nur mit einem Bauchklatscher drücken!“' });
+    l.knoepfe = 0;
+    [[-10, 24], [8, 27], [-22, 6]].forEach(([x, z]) => l.stompPad(x, 0, z, () => {
+      l.knoepfe++; if (l.knoepfe < 3) { g.toast(`KLONK! Knopf ${l.knoepfe}/3`); return; }
+      if (!g.hasBone(l.key, 'stampfen')) { g.toast('Alle Knöpfe gedrückt – der Paketautomat springt auf!'); l.spawnGoldbone(-24, 1.2, 24, 'stampfen'); }
+    }));
+    l.box(-26.5, 0, 24, 2, 3.2, 5, 0xf1c40f); l.label('Pakete', -26, 4, 24);
+    [[-24, -2], [24, -2], [0, -27]].forEach(([x, z]) => l.crate(x, 0, z, 1.8, [l.pickup(x, 0.4, z, 'bone', { value: 5 })]));
     l.goldbone('geheim', 24, 0.6, -24, { hidden: true });
     l.box(20, 0, 20, 6, 0.8, 6, 0xd63031); l.label('Kantine', 20, 3.5, 20);
     l.pickup(-20, 0.3, 26, 'cup', { special: true, onTake: () => l.tasse(), onRestore: () => l.tassen++ });

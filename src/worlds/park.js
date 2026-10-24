@@ -28,6 +28,10 @@ export const PARK = {
     l.goldbone('geheim', 26, 0.6, -22, { hidden: true });
     l.addEnemy(new FatMan(g, path, (x, z) => { l.pickup(x, 0.3, z, 'sausage', { goal: true }); g.audio.sfx('collect'); }));
     l.warp(-24, 0, 30, 'Grillwiese', bench());
+    // ---- Fähigkeit dieser Welt: Buddeln. Erdhügel überall im Park, in einem steckt ein Goldknochen
+    l.teacher(-31, 24, 'buddeln', { say: 'Opa Bruno: „Fünf Erdhügel gibt es hier im Park. In einem riecht es nach Gold!“' });
+    [[-30, 18], [22, 28], [-48, -22], [50, 32]].forEach(([x, z]) => l.digSpot(x, z, [l.pickup(x, 0.4, z, 'bone', { value: 5 })]));
+    l.digSpot(-70, -30, [l.goldbone('buddeln', -70, 0.8, -30)]);
     // Wege von den Toren nach draußen
     [[0, -60, 0, -38], [0, 38, 0, 62], [-38, 0, -62, 0], [38, 0, 62, 0]].forEach(([x0, z0, x1, z1]) => { const n = 10; for (let k = 0; k <= n; k++) l.group.add(box(3, 0.05, 3, PATH, x0 + (x1 - x0) * k / n, 0.03, z0 + (z1 - z0) * k / n)); });
 

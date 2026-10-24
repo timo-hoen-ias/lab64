@@ -38,6 +38,13 @@ export const HAFEN = {
     l.abilityItem(5, 3, 22, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch.');
     l.trigger(8, 2, 24, 6, () => g.toast(g.has('tauchen') ? 'Tim: „Im Hafenbecken liegt ein alter Anker – und was Goldenes daneben!“' : 'Tim: „Nimm meine Ersatzbrille, dann kannst du tauchen!“', 4500), false);
     l.warp(-6, 2, 24, 'Holzkai', bollard());
+    // ---- Fähigkeit dieser Welt: Gleiten. Vom Ausguck übers Wasser zum Möwennest, ein Aufwind hilft
+    l.teacher(-11, 25, 'gleiten', { say: 'Opa Bruno: „Klettere auf den Ausguck und gleite rüber zum Möwennest. Der Wind über dem Wasser trägt dich!“' });
+    [[16, 22, 3.6], [18.5, 22, 5.2], [18.5, 24.5, 6.8], [16, 24.5, 8.4], [13.5, 24.5, 10]].forEach(([x, z, top]) => l.box(x, 2, z, 2.5, top - 2, 2.5, 0x8d6e4a));
+    l.label('Ausguck', 13.5, 12, 24.5);
+    l.box(13.5, BED, 45, 4, 8 - BED, 4, 0x7f8c8d); l.deco(cyl(1.6, 1.2, 0.6, 0xc49a6c, 0, 0.3, 0, 10), 13.5, 8, 45); // Pfahl mit Möwennest
+    l.goldbone('gleiten', 13.5, 8.8, 45);
+    l.updraft(13.5, SEA, 35, 13, 2.6);
 
     // ---- Osten: Containerterminal mit Riesenkran
     l.zone(90, -10, 60, () => {

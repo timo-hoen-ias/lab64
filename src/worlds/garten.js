@@ -54,6 +54,10 @@ export const GARTEN = {
     l.box(-13, 0, 9, 3, 2.2, 3, 0xb5651d); l.deco(cone(2.4, 1.5, 0x8b1e1e, 0, 0, 0, 4), -13, 2.9, 9, Math.PI / 4); l.deco(box(1.2, 1.4, 0.1, 0x3b2412), -13, 0.7, 10.52);
     l.deco(box(1.6, 0.25, 0.4, 0xffffff), -13, 1.8, 10.6); // Namensschild
     l.deco(makeGnome(), 3, 0, 13, -0.6); l.deco(makeGnome(), -11, 0, 15, 0.8);
+    // Opa Bruno: bringt Moll das Apportieren bei und hat einen Leckerli-Laden (Krümel gegen Upgrades)
+    l.teacher(-9, 9.5, 'apportieren', { shop: true, say: 'Opa Bruno: „Bring den Ball zu deiner Hütte, Moll!“' });
+    l.fetchItem(7, 0, 9, 'ball');
+    l.fetchGoal(-13, 0, 11.6, 2.6, 'ball', () => { l.game.toast('Opa Bruno: „Brav! Und schau mal, was in der Hütte lag …“'); l.spawnGoldbone(-13, 1, 13, 'apport'); });
     l.deco(cyl(0.08, 0.08, 1.2, 0x7a4a1f, 0, 0.6, 0, 6), 4, 0, 4); l.deco(box(0.5, 0.4, 0.7, 0x2e86de, 0, 1.3, 0), 4, 0, 4);
     // ---- Teich zum Schwimmen mit Steinrand, Seerosen, Schilf und Steg
     l.pond(0, 20, 9, 6, 3.4); // tief genug zum Tauchen

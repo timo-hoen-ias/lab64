@@ -8,6 +8,7 @@ import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
 import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
+import { ABILITIES, UPGRADES } from './abilities.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -41,7 +42,7 @@ export class Game {
     this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
     this.paused = true; this.level = null; this.clock = new THREE.Clock();
-    this.save = this.loadSave(); this.applyQuality();
+    this.save = this.loadSave(); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
     this.menu = new Menu(this);
@@ -58,9 +59,50 @@ export class Game {
     return s;
   }
   has(ability) { return !!this.save.abilities[ability]; }
+  maxHp() { return 3 + (this.has('herz4') ? 1 : 0) + (this.has('herz5') ? 1 : 0); }
   unlock(ability, text) {
-    if (this.has(ability)) return; this.save.abilities[ability] = true; this.persist();
+    if (this.has(ability)) return; this.save.abilities[ability] = true; this.persist(); this.updateAbilityButtons();
     this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); this.toast(text || `Neue Fähigkeit: ${ability}!`, 6000);
+  }
+  // Neue Fähigkeit von Opa Bruno: große Karte mit Name und Steuerung
+  learn(ability, fromBruno) {
+    const a = ABILITIES[ability]; if (!a) return; const fresh = !this.has(ability);
+    if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); }
+    const el = document.getElementById('learn'); if (!el) return;
+    el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Opa Bruno' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
+    el.classList.add('show'); clearTimeout(this._lt); this._lt = setTimeout(() => el.classList.remove('show'), 6500);
+  }
+  updateAbilityButtons() {
+    const b = document.body.classList; b.toggle('can-spin', ['trillern', 'gleiten', 'tornado'].some(a => this.has(a))); b.toggle('can-bark', this.has('bellen'));
+  }
+  // ---- Krümel-Laden (Opa Bruno im Garten)
+  _setupShop() {
+    const el = document.getElementById('shop'); if (!el) return;
+    el.querySelector('.close').addEventListener('click', () => this.closeShop());
+  }
+  openShop() {
+    const el = document.getElementById('shop'); if (!el) return; this.shopOpen = true; this.shopSel = 0; this.renderShop(); el.classList.add('show');
+  }
+  closeShop() { document.getElementById('shop').classList.remove('show'); this.shopOpen = false; }
+  shopItems() { return UPGRADES.map(u => ({ ...u, owned: this.has(u.id), locked: !!u.needs && !this.has(u.needs) })); }
+  renderShop() {
+    const el = document.getElementById('shop'), items = this.shopItems();
+    el.querySelector('.wallet').textContent = `Deine Krümel: ${this.save.crumbs} ✦`;
+    el.querySelector('.list').innerHTML = items.map((u, i) => `<div class="item ${i === this.shopSel ? 'sel' : ''} ${u.owned || u.locked || this.save.crumbs < u.price ? 'off' : ''}" data-i="${i}"><span class="ic">${u.icon}</span><span class="tx"><b>${u.name}</b><br>${u.locked ? `Erst ${ABILITIES[u.needs]?.name || 'das vorige Upgrade'} lernen` : u.text}</span><span class="pr">${u.owned ? '✅' : u.price + ' ✦'}</span></div>`).join('');
+    el.querySelectorAll('.item').forEach(d => d.addEventListener('click', () => { this.shopSel = +d.dataset.i; this.buy(); }));
+  }
+  buy() {
+    const u = this.shopItems()[this.shopSel]; if (!u) return;
+    if (u.owned) this.toast('Hast du schon!'); else if (u.locked) this.toast('Dafür musst du erst etwas anderes lernen.'); else if (this.save.crumbs < u.price) this.toast(`Dir fehlen noch ${u.price - this.save.crumbs} Krümel.`);
+    else { this.save.crumbs -= u.price; this.save.abilities[u.id] = true; this.persist(); this.audio.sfx('big'); this.toast(`${u.icon} ${u.name}!`); if (u.id.startsWith('herz')) { this.player.hp = this.maxHp(); this.updateHearts(); } this.updateAbilityButtons(); }
+    this.renderShop();
+  }
+  _shopInput() {
+    const i = this.input, n = UPGRADES.length;
+    if (i.pressed('down') || i.pressed('right')) { this.shopSel = (this.shopSel + 1) % n; this.renderShop(); }
+    if (i.pressed('up') || i.pressed('left')) { this.shopSel = (this.shopSel + n - 1) % n; this.renderShop(); }
+    if (i.pressed('jump')) this.buy();
+    if (i.pressed('act') || i.pressed('sniff') || i.pressed('pause')) this.closeShop();
   }
   updateAir(k, show) {
     const el = document.getElementById('air'); if (!el) return;
@@ -155,7 +197,7 @@ export class Game {
     document.getElementById('btnStart').textContent = '▶ Weiter';
     document.getElementById('btnLeave').style.display = this.level && this.level.key !== 'hub' ? '' : 'none';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
-    const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg' };
+    const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg', apport: 'Apportieren', trillern: 'Trillern', bellen: 'Bellen', stampfen: 'Bauchklatscher', buddeln: 'Buddeln', gleiten: 'Gleiten', wand: 'Wandsprung', tornado: 'Tornado' };
     const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || id[0].toUpperCase() + id.slice(1)}`).join(' · ')}</span>` : '';
     document.getElementById('menuText').innerHTML = `<b>⏸ Pause</b>Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();
@@ -176,11 +218,12 @@ export class Game {
     this.hud.levelName.textContent = this.level.def.name;
     this.updateHearts(); this.updateCounter();
     if (!silent) { this.audio.sfx('portal'); this.audio.playTheme(this.level.def.music); }
+    const br = this.level.bruno; if (br && br.ability && !this.has(br.ability)) this.later(5200, () => { if (!this.has(br.ability)) this.toast('🐕 Opa Bruno wartet hier in der Nähe – er bringt dir etwas Neues bei!', 4000); });
     if (!this.level.isRunner) { const intro = this.level.intro; if (key !== 'hub') this.toast(this.level.def.name + (intro ? ' – ' + intro : ''), 4500); else if (intro) this.toast(intro, 3500); }
   }
 
   // ------------------------------------------------------------- HUD
-  updateHearts() { if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts); this.shake(0.3); } this._hp = this.player.hp; this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, 3 - this.player.hp)); }
+  updateHearts() { if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts); this.shake(0.3); } this._hp = this.player.hp; this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, this.maxHp() - this.player.hp)); }
   updateCounter() {
     const l = this.level; if (!l || l.isRunner) return;
     const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀', fries: '🍟' }[l.goal.kind] || '⭐';
@@ -214,7 +257,7 @@ export class Game {
     this.updateCounter();
   }
   // Fortschritt bleibt gespeichert, deshalb geht es nach einem Nickerchen am Welteingang weiter
-  onDeath() { const key = this.level.key; this.toast('Moll braucht ein Nickerchen … gleich geht es weiter.', 3000); this.audio.sfx('lose'); this.later(1800, () => this.enterLevel(key, true)); this.player.hp = 3; }
+  onDeath() { const key = this.level.key; this.toast('Moll braucht ein Nickerchen … gleich geht es weiter.', 3000); this.audio.sfx('lose'); this.later(1800, () => this.enterLevel(key, true)); this.player.hp = this.maxHp(); }
 
   // ------------------------------------------------------------- Kamera
   updateCamera(dt) {
@@ -239,6 +282,7 @@ export class Game {
     requestAnimationFrame(() => this.loop());
     const dt = Math.min(0.05, this.clock.getDelta());
     this.input.update();
+    if (this.shopOpen) { this._shopInput(); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
     if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
     else if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
     else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet

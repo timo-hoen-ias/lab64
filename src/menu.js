@@ -33,7 +33,7 @@ export class Menu {
       }
       this._disarm();
       const settings = game.save.settings;
-      game.save = game.loadSave(true); Object.assign(game.save.settings, settings); game.persist(); game.updateCounter();
+      game.save = game.loadSave(true); Object.assign(game.save.settings, settings); game.persist(); game.updateCounter(); game.updateAbilityButtons?.();
       game.toast('Spielstand gelöscht');
     });
     this.apply(); this.sync();

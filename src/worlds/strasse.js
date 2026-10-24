@@ -27,7 +27,15 @@ export const STRASSE = {
     l.goldbone('kletter', 24, 7.2, -8);
     l.goldbone('geheim', -33, 0.6, 1, { hidden: true });
     [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
-    [[-4, -20, 0xd63031], [4, 12, 0x0984e3]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
+    [[-4, -20, 0xd63031], [4, 12, 0x0984e3], [-4, -2, 0xfdcb6e]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
+    // ---- Fähigkeit dieser Welt: Bellen. Drei Autos mit Alarmanlage – jedes einmal anbellen
+    l.teacher(6, 28, 'bellen', { say: 'Opa Bruno: „Drei Autos haben Alarmanlagen. Bell sie alle an – mal sehen, was passiert!“' });
+    l.alarms = 0;
+    [[-4, -20], [4, 12], [-4, -2]].forEach(([x, z]) => l.barkTarget(x, 0, z, () => {
+      l.alarms++; g.audio.sfx('honk'); g.shake(0.15);
+      if (l.alarms < 3) { g.toast(`TÜT-TÜT! Alarmanlage ${l.alarms}/3`); return; }
+      if (!g.hasBone(l.key, 'bellen')) { g.toast('Alle drei hupen! Der Lieferwagen erschrickt und verliert etwas Goldenes …'); l.spawnGoldbone(0, 1, -8, 'bellen'); }
+    }, { ringY: 3 }));
     // Dächer-Parcours: Bretter zwischen den Läden, Lichterketten-Brücke über die Straße, Ringe
     [-24, 24].forEach(x => { l.box(x, 6.2, -16, 3, 0.3, 4.4, WOOD); l.box(x, 6.2, 1, 3, 0.3, 6.4, WOOD); });
     l.box(0, 6.2, 10, 36.4, 0.3, 1.8, 0xffeaa7);

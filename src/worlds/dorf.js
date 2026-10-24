@@ -29,6 +29,11 @@ export const DORF = {
     [[-8, 8], [8, 8], [-8, -8], [8, -8]].forEach(([x, z]) => { l.box(x, 0, z, 4, 1.2, 2, WOOD); l.box(x, 3.2, z, 4.6, 0.2, 3, (x + z) % 16 ? 0xef5350 : 0x42a5f5); });
     [[-12, 0], [12, 12], [0, -14], [14, -10]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-4, 0, 24, 'Marktplatz', bench());
+    // ---- Fähigkeit dieser Welt: Wandsprung. Alter Backstein-Schornstein: zwischen den Wänden im Zickzack hoch
+    l.teacher(5, 26, 'wandsprung', { say: 'Opa Bruno: „Siehst du den alten Schornstein? Spring zwischen den Backsteinwänden hin und her bis ganz nach oben!“' });
+    l.climbWall(-16, 0, 14, 2, 14, 4); l.climbWall(-10.5, 0, 14, 1, 14, 4);
+    l.box(-18.5, 13.6, 14, 3, 0.4, 4, 0x8d4a3b); l.goldbone('wand', -18, 14.8, 14); // oben links vom Schornstein: Nest mit Goldknochen
+    l.label('Schornstein', -13, 17, 14);
     // Wege aus den Toren
     [[0, -60, 4, 48], [0, 60, 4, 48], [60, 0, 48, 4], [-54, 0, 36, 4]].forEach(([x, z, w, d]) => l.group.add(box(w, 0.05, d, PATH, x, 0.03, z)));
 
