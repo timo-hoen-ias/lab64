@@ -29,7 +29,7 @@ export class AudioEngine {
   // Lautstärke aus den Optionen (0..1); 1 = Standardpegel. Merkt sich den Wert, falls der Kontext noch fehlt.
   setVolume(music, sfx) {
     this.vol = [music, sfx]; this.musicLevel = 0.35 * music * music; if (!this.ctx) return; const t = this.ctx.currentTime;
-    this.musicLevel = 0.35 * music * music; this.musicGain.gain.cancelScheduledValues(t); this.musicGain.gain.setTargetAtTime(this.musicLevel, t, 0.03); this.sfxGain.gain.setTargetAtTime(0.7 * sfx * sfx, t, 0.03); // quadratisch: klingt gleichmäßiger
+    this.musicGain.gain.cancelScheduledValues(t); this.musicGain.gain.setTargetAtTime(this.musicLevel, t, 0.03); this.sfxGain.gain.setTargetAtTime(0.7 * sfx * sfx, t, 0.03); // quadratisch: klingt gleichmäßiger
   }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => { }); }
 
