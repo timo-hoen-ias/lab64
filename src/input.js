@@ -162,7 +162,8 @@ export class Input {
   pressed(name) { return !!this._pressedThisFrame[name]; }
   held(name) { return !!this._prev[name]; }
   swipe() { const s = this._swipe; this._swipe = null; return s; }
-  consumeCam() { const c = { x: this.cam.x, y: this.cam.y }; this.cam.x = 0; this.cam.y = 0; return c; }
+  consumeCam() { const k = this.camSens ?? 0.75, c = { x: this.cam.x * k, y: this.cam.y * k }; // Empfindlichkeit aus den Optionen (Standard 75 %)
+    this.cam.x = 0; this.cam.y = 0; return c; }
   anyPressed() { return this.pressed('jump') || this.pressed('act') || this.keys.has('Enter'); }
   vibrate(ms = 80) {
     if (this.noVibrate) return;
