@@ -468,6 +468,8 @@ export class Level {
 
   // Nur Deko (keine Kollision)
   deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); if (mesh.userData.npc) this.npcs.push(mesh); return mesh; }
+  // Reine Deko, die später niemand mehr anfasst: wird beim Aufbau mit gleichfarbigen Teilen zu einem Mesh verbacken (weniger Zeichenaufrufe)
+  prop(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.userData[mesh.isMesh && !mesh.children.length ? 'merge' : 'static'] = true; return this.deco(mesh, x, y, z, ry); }
   tree(x, z, s = 1, mesh) { const y = Math.max(0, this.heightAt(x, z)); this.deco(mesh || makeTree(s), x, y, z); this.solids.push({ min: { x: x - 0.4 * s, y, z: z - 0.4 * s }, max: { x: x + 0.4 * s, y: y + 1.5 * s, z: z + 0.4 * s }, active: true }); }
   // Höchste begehbare Oberfläche an (x,z): Gelände oder Kiste (zum Platzieren von Dingen)
   top(x, z) { return this.groundAt(x, z, 1e6); }
