@@ -8,6 +8,7 @@ import { installDetails } from './details.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
 import { placeFoes } from './enemies.js';
+import { dekorate, animateDeko } from './deko/index.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -54,6 +55,7 @@ export class Level {
     const from = game.fromKey && this.portals.find(po => po.target === game.fromKey);
     if (from) { const ry = from.group.rotation.y; this.spawn.set(from.x + Math.sin(ry) * 4, from.y + 1, from.z + Math.cos(ry) * 4); this.spawnYaw = ry; this.spawnCam = ry - Math.PI + 1.1; } // Rücken zum Portal, Kamera schräg daneben (nicht hinter dem Portal)
     this._initDetails(); // Spielereien (details.js): vor dem Zusammenbacken, damit Bäume und Deko noch einzeln da sind
+    dekorate(this); // leere Flächen mit Requisiten beleben (src/deko)
     this._placeScatter();
     this.patches = (this.patches || []).concat(collectPatches(this, [this.group, ...this.zones.map(z => z.group)]));
     placeFoes(this, seeded((key || 'x') + ':gegner'));
@@ -627,6 +629,7 @@ export class Level {
     let hint = null;
     for (const it of this.interact) if (!it.used && Math.hypot(it.x - pp.x, it.z - pp.z) < it.r + 1.3 && Math.abs(it.y - pp.y) < 2.5) hint = it.hintText;
     this.game.hint(hint);
+    if (this.decoAnim) animateDeko(this, dt);
     if (this.def.update) this.def.update(this, dt);
     // NPCs drehen den Kopf zu Moll, wenn sie in der Nähe vorbeiläuft (nach def.update, das manche NPCs animiert)
     for (const n of this.npcs) {
