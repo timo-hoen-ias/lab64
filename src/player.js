@@ -1,6 +1,7 @@
 // Moll – Spielerfigur: Bewegung, Sprung/Doppelsprung, Biss, Schnüffeln, AABB-Kollision gegen Level-Solids.
 import * as THREE from 'three';
 import { makeDog, animateDog } from './models.js';
+import { animateIdle } from './idle.js';
 import { makeBlobShadow, FX } from './fx.js';
 
 const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15;
@@ -13,11 +14,11 @@ export class Player {
     this.vel = new THREE.Vector3();
     this.yaw = 0; this.onGround = false; this.canDouble = true; this.coyote = 0;
     this.bite = 0; this.biteCd = 0; this.hurtT = 0; this.hp = 3; this.sniffing = false;
-    this.hidden = false; this.speedFrac = 0; this.frozen = false;
+    this.hidden = false; this.speedFrac = 0; this.frozen = false; this.idleT = 0;
     this.checkpoint = new THREE.Vector3(0, 1, 0);
   }
 
-  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = 3; this.hurtT = 0; this.frozen = false; this.diving = false; this.air = undefined; }
+  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = 3; this.hurtT = 0; this.frozen = false; this.diving = false; this.air = undefined; this.idleT = 0; }
   respawn() { this.pos.copy(this.checkpoint); this.pos.y += 0.5; this.vel.set(0, 0, 0); }
 
   hurt(amount = 1) {
@@ -134,6 +135,11 @@ export class Player {
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
     animateDog(this.mesh, this.speedFrac, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet);
+    // Leerlauf: nur wenn Moll still am Boden steht und keine Taste gedrückt ist; jede Eingabe weckt sie sofort
+    const busy = this.frozen || wet || !this.onGround || this.hurtT > 0 || this.bite > 0 || Math.hypot(this.vel.x, this.vel.z) > 0.5
+      || Math.hypot(input.move.x, input.move.y) > 0.05 || ['jump', 'act', 'sniff'].some(k => input.held(k));
+    this.idleT = busy ? 0 : this.idleT + dt;
+    animateIdle(this.mesh, this.idleT, dt);
     // Blob-Schatten auf dem höchsten Boden unter Moll
     const gy = level.groundAt ? level.groundAt(this.pos.x, this.pos.z, this.pos.y) : -Infinity;
     this.shadow.visible = gy > -Infinity && !wet;
