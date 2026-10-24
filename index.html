@@ -75,18 +75,18 @@
   #dialog{position:fixed;inset:0;z-index:45;display:none;pointer-events:none}
   #dialog.show{display:block}
   #dialog.block{pointer-events:auto;cursor:pointer;background:linear-gradient(transparent 50%,rgba(30,18,8,.4))}
-  #dialog .box{position:absolute;left:50%;bottom:calc(var(--sa-b) + 20px);transform:translateX(-50%);width:min(640px,90vw);box-sizing:border-box;background:var(--ui);color:var(--ink);text-shadow:none;border:4px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:18px 20px 14px}
+  #dialog .box{position:absolute;left:50%;bottom:calc(var(--sa-b) + 20px);transform:translateX(-50%);width:min(920px,94vw);box-sizing:border-box;background:var(--ui);color:var(--ink);text-shadow:none;border:5px solid var(--ink);border-radius:24px;box-shadow:0 7px 0 var(--ink);padding:26px 28px 20px}
   #dialog .box.pop{animation:dlgPop .28s cubic-bezier(.34,1.56,.64,1)}
-  #dialog .who{position:absolute;top:-19px;left:16px;display:flex;gap:6px;align-items:center;background:var(--c,#a0561b);color:#fff;border:3px solid var(--ink);border-radius:12px;padding:1px 12px 1px 6px;font-weight:900;font-size:15px;text-shadow:0 2px 0 rgba(0,0,0,.25);white-space:nowrap}
-  #dialog .face{font-size:22px;line-height:1.2;display:inline-block;transform-origin:50% 80%}
+  #dialog .who{position:absolute;top:-25px;left:20px;display:flex;gap:8px;align-items:center;background:var(--c,#a0561b);color:#fff;border:4px solid var(--ink);border-radius:14px;padding:2px 16px 2px 8px;font-weight:900;font-size:clamp(17px,min(2.6vw,4.8vh),24px);text-shadow:0 2px 0 rgba(0,0,0,.25);white-space:nowrap}
+  #dialog .face{font-size:clamp(24px,min(3.6vw,6.5vh),34px);line-height:1.2;display:inline-block;transform-origin:50% 80%}
   #dialog.typing .face{animation:dlgFace .16s infinite alternate}
-  #dialog .text{margin:0;font-size:clamp(15px,2.3vw,20px);font-weight:700;line-height:1.4;min-height:2.8em}
+  #dialog .text{margin:0;font-size:clamp(20px,min(3.6vw,6.6vh),34px);font-weight:700;line-height:1.4;min-height:2.8em}
   #dialog .rest{visibility:hidden}
-  #dialog .more{position:absolute;right:14px;bottom:6px;font-size:14px;opacity:0}
+  #dialog .more{position:absolute;right:18px;bottom:8px;font-size:20px;opacity:0}
   #dialog.block.wait .more{opacity:1;animation:dlgMore .5s infinite alternate}
-  #dialog.chat .box{width:min(480px,86vw);padding:14px 16px 10px}
-  #dialog.chat .text{font-size:clamp(14px,1.9vw,17px);min-height:0}
-  body.touch #dialog.chat .box{width:min(440px,52vw);bottom:calc(var(--sa-b) + 12px)}
+  #dialog.chat .box{width:min(760px,90vw);padding:22px 22px 14px}
+  #dialog.chat .text{font-size:clamp(18px,min(2.9vw,5.4vh),28px);min-height:0}
+  body.touch #dialog.chat .box{width:min(560px,58vw);bottom:calc(var(--sa-b) + 12px)}
   @keyframes dlgPop{from{transform:translateX(-50%) scale(.85);opacity:.4}to{transform:translateX(-50%) scale(1);opacity:1}}
   @keyframes dlgFace{from{transform:rotate(-8deg) scaleY(1)}to{transform:rotate(6deg) scaleY(.88)}}
   @keyframes dlgMore{from{transform:translateY(0)}to{transform:translateY(4px)}}
