@@ -8,18 +8,17 @@
 const _ = null;
 
 export const SONGS = {
-  // Intro im Startmenü (läuft einmal): Buchstaben „MOLLY“ hüpfen auf die Schläge herein, Takt 8 wackelt das Y (Triller, Begleitung schweigt),
-  // in Takt 9 fällt es herunter – Lotsenpfeife, Plumps – und auf Schlag 3 kommt der Schlussakkord für „MOLL“. Zeitpunkte: CUES in intro.js.
+  // Intro im Startmenü (läuft einmal, ca. 8 s): „MOLLY“ hüpft auf die Schläge herein, Moll plumpst aufs M und trabt los (Takt 2–3),
+  // springt auf dem hohen F aufs Y, Takt 4 wackelt das Y unter ihr (Triller, Begleitung schweigt), Takt 5 fällt es – Lotsenpfeife,
+  // Plumps, Schlussakkord. Zeitpunkte: CUES in intro.js.
   intro: {
     bpm: 140, swing: 0.06, once: true, harmony: true,
-    chords: 'C C F G7 C A7 Dm7,G7 G7 | C',
-    mel: `c5 - e5 - g5 - c6 - | e6 _ _ _ d6 c6 g5 e5 | f5 - a5 c6 f6 _ e6 d6 | b5 - g5 - d5 f5 g5 b5 |
-          c6 - g5 e5 c5 e5 g5 c6 | c#6 _ a5 e5 g5 _ e5 c#5 | d5 f5 a5 c6 b5 - g5 - | d6 c#6 d6 c#6 d6 c#6 - - |
-          - - - - c6 _ _ _`,
+    chords: 'C C F G7 | C',
+    mel: `c5 - e5 - g5 - c6 - | e6 _ _ _ d6 c6 g5 e5 | f5 - a5 - c6 - f6 _ | d6 c#6 d6 c#6 d6 c#6 - - | - - c6 _ _ _ _ _`,
     inst: { lead: 'banjo', harm: 'xylo', soft: 'clarinet', water: 'vibes', comp: 'banjo', bass: 'tuba' },
     bass: [0, _, 7, _, 0, _, 7, 'A'], comp: [2, 6],
     drums: { kick: [0, 4], snare: [2, 6], click: [1, 3, 5, 7] },
-    stops: { 7: null, 8: 4 },
+    stops: { 3: null, 4: 2 },
   },
   // Molls Garten (Hub): fröhlich, Banjo und Tuba, kleine chromatische Frechheiten
   garden: {

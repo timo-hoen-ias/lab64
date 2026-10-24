@@ -10,6 +10,7 @@ import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } f
 import { Menu } from './menu.js';
 import { Intro } from './intro.js';
 import { Post } from './post.js';
+import { MenuDog } from './menudog.js';
 import { ABILITIES, UPGRADES } from './abilities.js';
 import { Dialog } from './dialog.js';
 
@@ -49,7 +50,7 @@ export class Game {
     this.save = this.loadSave(); this.dialog = new Dialog(this); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
-    this.menu = new Menu(this); this.intro = new Intro(this);
+    this.menu = new Menu(this); this.menuDog = new MenuDog(document.getElementById('dogIcon'), document.getElementById('menu')); this.intro = new Intro(this);
     document.getElementById('btnLeave').addEventListener('click', () => { this.enterLevel('hub', true); this.start(); });
     this.enterLevel('hub', true);
     this.loop();
@@ -322,7 +323,10 @@ export class Game {
     if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
     if (!this.paused) { this._underwater(); this._musicMix(); }
     this.camera.position.add(this._shake);
-    if (this.level) this.draw();
+    // Startmenü verdeckt die Welt ganz: nur selten zeichnen (spart Akku, Moll im Menü läuft flüssiger)
+    const m = document.getElementById('menu').classList, covered = this.paused && !m.contains('hidden') && !m.contains('paused');
+    this._coverT = covered ? (this._coverT || 0) + dt : 0;
+    if (this.level && (!covered || this._coverT > 0.5)) { this.draw(); if (covered) this._coverT = 0; }
     this.camera.position.sub(this._shake);
   }
 }
