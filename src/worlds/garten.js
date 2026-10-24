@@ -140,7 +140,7 @@ export const GARTEN = {
 
     // Westen: Gemüsegarten und Gewächshaus
     l.zone(-58, 0, 30, () => {
-      for (let r = 0; r < 4; r++) { l.box(-50 - r * 5, 0, -20, 3, 0.6, 14, 0x6d4c41); for (let k = 0; k < 6; k++) l.deco(sphere(0.5, [0x27ae60, 0xe67e22, 0xe74c3c, 0x8e44ad][r], 0, 0, 0, 6), -50 - r * 5, 0.9, -26 + k * 2.4); }
+      for (let r = 0; r < 4; r++) { l.box(-50 - r * 5, 0, -20, 3, 0.6, 14, 0x6d4c41); const kind = ['karotte', 'kartoffel', 'kuerbis', 'karotte'][r]; for (let k = 0; k < (kind === 'kuerbis' ? 5 : 10); k++) { const n = kind === 'kuerbis' ? 5 : 10, z = -26 + 12 * (k + 0.5) / n; l.fetchItem(-50 - r * 5 + (kind === 'kuerbis' ? 0 : (k % 2 - 0.5) * 1.2), 0.6, z, kind, { planted: true }); } } // Beete: Karotten, Kartoffeln, Kürbisse – beißen oder wegtrillern!
       const gx = -60, gz = 16;
       const glass = new THREE.MeshLambertMaterial({ color: 0xdff9fb, transparent: true, opacity: 0.35, depthWrite: false });
       [[gx, gz - 8, 20, 0.3], [gx, gz + 8, 20, 0.3], [gx - 10, gz, 0.3, 16], [gx + 10, gz - 5, 0.3, 6], [gx + 10, gz + 5, 0.3, 6]].forEach(([x, z, w, d]) => { l.box(x, 0, z, w, 9, d, 0xdff9fb, { dynamic: true }).mesh.material = glass; });
