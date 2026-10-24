@@ -5,6 +5,7 @@ import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, make
 import { FX } from './fx.js';
 import { STRAND } from './worlds/strand.js';
 import { PARK } from './worlds/park.js';
+import { HAFEN } from './worlds/hafen.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -17,7 +18,7 @@ export const BONES = {
   park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
   rattenrennen: ['sieg', 'gierig'],
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
-  hafen: ['boss', 'kruemel', 'geheim', 'kletter'],
+  hafen: ['boss', 'kruemel', 'geheim', 'kletter', 'kran', 'markt', 'mole', 'laderaum', 'anker', 'bojen'],
   dorf: ['boss', 'kruemel', 'geheim', 'kletter'],
   kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
 };
@@ -215,41 +216,7 @@ export const LEVELS = {
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
   // ---------------------------------------------------------------- HAFEN
-  hafen: {
-    name: 'Der Hafen', water: true, time: 'wolkig', backdrop: 'meer', sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42, style: 'harbor' },
-    build(l) {
-      l.spawn.set(0, 2.5, 26);
-      // Kai (Holz) – alles darunter ist Wasser
-      l.box(0, 0, 10, 50, 2, 36, 0x8d6e4a); l.box(-26, 0, -14, 14, 2, 20, 0x8d6e4a); l.box(20, 0, -16, 20, 2, 16, 0x8d6e4a);
-      l.box(0, 0, -20, 6, 2, 30, 0x8d6e4a); // Steg
-      // Kisten-Stapel (Verstecke) und Kran
-      const crates = [[-10, 2, 4], [-7, 2, 4], [-8.5, 4.5, 4], [12, 2, 12], [15, 2, 12], [12, 2, 15], [13.5, 4.5, 13.5], [-20, 2, -10], [-20, 4.5, -10], [-20, 7, -10], [24, 2, -18], [20, 2, -22]];
-      crates.forEach(([x, y, z]) => l.box(x, y, z, 2.5, 2.5, 2.5, 0xc0905a));
-      l.box(28, 2, 0, 2, 14, 2, 0xf1c40f); l.box(24, 14, -4, 12, 1, 1.4, 0xf1c40f); // Kran
-      // Containertreppe hoch zum Kranarm
-      [[22, -12, 4, 0xe74c3c], [24.6, -12, 6, 0x3498db], [24.6, -9.4, 8, 0x27ae60], [22, -9.4, 10, 0xe67e22], [19.4, -9.4, 12, 0x9b59b6], [19.4, -6.8, 13.6, 0xe74c3c]]
-        .forEach(([x, z, top, c]) => l.box(x, 2, z, 2.4, top - 2, 2.4, c));
-      l.goldbone('kletter', 28, 16.6, 0);
-      l.goldbone('geheim', -31, 2.6, -5, { hidden: true });
-      l.box(-20, 2, 20, 8, 1.6, 8, 0x2d3436); // Poller-Plattform
-      [[-16, 2, 0], [-16, 2, 20], [16, 2, 0], [16, 2, 20]].forEach(([x, y, z]) => l.deco(cyl(0.5, 0.6, 1.2, 0x2d3436, x, y + 0.6, z, 8), x, y + 0.6, z));
-      // Boot
-      l.box(0, 1.2, -36, 8, 1.5, 5, 0xd63031); l.box(0, 2.7, -36, 1, 6, 1, 0xffffff);
-      l.deco(box(5, 0.2, 5, 0xffffff), 0, 6, -36);
-      // Versteckte Fische (per Nase) – hinter Kisten, auf Kran, im Boot
-      [[-8.5, 7.2, 4], [13.5, 7.2, 13.5], [-20, 9.7, -10], [22, 2.3, -22], [19, 15.3, -4], [-20, 3.8, 20], [0, 2.9, -36], [-30, 2.3, -22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'fish', { goal: true, hidden: true }));
-      l.scatter(24);
-      l.label('Die Möwe hat 8 Fische versteckt. Halte NASE gedrückt!', 0, 6, 20);
-      // Möwe kreist zur Deko
-      l.gull = new BirdBoss(l.game, 'seagull', 0, 0, 'Die Möwe'); l.gull.decor = true; l.group.add(l.gull.mesh);
-    },
-    update(l, dt) {
-      if (l.gull && !l.gullActive) { const g = l.gull; g.t += dt; g.mesh.position.set(Math.cos(g.t * 0.5) * 20, 12 + Math.sin(g.t) * 2, Math.sin(g.t * 0.5) * 20); g.mesh.rotation.y = -g.t * 0.5 + Math.PI; g.mesh.userData.wings.forEach((w, i) => w.rotation.z = Math.sin(g.t * 10) * 0.5 * (i ? -1 : 1)); }
-      // ins Wasser gefallen?
-      if (l.game.player.pos.y < 1.5) { FX.splash(l.game.fx, l.game.player.pos); l.game.toast('Platsch! Nass bis auf die Knochen.'); l.game.player.hurt(1); l.game.player.respawn(); }
-    },
-    onGoal(l) { l.game.toast('KREEEE! Die Möwe will ihre Beute zurück!'); l.gullActive = true; l.group.remove(l.gull.mesh); l.game.later(1000, () => { const b = new BirdBoss(l.game, 'seagull', 0, 10, 'Die Möwe'); b.pos.y = 8; l.setBoss(b); }); }
-  },
+  hafen: HAFEN,
 
   // ----------------------------------------------------------------- DORF
   dorf: {
