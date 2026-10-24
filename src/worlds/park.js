@@ -61,7 +61,7 @@ export const PARK = {
     [[-10, 10, 24, 1], [6, 4, 1, 12], [-4, -2, 20, 1], [-14, -10, 1, 14], [10, -10, 16, 1], [0, -15, 1, 8]].forEach(([x, z, w, d]) => l.box(dx + x, 0, z, w, 5, d, 0x5a3d22));
     [[-18, 16], [16, 16], [-18, 0], [0, 4], [14, -4], [-8, -16], [16, -16], [4, -12]].forEach(([x, z]) => l.pickup(dx + x, 0.3, z, 'crumb'));
     l.goldbone('dachsbau', dx + 18, 0.8, -17);
-    for (let i = 0; i < 8; i++) l.deco(sphere(0.25, 0xfff3a0, 0, 0, 0, 6), dx - 18 + i * 5, 4.5, (i % 2 ? 6 : -6)); // Glühwürmchen-Lampen
+    for (let i = 0; i < 8; i++) { const lx = dx - 18 + i * 5, lz = i % 2 ? 6 : -6; l.prop(sphere(0.25, 0xfff3a0, 0, 0, 0, 6), lx, 4.5, lz); l.prop(box(0.04, 0.3, 0.04, 0x2d3436, 0, 0.15, 0), lx, 4.7, lz); } // Glühwürmchen-Lampen an Schnüren
     const badger = makeNpcDog(0x636e72, 0xffffff); l.deco(badger, dx - 16, 0, 12, Math.PI / 2);
     l.trigger(dx - 16, 0, 12, 4, () => g.talk('dieter', { mesh: badger }), false);
     l.door(dx, 0, 19.4, { x: 18, y: 0.2, z: -69, yaw: 0 }, { label: 'Ausgang', ry: Math.PI, frame: 0x5a3715 });
@@ -73,7 +73,7 @@ export const PARK = {
       l.deco(makeRoundTree(1.3, true), 14, 1.6, 96); l.goldbone('insel', 9, 2.4, 100);
       l.box(-20, -6, 74, 3, 6.4, 10, WOOD); // Steg
       const boat = new THREE.Group(); boat.add(box(2, 0.6, 4, 0xe17055, 0, 0, 0)); boat.add(box(1.6, 0.1, 3.4, 0xffeaa7, 0, 0.3, 0)); l.deco(boat, -14, -0.1, 88, 0.4);
-      for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; l.deco(cyl(0.05, 0.05, 1.4, 0x6ab04c, 0, 0.7, 0, 4), Math.cos(a) * 47, 0, 100 + Math.sin(a) * 31); } // Schilf am Ufer
+      for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; l.prop(cyl(0.05, 0.05, 1.4, 0x6ab04c, 0, 0.7, 0, 4), Math.cos(a) * 47, 0, 100 + Math.sin(a) * 31); } // Schilf am Ufer
       // Picknick-Familie vermisst 5 Sachen
       l.deco(blanket(0xe74c3c), 40, 0, 62); const pic = makeNpcDog(0xffffff, 0x0984e3); l.deco(pic, 40, 0, 60, Math.PI);
       l.picnic = 0;
@@ -89,14 +89,16 @@ export const PARK = {
 
     // ---- Westen: Wald mit Baumkronenpfad
     l.zone(-100, 0, 60, () => {
-      const trees = []; for (let i = 0; i < 46; i++) { const x = -60 - Math.random() * 85, z = -70 + Math.random() * 140; if (Math.abs(z) < 6 && x > -100) continue; trees.push([x, z]); l.tree(x, z, 1.6 + Math.random() * 0.8); }
+      // Wald fest ausgewürfelt (gleich bei jedem Besuch), Bäume halten Abstand zu Weg, Pfad-Stämmen, Bank und Picknick-Sache
+      let seed = 7; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647, keep = [[-66, 10], [-74, 14], [-84, 16], [-96, 12], [-108, 8], [-118, -4], [-126, -18], [-132, -32], [-62, 8], [-66, 16], [-120, -40], [-70, -30]];
+      for (let i = 0; i < 46; i++) { const x = -60 - rnd() * 85, z = -70 + rnd() * 140, s = 1.6 + rnd() * 0.8; if (Math.abs(z) < 6 && x > -100 || keep.some(([kx, kz]) => Math.hypot(x - kx, z - kz) < 4.5)) continue; l.tree(x, z, s); }
       l.hill(-120, 40, 22, 4, { flat: 0.2, color: 0x4f9a45 }); l.hill(-95, -45, 16, 3, { flat: 0.2, color: 0x4f9a45 });
       // Pfad in den Baumkronen: Plattformen auf Stämmen, Hängebrücken dazwischen
       const pts = [[-66, 10, 2], [-74, 14, 4], [-84, 16, 6], [-96, 12, 8], [-108, 8, 9.5], [-118, -4, 11], [-126, -18, 12.5], [-132, -32, 14]];
       l.box(-62, 0, 8, 2.4, 1, 2.4, WOOD); // Einstieg
       pts.forEach(([x, z, y], i) => {
-        l.box(x, y - 0.4, z, 3.4, 0.4, 3.4, 0xc49a6c); l.deco(cyl(0.35, 0.45, y, 0x7a4a1f, 0, y / 2, 0, 7), x, 0, z);
-        l.deco(sphere(2.6, 0x3d9a3d, 0, 0, 0, 7), x, y + 3.2, z);
+        l.box(x, y - 0.4, z, 3.4, 0.4, 3.4, 0xc49a6c); l.prop(cyl(0.35, 0.45, y, 0x7a4a1f, 0, y / 2, 0, 7), x, 0, z);
+        l.prop(sphere(2.6, 0x3d9a3d, 0, 0, 0, 7), x, y + 4.8, z); // Krone hoch genug, dass Moll auf der Plattform nicht im Laub steht
         if (i) { const [px, pz, py] = pts[i - 1]; l.ramp(px, pz, x, z, 1.4, py, y, 0xa47148, { bridge: true }); }
       });
       l.goldbone('baumkrone', -132, 15, -32);
@@ -108,7 +110,7 @@ export const PARK = {
     l.zone(100, 0, 60, () => {
       l.box(80, 0, -10, 20, 0.15, 20, 0xf5e6c8); // Sandkasten
       // Klettergerüst
-      for (let i = 0; i < 4; i++) for (let k = 0; k < 4; k++) l.deco(cyl(0.08, 0.08, 4, 0xe17055, 0, 2, 0, 5), 92 + i * 2, 0, -2 + k * 2);
+      for (let i = 0; i < 4; i++) for (let k = 0; k < 4; k++) l.prop(cyl(0.08, 0.08, 4, 0xe17055, 0, 2, 0, 5), 92 + i * 2, 0, -2 + k * 2);
       l.box(95, 4, 1, 7, 0.3, 7, 0xe17055);
       l.box(95, 0, -4, 1.5, 1.4, 1.5, 0x0984e3); l.box(97, 0, -6, 1.5, 2.8, 1.5, 0x00b894);
       l.ramp(95, 4.5, 95, 16, 2, 4.2, 0.1, 0xfdcb6e); // Rutsche
