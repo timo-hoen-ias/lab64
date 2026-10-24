@@ -54,6 +54,7 @@ await W(2500); await tp(-40, 1, 25); await W(800);
 await shot('boss', 0, 0.3);
 for (let i = 0; i < 3; i++) { await p.evaluate(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
 await W(1500); const bo = await pos(() => { const q = window.game.level.pickups.find(q => q.boneId === 'boss'); return q && [q.x, q.y, q.z]; }); if (bo) { await tp(bo[0], bo[1] - 0.5, bo[2]); await W(800); }
+for (const q of await pos(() => window.game.level.pickups.filter(q => q.boneId && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], q[1] - 0.5, q[2]); await W(700); } // Nachlese
 const res = await pos(() => ({ prog: window.game.levelProgress('strand'), bones: Object.keys(window.game.save.bones).filter(k => k.startsWith('strand')), lvl: window.game.level.key }));
 console.log('Strand:', JSON.stringify(res));
 // Unterwasser-Ansicht
