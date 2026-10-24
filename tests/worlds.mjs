@@ -16,6 +16,29 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async strasse() {
+    await shot('strasse_start', null, 0.25);
+    await grabBone('kletter');
+    for (const [x, y, z] of [[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]]) { await tp(x, y - 1.1, z); await W(400); }
+    await W(500); await grabBone('daecher'); await shot('strasse_daecher', 0.5, 0.3);
+    await grabBone('baustelle'); await shot('strasse_baustelle', -1.4, 0.35);
+    await grabBone('bahnhof'); await shot('strasse_bahnhof', 3.4, 0.35);
+    await tp(-110, 12.1, 0); await W(400); await grabBone('brunnen'); await shot('strasse_brunnen', -1.6, 0.35);
+    // Kaufhaus über die Tür
+    await tp(0, 0.2, -97); await W(900); console.log('  im Kaufhaus:', await ev(() => window.game.player.pos.x > 1900));
+    await shot('strasse_kaufhaus', null, 0.3); await grabBone('kaufhaus'); await grabAll("q.kind === 'crumb' && q.x > 1900");
+    await tp(2000, 0.2, 14.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    // Eiskugeln + Eisdiele
+    await grabAll('q.special'); console.log('  Eiskugeln:', await ev(() => window.game.level.kugeln));
+    await tp(-116, 0.2, 15.9, Math.PI); await W(200); await bite(); await bite(); await W(600); await grabBone('eisdiele');
+    // Geheim mit Nase
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await grabAll('q.goal'); console.log('  Essen:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    await W(2500); await tp(0, 0.2, 14); await W(800); await shot('strasse_boss', 0, 0.3);
+    for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
+    await W(1500); await grabBone('boss');
+  },
   async dorf() {
     await shot('dorf_start', null, 0.25);
     await grabBone('kletter'); await grabBone('muehle'); await shot('dorf_muehle', 0.3, 0.3);
