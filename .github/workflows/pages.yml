@@ -26,6 +26,7 @@ jobs:
         run: |
           mkdir _site
           cp -r index.html .nojekyll manifest.webmanifest sw.js icons src vendor _site/
+          sed -i "s/const VERSION = 'dev'/const VERSION = '${GITHUB_SHA::7}'/" _site/sw.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
