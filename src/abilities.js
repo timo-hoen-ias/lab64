@@ -1,7 +1,7 @@
 // Fähigkeiten: Texte, Krümel-Laden und die Bausteine, die Welten für Fähigkeiten-Rätsel benutzen
 // (Heribert als Lehrer, Drehknöpfe, Bell-Ziele, Bodenschalter, Kisten, Erdhügel, Kletterwände, Aufwind, Apportieren).
 import * as THREE from 'three';
-import { box, cyl, sphere, cone, makeNpcDog, makeSign } from './models.js';
+import { box, cyl, sphere, cone, makeCorgi, makeSign } from './models.js';
 import { FX } from './fx.js';
 
 // Ball: Radius und Sitz im Maul (Mittelpunkt, im Koordinatensystem von Molls Kopf: vorn an der Schnauze, auf Höhe der Lefzen)
@@ -65,8 +65,7 @@ export function installGadgets(Level) {
     // ---- Heribert: bringt am Welteingang die Fähigkeit der Welt bei. Im Garten verkauft er Upgrades gegen Krümel.
     teacher(x, z, ability, o = {}) {
       const y = o.y ?? Math.max(0, this.top(x, z)), g = this.game;
-      const m = makeNpcDog(0xc9c2b4, 0x2e7d32); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z));
-      m.userData.head.add(box(0.5, 0.06, 0.06, 0xeeeeee, 0, -0.18, 0.62)); // weißer Schnauzbart
+      const m = makeCorgi(); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z)); // Heribert, alter Corgi
       this.solids.push({ min: { x: x - 0.5, y, z: z - 0.5 }, max: { x: x + 0.5, y: y + 1.4, z: z + 0.5 }, active: true });
       this.bruno = { x, y, z, mesh: m, ability };
       // Gespräch und Tipp zum Rätsel stehen in dialog.js („bruno.<fähigkeit>“)
