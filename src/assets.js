@@ -12,6 +12,7 @@ import { toonGradient, addSway } from './fx.js';
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
   ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell', 'ice', 'bone', 'treat', 'sock', 'cup'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (makeFood)
+  ...Object.fromEntries(['moll', 'ratte', 'taube', 'moewe', 'katze', 'krabbe', 'staubsauger', 'dosenoeffner', 'einkaeufer', 'riesenmuschel'].map(k => [k, 'figuren/' + k])), // Figuren mit Knoten (rigAsset)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
@@ -158,4 +159,38 @@ export function colorAsset(name, o = {}) {
     const q = new THREE.Mesh(flatGeos.get(key), amp === undefined ? mt : addSway(mt, amp)); q.scale.setScalar(o.scale ?? 1); q.castShadow = true; q.receiveShadow = true; g.add(q);
   });
   return g;
+}
+
+// Figuren mit beweglichen Teilen: Die Knoten-Hierarchie bleibt erhalten (Drehpunkte wie im alten Grundkörper-Modell),
+// jeder Knoten wird eine Gruppe mit EINEM gebackenen Mesh (Vertexfarben). Kinder mit Namen „…-m“ und Meshes werden in
+// ihren Knoten gebacken, alle anderen Kinder sind wieder bewegliche Knoten. Liefert { root, n(name), list(prefix) }:
+// n('head') = Knoten, list('leg') = [leg-0, leg-1, …] (nur direkte Nummern, nicht leg-0-lo). o.paint färbt um,
+// o.glow = { knotenname: Leuchtfarbe } (z. B. Lampe, rote Rattenaugen). Material je Figur eigen (Treffer-Blitz).
+const rigGeos = new Map();
+export function rigAsset(name, o = {}) {
+  if (!src.has(name)) return null;
+  const scene = src.get(name), key = `${name}|${o.paint ?? ''}`;
+  if (!rigGeos.has(key)) {
+    const geo = new Map(), inv = new THREE.Matrix4();
+    const bakeInto = (node, ch) => { inv.copy(node.matrixWorld).invert(); ch.traverse(m => { if (m.isMesh) (geo.get(node) || geo.set(node, []).get(node)).push(flat(m, inv.clone().multiply(m.matrixWorld))); }); };
+    const walk = node => node.children.forEach(ch => { if (ch.isMesh || ch.name.endsWith('-m')) bakeInto(node, ch); else walk(ch); });
+    scene.updateMatrixWorld(true); walk(scene);
+    for (const [node, list] of geo) geo.set(node, list.length > 1 ? mergeGeometries(list) : list[0]);
+    if (o.paint !== undefined) repaint([...geo.values()], o.paint);
+    rigGeos.set(key, geo);
+  }
+  const geo = rigGeos.get(key), byName = {}, glow = o.glow || {};
+  const material = toonMaterial();
+  const copy = node => {
+    const g = new THREE.Group(); g.name = node.name; g.position.copy(node.position); g.quaternion.copy(node.quaternion); g.scale.copy(node.scale);
+    if (geo.has(node)) {
+      const mt = glow[node.name] !== undefined ? new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: toonGradient(), emissive: new THREE.Color(glow[node.name]) }) : material;
+      const m = new THREE.Mesh(geo.get(node), mt); m.castShadow = true; m.receiveShadow = true; g.add(m);
+    }
+    node.children.forEach(ch => { if (!ch.isMesh && !ch.name.endsWith('-m')) g.add(copy(ch)); });
+    byName[node.name] = g; return g;
+  };
+  const root = copy(scene);
+  const list = p => Object.keys(byName).filter(k => new RegExp(`^${p}-\\d+$`).test(k)).sort((a, b) => a.split('-').pop() - b.split('-').pop()).map(k => byName[k]);
+  return { root, n: k => byName[k], list };
 }

@@ -1,7 +1,7 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
 import { toonGradient, addSway, makeGlow } from './fx.js';
-import { texturedAsset, model, colorAsset } from './assets.js';
+import { texturedAsset, model, colorAsset, rigAsset, hasAsset } from './assets.js';
 
 const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
@@ -42,7 +42,12 @@ export function compact(root) {
 }
 
 // ---------- Moll, der braune Labrador ------------------------------------
-export function makeDog() {
+export function makeDog(paint) {
+  const r = rigAsset('moll', paint === undefined ? {} : { paint }); // GLB aus Blender (gleiche Knoten wie unten), paint = andere Fellfarbe
+  if (r) {
+    r.root.userData = { rig: r.n('rig'), front: r.n('front'), rear: r.n('rear'), head: r.n('head'), legs: r.list('leg'), tail: r.n('tail'), body: r.n('body'), earL: r.n('earL'), earR: r.n('earR'), tongue: r.n('tongue'), eyes: r.list('eye'), t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
+    r.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); return r.root;
+  }
   const g = new THREE.Group();
   const brown = 0x8b5a2b, dark = 0x5a3715, light = 0xa8743f, nose = 0x2a1a0e;
   const rig = new THREE.Group(); g.add(rig); // alles außer Schatten hängt am Rig → Squash/Stretch und Neigung
@@ -112,7 +117,7 @@ export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0,
     u.rig.position.y = Math.sin(u.t * 0.8) * 0.05; u.rig.rotation.x = -0.18; u.rig.rotation.z = Math.sin(u.t * 0.4) * 0.05;
     u.front.rotation.set(0, 0, 0); u.rear.rotation.set(0, 0, 0); u.body.scale.z = 1;
     u.head.rotation.set(-0.25, 0, 0); u.tail.rotation.y = Math.sin(u.t * 0.9) * 0.6; u.tail.rotation.x = 0.4;
-    u.earL.rotation.z = -0.6; u.earR.rotation.z = 0.6; u.tongue.visible = false; u.body.scale.y = 1; u.head.position.z = 0.95;
+    u.earL.rotation.z = -0.6; u.earR.rotation.z = 0.6; u.earL.rotation.x = u.earR.rotation.x = 0; u.tongue.visible = false; u.body.scale.y = 1; u.head.position.z = 0.95;
     return;
   }
   // Weiche Übergänge: Laufstärke, Gangart und Sprung-Pose werden überblendet statt umgeschaltet
@@ -156,9 +161,11 @@ export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0,
   // Kopf: hält den Blick ruhig (gleicht das Nicken des Körpers aus), im Galopp tiefer und nach vorn gestreckt
   u.head.rotation.x = airborne ? -0.3 : -(pitch + u.front.rotation.x) * 0.7 + (Math.sin(TAU * 2 * ph) * 0.05 * (1 - G) + 0.12 * G) * on + Math.sin(u.idle * 2.2) * 0.04 * idle;
   // Ohren schwingen träge nach (Schlappohren)
-  const earT = airborne ? 0.4 + vy * 0.04 : THREE.MathUtils.lerp(Math.abs(Math.sin(TAU * 2 * ph)) * 0.15, 0.15 + 0.6 * (0.5 + 0.5 * Math.sin(TAU * (ph - 0.75))), G) * on; // Galopp: Ohren flattern mit jedem Sprung
-  u.ear = (u.ear ?? 0) + (earT - (u.ear ?? 0)) * Math.min(1, dt * 12);
-  u.earL.rotation.z = -0.25 - u.ear; u.earR.rotation.z = 0.25 + u.ear;
+  // Ohren flattern beim Laufen hoch und runter: Ziel hüpft mit jedem Schritt (Trab 2×, Galopp 1× je Zyklus), eine weiche
+  // Feder hängt etwas hinterher und schwingt nach – so wippen die Schlappohren statt starr mitzulaufen
+  const earT = airborne ? 0.4 + vy * 0.04 : THREE.MathUtils.lerp(0.05 + 0.4 * (0.5 + 0.5 * Math.sin(TAU * 2 * (ph - 0.1))), 0.15 + 0.75 * (0.5 + 0.5 * Math.sin(TAU * (ph - 0.75))), G) * on;
+  const fdt = Math.min(dt, 0.05); u.earV = (u.earV ?? 0) + ((earT - (u.ear ?? 0)) * 520 - (u.earV ?? 0) * 16) * fdt; u.ear = THREE.MathUtils.clamp((u.ear ?? 0) + u.earV * fdt, -0.3, 1.3);
+  u.earL.rotation.z = -0.25 - u.ear; u.earR.rotation.z = 0.25 + u.ear; u.earL.rotation.x = u.earR.rotation.x = -u.ear * 0.35; // Spitzen heben sich leicht nach hinten
   u.body.scale.y = 1 + Math.sin(TAU * 2 * ph) * 0.02 * on + Math.sin(u.idle * 3) * 0.03 * idle;
   u.tongue.visible = speed > 0.5 || bite > 0 || idle > 0.9;
   u.tongue.position.y = -0.3 + Math.sin(u.idle * 6) * 0.015;
@@ -213,6 +220,8 @@ function chain(n, len, r0, r1, color, dir = [0, 0, -1], tip) {
 }
 
 export function makeCat(color = 0x3b3b3b) {
+  const r = rigAsset('katze'); // GLB aus Blender (assets/figuren), Knoten = bewegliche Teile; sonst Grundkörper
+  if (r) { r.root.userData = { head: r.n('head'), legs: r.list('leg'), tail: r.n('tail-0'), tailSegs: r.list('tail'), ears: r.list('ear'), eyes: r.list('eye'), body: r.n('body'), t: 0 }; return r.root; }
   const g = new THREE.Group(), dark = shade(color, 0.6), light = shade(color, 1.7), pink = 0xff9aa9;
   const body = new THREE.Group(); g.add(body);
   body.add(box(1.0, 0.7, 1.7, color, 0, 0.85, 0)); body.add(box(0.92, 0.62, 0.5, color, 0, 0.9, 0.72)); // Brust
@@ -236,6 +245,8 @@ export function makeCat(color = 0x3b3b3b) {
 }
 
 export function makeVacuum() {
+  const r = rigAsset('staubsauger', { glow: { lamp: 0x2fbf9f } });
+  if (r) { r.root.userData = { nozzle: r.n('nozzle'), body: r.n('body'), eyes: r.list('eye'), lamp: r.n('lamp').children[0], t: 0 }; return r.root; }
   const g = new THREE.Group(), red = 0xcc3333, dred = 0xa62828, grey = 0x444444;
   const body = cyl(0.9, 1.0, 0.9, red, 0, 0.5, 0, 16); g.add(body);
   const bump = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.09, 6, 24), mat(0x2d2d2d)); bump.rotation.x = Math.PI / 2; bump.position.y = 0.16; g.add(bump);
@@ -259,6 +270,8 @@ export function makeVacuum() {
 }
 
 export function makeCanOpener() {
+  const r = rigAsset('dosenoeffner');
+  if (r) { r.root.userData = { blade: r.n('blade'), knob: r.n('knob'), eyes: r.list('eye'), t: 0 }; return r.root; }
   const g = new THREE.Group(), steel = 0xbfc5cc, dsteel = 0x8a9099, grip = 0xd63031;
   const armL = new THREE.Group(), armR = new THREE.Group();
   [[armL, -0.6, 0.12], [armR, 0.6, -0.12]].forEach(([a, x, rz]) => {
@@ -281,6 +294,8 @@ export function makeCanOpener() {
 }
 
 export function makeBird(kind = 'seagull') {
+  const r = rigAsset(kind === 'seagull' ? 'moewe' : 'taube');
+  if (r) { r.root.userData = { wings: r.list('wing'), tips: r.list('tip'), head: r.n('head'), tail: r.n('tail'), eyes: r.list('eye'), t: 0 }; return r.root; }
   const g = new THREE.Group(), gull = kind === 'seagull';
   const c = gull ? 0xf4f4f4 : 0x7d8aa0, wing = gull ? 0xd9d9d9 : 0x5b6880, tipC = gull ? 0x2d2d2d : 0x3e4859, beak = gull ? 0xffb21c : 0x333333;
   const s = gull ? 1.6 : 1.0;
@@ -310,6 +325,8 @@ export function makeBird(kind = 'seagull') {
 }
 
 export function makeRat(scale = 1) {
+  const r = rigAsset('ratte', { glow: { 'eye-0': 0x880000, 'eye-1': 0x880000 } });
+  if (r) { r.root.scale.setScalar(scale); r.root.userData = { legs: r.list('leg'), tail: r.n('tail-0'), tailSegs: r.list('tail'), head: r.n('head'), ears: r.list('ear'), eyes: r.list('eye'), t: 0 }; return r.root; }
   const g = new THREE.Group(), c = 0x6f6f72, light = 0x9a9aa0, pink = 0xffb6c1;
   g.add(box(0.7, 0.5, 1.2, c, 0, 0.45, 0)); g.add(box(0.78, 0.55, 0.55, c, 0, 0.5, -0.4)); g.add(box(0.55, 0.1, 0.9, light, 0, 0.22, 0.05));
   for (let i = 0; i < 3; i++) { const f = box(0.08, 0.14, 0.2, shade(c, 0.75), 0, 0.75, -0.3 + i * 0.25); f.rotation.x = -0.5; g.add(f); } // struppiges Fell
@@ -329,6 +346,8 @@ export function makeRat(scale = 1) {
 }
 
 export function makeFatMan() {
+  const r = rigAsset('einkaeufer');
+  if (r) { r.root.userData = { legs: r.list('leg'), arms: r.list('arm'), head: r.n('head'), belly: r.n('belly'), eyes: r.list('eye'), t: 0 }; return r.root; }
   const g = new THREE.Group(), skin = 0xf5c9a2, shirt = 0xf2c744, pants = 0x3a5fa8;
   g.add(cyl(0.5, 0.9, 1.0, pants, 0, 1.3, 0, 12)); // Hose
   const belly = new THREE.Group(); belly.position.y = 2.3; g.add(belly);
@@ -512,6 +531,8 @@ export function makeGoggles() {
 
 // Riesenkrabbe Kneifer: Panzer mit Flecken, zwei Scheren mit beweglicher Zange, sechs zweigliedrige Beine, Stielaugen
 export function makeCrab(color = 0xe0503a) {
+  const r = rigAsset('krabbe', color === 0xe0503a ? {} : { paint: color });
+  if (r) { r.root.userData = { claws: r.list('claw'), legs: r.list('leg'), eyes: r.list('eye'), stalks: r.list('stalk'), pincers: r.list('pincer'), t: 0 }; return r.root; }
   const g = new THREE.Group(), dark = shade(color, 0.7), light = shade(color, 1.25);
   const body = sphere(0.8, color, 0, 0.7, 0, 12); body.scale.set(1.3, 0.55, 1); g.add(body);
   const belly = sphere(0.75, 0xf6d7b0, 0, 0.6, 0, 10); belly.scale.set(1.2, 0.4, 0.9); g.add(belly);
@@ -552,6 +573,8 @@ export function makeJelly() {
 
 // Riesenmuschel am Riff: gerippte Schalen, Schale klappt beim Biss auf, die Perle schimmert
 export function makeClam() {
+  const r = rigAsset('riesenmuschel');
+  if (r) { r.root.userData.lid = r.n('lid'); return r.root; }
   const g = new THREE.Group(), lid = new THREE.Group();
   const lo = sphere(1.0, 0x8e7cc3, 0, 0, 0, 12); lo.scale.set(1.2, 0.35, 1); g.add(lo);
   const up = sphere(1.0, 0xa593e0, 0, 0, 0.9, 12); up.scale.set(1.2, 0.35, 1); lid.add(up); lid.position.set(0, 0.15, -0.9); g.add(lid);
@@ -562,7 +585,7 @@ export function makeClam() {
 
 // Ein anderer Hund (Rettungsschwimmer, Burg-Bauer …): Moll in anderer Fellfarbe mit Mütze
 export function makeNpcDog(fur = 0xd9a441, cap = 0xe74c3c) {
-  const g = makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
+  const g = hasAsset('moll') ? makeDog(fur) : makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
   g.traverse(o => { if (o.material && o.material.color) { const h = o.material.color.getHex(), i = from.indexOf(h); if (i >= 0) { o.material = o.material.clone(); o.material.color.copy(to).multiplyScalar([1, 0.7, 1.15][i]); } } });
   const u = g.userData; if (u.head) { const c = cyl(0.32, 0.36, 0.2, cap, 0, 0.5, 0, 10); u.head.add(c); }
   u.npc = true; // Level sammelt NPCs, damit sie Moll mit dem Kopf nachschauen (Kopf bleibt dank userData beweglich)
