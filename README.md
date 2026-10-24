@@ -10,7 +10,7 @@ Ohne Build-Schritt. Irgendeinen statischen Webserver im Repo-Ordner starten:
 python3 -m http.server 8000
 # → http://localhost:8000
 ```
-Läuft auch direkt über GitHub Pages (Branch `main`, Ordner `/`).
+Online spielen: **https://timo-hoen-ias.github.io/lab64/** – wird bei jedem Push auf `main` per GitHub Actions veröffentlicht (`.github/workflows/pages.yml`).
 
 ## Steuerung
 | | Tastatur | Gamepad | Touch |
