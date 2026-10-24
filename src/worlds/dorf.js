@@ -8,7 +8,14 @@ const WOOD = 0x8d6e63, STONE = 0xb0a99f, ROOF = 0xb71c1c, PATH = 0xcdb994;
 
 function bench() { const g = new THREE.Group(); g.add(box(2.4, 0.15, 0.7, WOOD, 0, 0.55, 0)); g.add(box(2.4, 0.6, 0.12, WOOD, 0, 0.95, -0.3)); [-1, 1].forEach(s => g.add(box(0.12, 0.55, 0.6, 0x2d3436, s, 0.27, 0))); return g; }
 function chicken() { const g = new THREE.Group(); g.add(box(0.7, 0.55, 0.9, 0xfafafa, 0, 0.45, 0)); g.add(box(0.4, 0.4, 0.4, 0xfafafa, 0, 0.85, 0.45)); g.add(box(0.12, 0.18, 0.25, 0xe53935, 0, 1.1, 0.45)); g.add(box(0.15, 0.1, 0.2, 0xffb300, 0, 0.8, 0.72)); [-0.18, 0.18].forEach(x => g.add(box(0.08, 0.3, 0.08, 0xffb300, x, 0.15, 0))); return g; }
-function house(l, x, z, c, y = 0, w = 10, h = 5) { l.box(x, y, z, w, h, w, c); l.box(x, y + h, z, w + 0.5, 0.4, w + 0.5, WOOD); l.deco(cone(w * 0.75, 3.5, ROOF, 0, 0, 0, 4), x, y + h + 2.1, z, Math.PI / 4); }
+// flat: Dachterrasse mit Brüstung und Schornstein statt Spitzdach – für Häuser, auf die Moll hochklettern kann
+function house(l, x, z, c, y = 0, w = 10, h = 5, flat = false) {
+  l.box(x, y, z, w, h, w, c); l.box(x, y + h, z, w + 0.5, 0.4, w + 0.5, WOOD);
+  if (!flat) { l.deco(cone(w * 0.75, 3.5, ROOF, 0, 0, 0, 4), x, y + h + 2.1, z, Math.PI / 4); return; }
+  const t = y + h + 0.4, e = (w + 0.5) / 2 - 0.15;
+  [[0, -e, w + 0.5, 0.3], [0, e, w + 0.5, 0.3], [-e, 0, 0.3, w - 0.1], [e, 0, 0.3, w - 0.1]].forEach(([dx, dz, bw, bd]) => l.box(x + dx, t, z + dz, bw, 0.45, bd, ROOF));
+  l.box(x + w * 0.25, t, z + w * 0.25, 1.2, 1.8, 1.2, 0x8d4a3b);
+}
 
 export const DORF = {
   name: 'Das Dorf', surface: 'grass', time: 'abend', backdrop: 'berge', grass: true, sky: 0x9fc8f0, ground: 0x9ccc65, size: 150, need: 8, goalKind: 'bread',
@@ -18,15 +25,17 @@ export const DORF = {
     l.spawn.set(0, 1, 28);
     // ---- Marktplatz (Kern) – Stadtmauer mit Toren in alle Richtungen
     l.wallRing(36, 5, 0xa1887f, 10);
-    l.group.add(box(24, 0.05, 24, 0xbcaaa4, 0, 0.03, 0)); l.deco(cyl(2.5, 2.8, 1.2, 0x90a4ae, 0, 0.6, 0, 12), 0, 0.6, 0); l.deco(cyl(0.4, 0.4, 3, 0x90a4ae, 0, 2.5, 0, 8), 0, 2.5, 0);
-    [[-24, -20, 0xffccbc], [-24, 20, 0xb3e5fc], [24, -20, 0xfff59d], [24, 20, 0xffab91], [-8, -28, 0xf8bbd0], [10, -28, 0xb2dfdb]].forEach(([x, z, c]) => house(l, x, z, c));
+    l.group.add(box(24, 0.05, 24, 0xbcaaa4, 0, 0.03, 0)); l.deco(cyl(2.5, 2.8, 1.2, 0x90a4ae, 0, 0.6, 0, 12), 0, 0.6, 0); l.deco(cyl(0.4, 0.4, 3, 0x90a4ae, 0, 2.5, 0, 8), 0, 2.5, 0); l.deco(cyl(2.2, 2.2, 0.05, 0x64b5f6, 0, 0, 0, 12), 0, 1.0, 0);
+    l.box(0, 0, 0, 4.2, 1.2, 4.2, 0x90a4ae).mesh.visible = false; l.box(0, 1.2, 0, 0.8, 2.8, 0.8, 0x90a4ae).mesh.visible = false; // Brunnen ist jetzt fest
+    [[-24, -20, 0xffccbc, 1], [-24, 20, 0xb3e5fc], [24, -20, 0xfff59d, 1], [24, 20, 0xffab91], [-8, -28, 0xf8bbd0, 1], [10, -28, 0xb2dfdb]].forEach(([x, z, c, flat]) => house(l, x, z, c, 0, 10, 5, !!flat)); // auf die Häuser mit Kistentreppe kommt man hoch: dort Dachterrassen statt Spitzdach, sonst stand Moll im Dach
     [[-15.6, -17.8, -20], [15.6, 17.8, -20], [-16.4, -14.2, -28]].forEach(([lx, hx, z]) => { l.box(lx, 0, z, 2, 1.6, 2, 0x795548); l.box(hx, 0, z, 2, 3.4, 2, 0x795548); });
-    l.box(30, 0, -30, 4, 8, 4, 0xbcaaa4); l.deco(cone(3, 4, 0x5d4037, 0, 0, 0, 4), 30, 10, -30, Math.PI / 4); // Kirchturm
+    l.box(30, 0, -30, 4, 8, 4, 0xbcaaa4); l.deco(cone(3, 4, 0x5d4037, 0, 0, 0, 4), 30, 12.8, -30, Math.PI / 4); // Kirchturm
+    [[-1.75, -1.75], [1.75, -1.75], [-1.75, 1.75], [1.75, 1.75]].forEach(([dx, dz]) => l.box(30 + dx, 8, -30 + dz, 0.5, 2.6, 0.5, 0xbcaaa4)); l.box(30, 10.6, -30, 4.2, 0.2, 4.2, 0x5d4037); // offene Glockenstube: der Knochen steckt nicht mehr im Dach
     l.box(28.5, 8, -30, 1, 0.3, 4, 0xbcaaa4);
     l.goldbone('kletter', 30, 8.8, -30);
     l.goldbone('geheim', -33, 0.6, 33, { hidden: true });
     l.box(16, 0, 20, 4, 1.5, 3, 0x6d4c41); l.box(16, 1.5, 21, 4, 1.5, 1, 0x6d4c41); // Karren
-    [[-8, 8], [8, 8], [-8, -8], [8, -8]].forEach(([x, z]) => { l.box(x, 0, z, 4, 1.2, 2, WOOD); l.box(x, 3.2, z, 4.6, 0.2, 3, (x + z) % 16 ? 0xef5350 : 0x42a5f5); });
+    [[-8, 8], [8, 8], [-8, -8], [8, -8]].forEach(([x, z]) => { l.box(x, 0, z, 4, 1.2, 2, WOOD); l.box(x, 3.2, z, 4.6, 0.2, 3, (x + z) % 16 ? 0xef5350 : 0x42a5f5); [[-2.1, -1.3], [2.1, -1.3], [-2.1, 1.3], [2.1, 1.3]].forEach(([dx, dz]) => l.prop(box(0.12, 3.2, 0.12, 0x5d4037, 0, 1.6, 0), x + dx, 0, z + dz)); }); // Marktstände: Dach auf Pfosten
     [[-12, 0], [12, 12], [0, -14], [14, -10]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-4, 0, 24, 'Marktplatz', bench());
     // ---- Fähigkeit dieser Welt: Wandsprung. Alter Backstein-Schornstein: zwischen den Wänden im Zickzack hoch
@@ -64,7 +73,7 @@ export const DORF = {
       l.hill(0, -105, 40, 14, { flat: 0.35, color: 0x8bc34a });
       l.hill(-40, -130, 18, 6, { flat: 0.3, color: 0x8bc34a }); l.hill(38, -128, 16, 5, { flat: 0.3, color: 0x8bc34a });
       l.box(0, 14, -105, 7, 12, 7, 0xeeeeee); l.deco(cone(5.2, 4.5, 0x5d4037, 0, 0, 0, 8), 0, 28.2, -105);
-      for (let i = 0; i < 14; i++) { const a = i * 0.45 + Math.PI / 2, r = 5.4; l.box(Math.cos(a) * r, 14 + 0.6 + i * 0.7, -105 + Math.sin(a) * r, 2, 0.4, 2, WOOD); }
+      for (let i = 0; i < 14; i++) { const a = i * 0.45 + Math.PI / 2, r = 5.4, sy = 14 + 0.6 + i * 0.7; l.box(Math.cos(a) * r, sy, -105 + Math.sin(a) * r, 2, 0.4, 2, WOOD); l.prop(box(2.4, 0.25, 0.3, 0x5d4037, 0, -0.13, 0), Math.cos(a) * 4.4, sy, -105 + Math.sin(a) * 4.4, -a); } // Stufen auf Kragbalken
       l.box(0, 23.6, -100.2, 7, 0.4, 2.6, WOOD); // Galerie
       l.mill = new THREE.Group(); for (let i = 0; i < 4; i++) { const s = box(1.4, 9, 0.2, 0xf5f5dc, 0, 4.8, 0); const arm = new THREE.Group(); arm.add(s); arm.rotation.z = i * Math.PI / 2; l.mill.add(arm); }
       l.deco(l.mill, 0, 22, -108.8);
@@ -122,11 +131,11 @@ export const DORF = {
       l.box(-4, y + 6, 116, 18, 0.6, 3, STONE); // Wehrgang
       l.ramp(5, 116, 9, 108.5, 2, y + 6.6, y + 8.4, WOOD, { bridge: true }); // Holzsteg zum Turm
       l.box(9, y, 106, 5, 8.4, 5, STONE); // Turm unten
-      for (let i = 0; i < 8; i++) { const a = i * 0.6 - Math.PI / 2, r = 4.2; l.box(9 + Math.cos(a) * r, y + 9 + i * 1.1, 106 + Math.sin(a) * r, 1.9, 0.4, 1.9, STONE); }
+      for (let i = 0; i < 8; i++) { const a = i * 0.6 - Math.PI / 2, r = 4.2, sy = y + 9 + i * 1.1; l.box(9 + Math.cos(a) * r, sy, 106 + Math.sin(a) * r, 1.9, 0.4, 1.9, STONE); l.prop(box(2.4, 0.3, 0.5, 0x9e968c, 0, -0.15, 0), 9 + Math.cos(a) * 2.9, sy, 106 + Math.sin(a) * 2.9, -a); } // Kragsteine
       l.box(9, y + 8.4, 106, 4, 9.4, 4, 0x9e968c); l.box(9, y + 17.8, 106, 6, 0.5, 6, STONE);
       [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]].forEach(([dx, dz]) => l.box(9 + dx, y + 18.3, 106 + dz, 1, 1, 1, STONE));
       l.goldbone('burg', 9, y + 19, 106);
-      l.pickup(-12, y + 6.3, 98, 'bread', { goal: true, hidden: true });
+      l.pickup(-12, y + 8.3, 98, 'bread', { goal: true, hidden: true }); // oben auf der Mauer, nicht in ihr
       l.pickup(-6, y + 4.3, 92, 'treat', { special: true, onTake: () => l.keks(), onRestore: () => l.kekse++ });
       [[-30, 90], [30, 128], [-26, 130], [32, 88]].forEach(([x, z]) => l.tree(x, z, 1.5, makeRoundTree(1.5)));
       l.warp(-6, T(-6, 76), 76, 'Burgruine', bench());
@@ -150,7 +159,7 @@ export const DORF = {
     l.pickup(60, 0.3, 60, 'treat', { special: true, onTake: () => l.keks(), onRestore: () => l.kekse++ });
     l.keks = () => { l.kekse++; g.toast(`Hundekeks ${l.kekse}/5 – zurück zu Bäcker Bruno!`); };
     // Restliche Brote am Marktplatz
-    [[-24, 5.6, -20], [24, 5.6, -20], [0, 1.5, 0]].forEach(([x, y, z]) => l.pickup(x, y, z, 'bread', { goal: true, hidden: true }));
+    [[-24, 5.9, -20], [24, 5.9, -20], [1.6, 1.5, 0]].forEach(([x, y, z]) => l.pickup(x, y, z, 'bread', { goal: true, hidden: true }));
 
     l.scatter(70);
     l.label('Die Tauben haben 8 Brote im ganzen Dorf versteckt. NASE benutzen!', 0, 5, 24);
