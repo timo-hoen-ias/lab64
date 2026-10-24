@@ -15,14 +15,14 @@ export const KANAL = {
   music: { scale: 'minor', root: 196, bpm: 120, seed: 13, style: 'sewer' },
   build(l) {
     const g = l.game;
-    const lamp = (x, y, z, on = true) => { const li = new THREE.PointLight(0x9ad7ff, on ? 1.2 : 0, 16); li.position.set(x, y, z); l.scene.add(li); const b = sphere(0.5, on ? 0x9ad7ff : 0x2d3436, 0, 0, 0, 6); l.deco(b, x, y, z); return { li, b }; };
+    const lamp = (x, y, z, on = true) => { const li = new THREE.PointLight(0x9ad7ff, on ? 1.2 : 0, 16); li.position.set(x, y, z); l.scene.add(li); const b = sphere(0.5, on ? 0x9ad7ff : 0x2d3436, 0, 0, 0, 6); l.deco(b, x, y, z); if (y > 7) l.prop(box(0.08, H - y - 0.4, 0.08, 0x2f3542, 0, (H - y - 0.4) / 2, 0), x, y + 0.4, z); return { li, b }; }; // hohe Lampen hängen an Kabeln von der Decke
     l.spawn.set(-12, 2, 20); l.wallRing(60, H, WALL);
     wallX(l, -26, -60, 60, [[-44, -38], [-4, 4], [38, 44]]); wallX(l, 26, -60, 60, [[-44, -38], [-4, 4], [38, 44]]);
     wallZ(l, -26, -26, 26, [[-14, -8]]); wallZ(l, 26, -26, 26, [[8, 14]]);
 
     // ---- Haupthalle (Kern, wie bisher)
     l.group.add(box(10, 0.05, 52, 0x2e5d3a, 0, 0.03, 0));
-    l.box(-12, 0, 0, 14, 1, 52, WALK); l.box(12, 0, 0, 14, 1, 52, WALK);
+    l.box(-15.25, 0, 0, 20.5, 1, 51, WALK); l.box(15.25, 0, 0, 20.5, 1, 51, WALK); // Gehwege bis an die Wände (vorher 1 m tiefer Graben dahinter)
     [[-10], [4], [16]].forEach(([z]) => { const p = cyl(0.9, 0.9, 10, PIPE, 0, 1.4, z, 10); p.rotation.z = Math.PI / 2; l.deco(p, 0, 1.4, z); l.solids.push({ min: { x: -5, y: 0.5, z: z - 0.7 }, max: { x: 5, y: 2.1, z: z + 0.7 }, active: true }); });
     [[-18, -20], [18, -20], [-18, 0], [18, 0], [-18, 20], [18, 20]].forEach(([x, z]) => { l.box(x, 1, z, 0.4, 5, 0.4, 0x2f3542); lamp(x, 6.2, z); });
     l.box(22, 1, -10, 3, 1.5, 3, WALL); l.box(22, 1, -14, 3, 3, 3, WALL); l.box(22, 1, -18, 3, 4.5, 3, WALL);
@@ -31,7 +31,7 @@ export const KANAL = {
     l.teacher(-16, 23, 'tornado');
     // Rückkehr-Knochen: nur mit der Supernase aus Heriberts Krümel-Laden zu riechen
     l.backbone('r_nase', 'supernase', 'nose', -35, 13); l.backbone('r_nase2', 'supernase', 'nose', 33, -11);
-    l.box(-12, 6.6, 6, 4, 0.5, 3, RUST); l.deco(box(4, 2.6, 0.3, 0x2f3542), -12, 8.4, 4.6);
+    l.box(-12, 6.6, 6, 4, 0.5, 3, RUST); [[-1.8, 7.3], [1.8, 7.3]].forEach(([dx, dz]) => l.prop(box(0.1, H - 7.1, 0.1, 0x2f3542, 0, (H - 7.1) / 2, 0), -12 + dx, 7.1, dz)); // Schacht hängt an Stangen l.deco(box(4, 2.6, 0.3, 0x2f3542), -12, 8.4, 4.6);
     l.goldbone('tornado', -12, 7.9, 6);
     l.goldbone('geheim', -24, 1.6, 24, { hidden: true });
     [[-16, 1.3, -22], [16, 1.3, -22], [0, 2.4, 4]].forEach(([x, y, z]) => l.pickup(x, y, z, 'cheese', { goal: true }));
@@ -49,9 +49,9 @@ export const KANAL = {
 
     // ---- Norden: Pumpwerk mit Laufstegen
     l.zone(0, -43, 40, () => {
-      l.group.add(box(52, 0.05, 34, 0x4b4b4b, 0, 0.03, -43));
+      l.group.add(box(51, 0.05, 33, 0x4b4b4b, 0, 0.03, -43));
       l.pumps = [];
-      [[-14, -46], [0, -50], [14, -46]].forEach(([x, z]) => { l.box(x, 0, z, 6, 5, 6, 0x34495e); const w = cyl(2.6, 2.6, 0.5, RUST, 0, 0, 0, 12); w.rotation.x = Math.PI / 2; l.pumps.push(l.deco(w, x, 5, z + 3.3)); });
+      [[-14, -46], [0, -50], [14, -46]].forEach(([x, z]) => { l.box(x, 0, z, 6, 5, 6, 0x34495e); const w = cyl(2.6, 2.6, 0.5, RUST, 0, 0, 0, 12); w.rotation.x = Math.PI / 2; l.pumps.push(l.deco(w, x, 5, z + 3.3)); l.box(x, 2.4, z + 3.3, 5.2, 5.2, 0.5, RUST).mesh.visible = false; });
       [[-22, -32, 1.5], [-22, -36, 3], [-22, -40, 4.5], [-22, -44, 6], [-22, -48, 7.5], [-18, -52, 9]].forEach(([x, z, h]) => l.box(x, 0, z, 3, h, 3, WALL));
       l.box(2, 9, -56, 36, 0.4, 4, RUST); // Laufsteg
       l.box(18, 9.4, -56, 4, 1.8, 3, 0x2d3436); l.deco(box(3, 0.8, 0.2, 0x55efc4), 18, 10.4, -54.4); // Steuerpult
@@ -64,7 +64,7 @@ export const KANAL = {
 
     // ---- Osten: Rohr-Labyrinth auf drei Höhen
     l.zone(43, 0, 45, () => {
-      const pipe = (x0, z0, x1, z1, y) => { const len = Math.hypot(x1 - x0, z1 - z0), c = cyl(0.9, 0.9, len, PIPE, 0, 0, 0, 10); c.rotation.set(Math.PI / 2, 0, 0); const grp = new THREE.Group(); grp.add(c); grp.rotation.y = Math.atan2(x1 - x0, z1 - z0); l.deco(grp, (x0 + x1) / 2, y, (z0 + z1) / 2); l.box((x0 + x1) / 2, y - 0.9, (z0 + z1) / 2, Math.abs(x1 - x0) + 1.6, 1.8, Math.abs(z1 - z0) + 1.6, PIPE, { dynamic: true }).mesh.visible = false; };
+      const pipe = (x0, z0, x1, z1, y) => { const len = Math.hypot(x1 - x0, z1 - z0), c = cyl(0.9, 0.9, len, PIPE, 0, 0, 0, 10); c.rotation.set(Math.PI / 2, 0, 0); const grp = new THREE.Group(); grp.add(c); grp.rotation.y = Math.atan2(x1 - x0, z1 - z0); l.deco(grp, (x0 + x1) / 2, y, (z0 + z1) / 2); l.box((x0 + x1) / 2, y - 0.9, (z0 + z1) / 2, Math.abs(x1 - x0) + 1.6, 1.8, Math.abs(z1 - z0) + 1.6, PIPE, { dynamic: true }).mesh.visible = false; if (y > 1.2) for (const t of [0.1, 0.5, 0.9]) l.prop(box(0.3, y - 0.9, 0.3, 0x2f3542, 0, (y - 0.9) / 2, 0), x0 + (x1 - x0) * t, 0, z0 + (z1 - z0) * t); }; // Rohre auf Stützen
       pipe(30, 8, 56, 8, 1.2); pipe(52, 8, 52, -16, 2.6); pipe(52, -20, 32, -20, 4.4); pipe(32, -24, 32, -44, 6.2); pipe(36, -48, 54, -48, 8);
       l.box(56, 0, -48, 4, 8.9, 4, RUST); l.goldbone('rohre', 56, 9.7, -48);
       for (let i = 0; i < 6; i++) l.box(30 + i * 5, 0, 30 + (i % 2) * 6, 3, 1 + i * 0.6, 3, WALL);
@@ -89,8 +89,8 @@ export const KANAL = {
 
     // ---- Süden: Gully-Schacht nach oben ans Tageslicht
     l.zone(0, 43, 40, () => {
-      l.group.add(box(52, 0.05, 34, 0x4b4b4b, 0, 0.03, 43));
-      for (let i = 0; i < 12; i++) l.box((i % 2 ? 1.6 : -1.6), 1.2 + i * 1.6, 57.6, 2.2, 0.3, 1.6, RUST); // Sprossen
+      l.group.add(box(51, 0.05, 33, 0x4b4b4b, 0, 0.03, 43));
+      for (let i = 0; i < 12; i++) { const sx = i % 2 ? 1.6 : -1.6, sy = 1.2 + i * 1.6; l.box(sx, sy, 57.6, 2.2, 0.3, 1.6, RUST); [-0.9, 0.9].forEach(dx => l.prop(box(0.15, 0.15, 1.2, 0x2f3542, 0, 0.08, 0), sx + dx, sy, 59)); } // Sprossen auf Wandhaltern
       l.box(0, 19.8, 51, 6, 0.4, 6, 0x2d3436); for (let k = -2; k <= 2; k++) l.deco(box(0.2, 0.1, 6, 0x111111), k, 20.25, 51);
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.6, 20, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff6d5, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide })); beam.position.set(0, 10, 51); l.group.add(beam);
       const sun = new THREE.PointLight(0xfff1c9, 2, 26); sun.position.set(0, 18, 51); l.scene.add(sun);

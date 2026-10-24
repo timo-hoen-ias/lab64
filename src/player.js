@@ -301,7 +301,8 @@ export class Player {
       if (p.x + HALF <= mn.x || p.x - HALF >= mx.x || p.z + HALF <= mn.z || p.z - HALF >= mx.z || p.y >= mx.y || p.y + HEIGHT <= mn.y) continue;
       if (axis === 'y') {
         if (this.vel.y <= 0 && p.y - this.vel.y * Math.max(0.02, this._dt || 0) >= mx.y - 0.3) { p.y = mx.y; this.vel.y = 0; this.onGround = true; if (s.onStand) s.onStand(); }
-        else if (this.vel.y > 0) { p.y = mn.y - HEIGHT; this.vel.y = 0; }
+        else if (this.vel.y > 0 && p.y < mn.y) { p.y = mn.y - HEIGHT; this.vel.y = 0; } // Kopf stößt von unten an
+        else if (this.vel.y > 0) this._pushOut(s); // steckte schon seitlich drin (z.B. rollender Ball): nicht unter den Körper in den Boden drücken
       } else if (this._wasGround && mx.y - p.y <= STEP && this._stepUp(solids, mx.y)) {
         continue; // kleine Kante (z.B. Rampenende an einer Plattform): hochsteigen statt anhalten
       } else {
