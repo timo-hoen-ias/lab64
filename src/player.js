@@ -111,7 +111,7 @@ export class Player {
     }
     else if (!this.frozen && input.pressed('act') && this.biteCd <= 0 && (this.carry || (has('apportieren') && level.fetchNear(this.pos)))) { // Apportieren
       this.biteCd = 0.3; this.bite = 0.6;
-      if (this.carry) { const it = this.carry; this.carry = null; level.dropItem(it, { x: this.pos.x + Math.sin(this.yaw) * 1.1, y: this.pos.y, z: this.pos.z + Math.cos(this.yaw) * 1.1 }); this.game.audio.sfx('land'); }
+      if (this.carry) { const it = this.carry; this.carry = null; level.dropItem(it, { x: this.pos.x + Math.sin(this.yaw) * 1.1, y: this.pos.y, z: this.pos.z + Math.cos(this.yaw) * 1.1 }, this.vel); this.game.audio.sfx('land'); }
       else { this.carry = level.fetchNear(this.pos); this.carry.carried = true; this.game.audio.sfx('chomp'); }
     }
     else if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
