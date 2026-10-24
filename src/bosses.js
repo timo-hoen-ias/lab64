@@ -1,12 +1,13 @@
 // Bosse und Gegner. Jeder hat: mesh, name, hp, maxHp, radius, dead, update(dt, level), onBite().
 import * as THREE from 'three';
-import { FX } from './fx.js';
-import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, makeCrab, makeJelly, box, cyl, sphere } from './models.js';
+import { FX, characterLook } from './fx.js';
+import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, makeCrab, makeJelly, animateLife, box, cyl, sphere } from './models.js';
 
 class Boss {
   constructor(game, mesh, name, hp, radius = 1.4) {
     this.game = game; this.mesh = mesh; this.name = name; this.hp = hp; this.maxHp = hp; this.radius = radius;
     this.dead = false; this.stun = 0; this.t = 0; this.state = 'idle'; this.flash = 0; this.rage = 1;
+    characterLook(mesh, 0.04); this._last = mesh.position.clone(); this.moveK = 0;
   }
   get pos() { return this.mesh.position; }
   get player() { return this.game.player; }
@@ -23,7 +24,7 @@ class Boss {
     this.hp -= n; this.flash = 0.3; this.rage = 1 + (this.maxHp - this.hp) * 0.3; // Phase 2+: schneller
     this.game.audio.sfx('hit'); this.game.input.vibrate(150); this.game.shake(0.35);
     FX.hit(this.game.fx, { x: this.pos.x, y: this.pos.y + 1.5, z: this.pos.z });
-    this.mesh.traverse(o => { if (o.material) { o.material.emissive = new THREE.Color(0xff4444); } });
+    this.mesh.traverse(o => { if (o.material?.emissive && !o.userData.isOutline) { o.userData.em ??= o.material.emissive.clone(); o.material.emissive.set(0xff4444); } });
     if (this.hp <= 0) this.die();
   }
   onBite() { if (this.stun > 0 && !this.dead) { this.damage(1); this.stun = 0; } else if (!this.dead) this.game.toast('Nur angreifbar, wenn er benommen ist!'); }
@@ -35,7 +36,10 @@ class Boss {
   }
   baseUpdate(dt) {
     this.t += dt;
-    if (this.flash > 0) { this.flash -= dt; if (this.flash <= 0) this.mesh.traverse(o => { if (o.material) o.material.emissive = new THREE.Color(0x000000); }); }
+    // Tempo aus der Positionsänderung (für Schwanz, Bauch, Kopfwippen)
+    const sp = dt > 0 ? Math.hypot(this.pos.x - this._last.x, this.pos.z - this._last.z) / dt : 0; this._last.copy(this.pos);
+    this.moveK += (Math.min(1, sp / 8) - this.moveK) * Math.min(1, dt * 6); animateLife(this.mesh, dt, this.moveK);
+    if (this.flash > 0) { this.flash -= dt; if (this.flash <= 0) this.mesh.traverse(o => { if (o.userData.em) o.material.emissive.copy(o.userData.em); }); }
     if (this.stun > 0) {
       this.stun -= dt; this.mesh.rotation.z = Math.sin(this.t * 20) * 0.1;
       if (Math.random() < dt * 12) { const a = this.t * 6; this.game.fx.burst({ x: this.pos.x + Math.cos(a) * this.radius, y: this.pos.y + this.radius * 2 + 0.6, z: this.pos.z + Math.sin(a) * this.radius }, { n: 1, color: [0xffe066, 0xffffff], speed: 0.3, up: 0.5, life: 0.6, size: 0.25, gravity: 0 }); } // Sternchen
@@ -96,6 +100,7 @@ export class Cat extends Boss {
     const u = this.mesh.userData; u.t += dt * 8;
     if (this.baseUpdate(dt)) return;
     this.faceTo(this.player.pos, dt, 4);
+    u.head.rotation.x = this.state === 'crouch' ? 0.25 : Math.sin(this.t * 1.3) * 0.06;
     if (this.state === 'prowl') {
       u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t + i * 1.5) * 0.5); u.tail.rotation.z = Math.sin(u.t * 0.5) * 0.4;
       // Kreist um Moll
@@ -110,7 +115,8 @@ export class Cat extends Boss {
     } else if (this.state === 'pounce') {
       this.timer += dt; const k = Math.min(1, this.timer / 0.55);
       this.pos.lerpVectors(this.from, this.target, k); this.pos.y = Math.sin(k * Math.PI) * 3;
-      u.legs.forEach(l => l.rotation.x = -0.8);
+      u.legs.forEach((l, i) => l.rotation.x = i < 2 ? -0.9 : 0.8); this.mesh.scale.set(0.9, 0.9, 1.2); // im Sprung gestreckt
+      if (k >= 1) { this.mesh.scale.set(1, 1, 1); FX.dust(this.game.fx, this.pos, 12); FX.land(this.game.fx, this.pos, 2); }
       if (k >= 1) { this.pos.y = 0; this.state = 'prowl'; this.timer = 0; this.stun = 1.8; this.touchPlayer(1.6); this.game.toast('Kater gelandet – jetzt beißen!'); }
     }
     this.clampArena(this.arena);
@@ -175,7 +181,7 @@ export class BirdBoss extends Boss {
 export class Pigeon {
   constructor(game, x, z, y0 = 0) { this.game = game; this.mesh = makeBird('pigeon'); this.y0 = y0; this.mesh.position.set(x, y0, z); this.radius = 0.8; this.dead = false; this.t = Math.random() * 10; this.home = { x, z }; }
   update(dt) {
-    this.t += dt; const u = this.mesh.userData; u.wings.forEach((w, i) => w.rotation.z = Math.sin(this.t * 12) * 0.5 * (i ? -1 : 1));
+    this.t += dt; const u = this.mesh.userData; u.wings.forEach((w, i) => w.rotation.z = Math.sin(this.t * 12) * 0.5 * (i ? -1 : 1)); animateLife(this.mesh, dt, 0.5);
     this.mesh.position.x = this.home.x + Math.cos(this.t * 0.7) * 3; this.mesh.position.z = this.home.z + Math.sin(this.t * 0.9) * 3;
     this.mesh.position.y = this.y0 + 0.3 + Math.abs(Math.sin(this.t * 2)) * 1.5; this.mesh.rotation.y = this.t * 0.8;
     const p = this.game.player; if (this.mesh.position.distanceTo(p.pos) < 1.2) p.hurt(1);
@@ -188,11 +194,13 @@ export class FatMan {
   constructor(game, path, onDrop) {
     this.game = game; this.mesh = makeFatMan(); this.path = path; this.i = 0; this.radius = 1.5; this.dead = false;
     this.mesh.position.set(path[0].x, 0, path[0].z); this.t = 0; this.drop = 0; this.onDrop = onDrop; this.suspicion = 0; this.turning = 0; this.name = 'Der dicke Mann';
+    characterLook(this.mesh, 0.05);
     this.dropped = 0;
   }
   update(dt, lvl) {
     this.t += dt; const u = this.mesh.userData;
-    const p = this.game.player;
+    const p = this.game.player; animateLife(this.mesh, dt, this.turning > 0 ? 0 : 0.6);
+    u.head.rotation.y = this.turning > 0 ? Math.sin(this.t * 3) * 0.5 : Math.sin(this.t * 0.7) * 0.15; // schaut sich um
     if (this.turning > 0) { this.turning -= dt; this.mesh.rotation.y += dt * 2.2; }
     else {
       const wp = this.path[this.i]; const dx = wp.x - this.mesh.position.x, dz = wp.z - this.mesh.position.z, l = Math.hypot(dx, dz);
@@ -303,7 +311,8 @@ export class Crab extends Boss {
 export class BeachCrab {
   constructor(game, x, z) { this.game = game; this.mesh = makeCrab(0xf0703a); this.mesh.scale.setScalar(0.55); this.home = { x, z }; this.t = Math.random() * 10; this.radius = 0.7; this.dead = false; this.mesh.position.set(x, 0, z); }
   update(dt, lvl) {
-    this.t += dt; const u = this.mesh.userData; u.t += dt; u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t * 16 + i) * 0.4);
+    this.t += dt; const u = this.mesh.userData; u.t += dt; u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t * 16 + i) * 0.4); animateLife(this.mesh, dt, 0.5);
+    u.claws.forEach((c, i) => { c.rotation.x = Math.sin(u.t * 4 + i * 2) * 0.25; });
     const p = this.mesh.position; p.x = this.home.x + Math.sin(this.t * 0.6) * 4; p.z = this.home.z + Math.sin(this.t * 0.23) * 1.5; p.y = lvl.groundAt(p.x, p.z, 30);
     this.mesh.rotation.y = Math.PI / 2;
     const pl = this.game.player; if (p.distanceTo(pl.pos) < 1.1) pl.hurt(1);
@@ -315,7 +324,7 @@ export class BeachCrab {
 export class Jelly {
   constructor(game, x, y, z) { this.game = game; this.mesh = makeJelly(); this.home = { x, y, z }; this.t = Math.random() * 10; this.radius = 0.8; this.dead = false; this.mesh.position.set(x, y, z); }
   update(dt) {
-    this.t += dt; const u = this.mesh.userData, p = this.mesh.position;
+    this.t += dt; const u = this.mesh.userData, p = this.mesh.position; animateLife(this.mesh, dt);
     p.y = this.home.y + Math.sin(this.t * 0.8) * 2; p.x = this.home.x + Math.sin(this.t * 0.3) * 2;
     u.bell.scale.set(1 + Math.sin(this.t * 3) * 0.12, 1 - Math.sin(this.t * 3) * 0.12, 1 + Math.sin(this.t * 3) * 0.12); u.tent.forEach((t, i) => t.rotation.x = Math.sin(this.t * 3 + i) * 0.3);
     const pl = this.game.player; if (Math.hypot(p.x - pl.pos.x, p.z - pl.pos.z) < 1.1 && pl.pos.y + 0.6 > p.y - 1.4 && pl.pos.y < p.y + 0.6) pl.hurt(1);

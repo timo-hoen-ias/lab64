@@ -211,9 +211,11 @@ export class Particles {
 export const FX = {
   dust: (pt, pos, n = 8) => pt.burst(pos, { n, color: [0xe8dcc8, 0xd8c8a8, 0xffffff], speed: 3, up: 1.2, life: 0.5, size: 0.28, gravity: -2, flat: true, spread: 0.3 }),
   crumb: (pt, pos) => pt.burst(pos, { n: 10, color: [0xffe08a, 0xffffff, 0xffb347], speed: 3.5, up: 4, life: 0.6, size: 0.16 }),
-  food: (pt, pos) => pt.burst(pos, { n: 22, color: [0xffd93d, 0xff6b6b, 0xffffff, 0x6bcbff], speed: 5, up: 6, life: 0.9, size: 0.22 }),
-  gold: (pt, pos) => { pt.burst(pos, { n: 40, color: [0xffcc33, 0xfff3a0, 0xffd700], speed: 7, up: 8, life: 1.4, size: 0.18, gravity: -6 }); pt.burst(pos, { n: 16, color: 0xffffff, speed: 10, up: 1, life: 0.5, size: 0.1, gravity: 0, flat: true }); },
-  hit: (pt, pos) => pt.burst(pos, { n: 18, color: [0xffffff, 0xffe066, 0xff6b6b], speed: 8, up: 3, life: 0.45, size: 0.22, gravity: -4 }),
+  food: (pt, pos) => { pt.burst(pos, { n: 22, color: [0xffd93d, 0xff6b6b, 0xffffff, 0x6bcbff], speed: 5, up: 6, life: 0.9, size: 0.22 }); pt.rings?.spawn(pos, 0xfff0a0, 3, 0.5); },
+  crumbRing: (pt, pos) => pt.rings?.spawn(pos, 0xfff6d0, 1.3, 0.3),
+  land: (pt, pos, k) => pt.rings?.spawn({ x: pos.x, y: pos.y + 0.06, z: pos.z }, 0xfff3dc, 1.4 + k, 0.35),
+  gold: (pt, pos) => { pt.burst(pos, { n: 40, color: [0xffcc33, 0xfff3a0, 0xffd700], speed: 7, up: 8, life: 1.4, size: 0.18, gravity: -6 }); pt.burst(pos, { n: 16, color: 0xffffff, speed: 10, up: 1, life: 0.5, size: 0.1, gravity: 0, flat: true }); pt.rings?.spawn(pos, 0xffd84a, 4.5, 0.7); pt.rings?.spawn(pos, 0xffffff, 2.5, 0.45); },
+  hit: (pt, pos) => { pt.burst(pos, { n: 18, color: [0xffffff, 0xffe066, 0xff6b6b], speed: 8, up: 3, life: 0.45, size: 0.22, gravity: -4 }); pt.rings?.spawn(pos, 0xffe066, 3.2, 0.35); },
   bite: (pt, pos) => pt.burst(pos, { n: 5, color: 0xffffff, speed: 3, up: 1, life: 0.25, size: 0.14, gravity: 0 }),
   splash: (pt, pos) => pt.burst(pos, { n: 20, color: [0x9ad7ff, 0xffffff, 0x4fa3ff], speed: 3, up: 7, life: 0.8, size: 0.22, gravity: -18 }),
   sparkle: (pt, pos) => pt.burst(pos, { n: 1, color: [0xfff3a0, 0xffffff], speed: 0.6, up: 1.2, life: 0.8, size: 0.14, gravity: 0, spread: 0.6 }),
@@ -234,7 +236,11 @@ export function makePond(rx, rz, depth = 1.8) {
   wall.scale.set(rx, 1, rz); wall.position.y = -depth / 2; g.add(wall);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshToonMaterial({ color: 0xd8c38a, gradientMap: toonGradient() }));
   floor.rotation.x = -Math.PI / 2; floor.scale.set(rx, rz, 1); floor.position.y = -depth + 0.01; g.add(floor);
-  g.userData.update = dt => { uni.uTime.value += dt; };
+  addCaustics(floor.material, 'all'); addCaustics(wall.material, 'all');
+  // Schaumkante am Ufer: weißer Ring, der leicht pulsiert
+  const foam = new THREE.Mesh(new THREE.RingGeometry(0.955, 1.0, 64, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }));
+  foam.rotation.x = -Math.PI / 2; foam.scale.set(rx, rz, 1); foam.position.y = -0.2; foam.renderOrder = 3; g.add(foam);
+  let t = 0; g.userData.update = dt => { uni.uTime.value += dt; t += dt; foam.material.opacity = 0.45 + Math.sin(t * 1.5) * 0.18; const k = 1 - (Math.sin(t * 1.5) * 0.5 + 0.5) * 0.012; foam.scale.set(rx * k, rz * k, 1); };
   return g;
 }
 
@@ -307,4 +313,191 @@ export function addSeeThrough(mat) {
  }`);
   };
   mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|see';
+}
+
+// ---- Figuren-Look: dunkle Konturlinie (umgedrehte Hülle) und warmes Randlicht
+// Kontur = Kopie jedes Teils, etwas größer, nur Rückseiten in Dunkelbraun. Teilt die Geometrie, kostet nur Zeichenaufrufe;
+// bei Grafik „Niedrig“ wird das gemeinsame Material unsichtbar geschaltet.
+export const OUTLINE_MAT = new THREE.MeshBasicMaterial({ color: 0x24160c, side: THREE.BackSide });
+export function setOutlines(on) { OUTLINE_MAT.visible = on; }
+const RIM = { uRim: { value: new THREE.Color(0xfff1d0) } };
+function addRim(mat) {
+  if (mat.userData.rim || !mat.isMeshToonMaterial) return; mat.userData.rim = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r); sh.uniforms.uRim = RIM.uRim;
+    sh.fragmentShader = 'uniform vec3 uRim;\n' + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+ float rimK = 1.0 - max(dot(normalize(normal), normalize(vViewPosition)), 0.0);
+ gl_FragColor.rgb += uRim * smoothstep(0.62, 0.8, rimK) * 0.22;`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|rim';
+}
+export function characterLook(root, thick = 0.035) {
+  const list = []; root.traverse(o => { if (o.isMesh && !o.userData.isOutline) list.push(o); });
+  const bb = new THREE.Box3(), size = new THREE.Vector3(), c = new THREE.Vector3();
+  for (const m of list) {
+    [].concat(m.material).forEach(addRim);
+    if (m.material.transparent || m.userData.noOutline) continue;
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    bb.copy(m.geometry.boundingBox); bb.getSize(size); bb.getCenter(c);
+    if (Math.min(size.x, size.y, size.z) < 0.01 || Math.max(size.x, size.y, size.z) < 0.09) continue; // flache Scheiben, Glanzpunkte
+    const o = new THREE.Mesh(m.geometry, OUTLINE_MAT); o.userData.isOutline = true;
+    o.scale.set((size.x + thick * 2) / size.x, (size.y + thick * 2) / size.y, (size.z + thick * 2) / size.z);
+    o.position.set(c.x * (1 - o.scale.x), c.y * (1 - o.scale.y), c.z * (1 - o.scale.z)); // um die Mitte skalieren
+    o.castShadow = o.receiveShadow = false; o.frustumCulled = m.frustumCulled; o.raycast = () => {};
+    m.add(o);
+  }
+  return root;
+}
+
+// ---- Wind für Laub: Kronen und Büsche wiegen sich leicht (gemeinsame Zeit für alle Welten)
+export const WIND = { uWind: { value: 0 } };
+export function addSway(mat, amp = 0.07) {
+  if (mat.userData.sway) return mat; mat.userData.sway = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r); sh.uniforms.uWind = WIND.uWind;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+ vec4 swW = modelMatrix * vec4(transformed, 1.0);
+ float swP = uWind * 1.4 + swW.x * 0.21 + swW.z * 0.17;
+ transformed.x += sin(swP + swW.y * 0.6) * ${amp.toFixed(3)}; transformed.z += cos(swP * 0.8 + swW.y * 0.5) * ${(amp * 0.7).toFixed(3)};`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|sway';
+  return mat;
+}
+
+// ---- Lichtflecken (Kaustik) auf Flächen unter Wasser: wanderndes Netz aus hellen Linien
+export const CAUSTIC = { uCaT: { value: 0 }, uSeaY: { value: -1e9 } };
+const CAUSTIC_GLSL = `
+ float caW(vec2 p, float t) { vec2 q = p + vec2(sin(p.y * 0.9 + t), cos(p.x * 0.8 - t * 0.8)) * 0.8; return abs(sin(q.x * 1.3 + t * 0.6) + sin(q.y * 1.5 - t * 0.5)); }
+ vec3 caustic(vec3 wp, float t) { float c = 1.0 - smoothstep(0.0, 0.35, caW(wp.xz * 0.9, t)) * 0.7 - smoothstep(0.0, 0.3, caW(wp.zx * 1.3 + 4.0, t * 1.2)) * 0.5; return vec3(0.65, 0.9, 1.0) * max(0.0, 0.6 - c) * 0.9; }`;
+// Für Materialien mit eigener Weltposition: mode 'sea' = nur unter uSeaY, 'all' = immer (Teichgrund)
+export function addCaustics(mat, mode = 'sea') {
+  if (mat.userData.caustic) return mat; mat.userData.caustic = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r); Object.assign(sh.uniforms, CAUSTIC);
+    sh.vertexShader = 'varying vec3 vCaW;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+ vec4 caP = vec4(transformed, 1.0);
+ #ifdef USE_INSTANCING
+ caP = instanceMatrix * caP;
+ #endif
+ vCaW = (modelMatrix * caP).xyz;`);
+    sh.fragmentShader = 'uniform float uCaT, uSeaY;\nvarying vec3 vCaW;\n' + CAUSTIC_GLSL + '\n' + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+ ${mode === 'all' ? 'float caK = 1.0;' : 'float caK = smoothstep(uSeaY - 0.15, uSeaY - 0.6, vCaW.y) * (1.0 - smoothstep(10.0, 22.0, uSeaY - vCaW.y));'}
+ #ifdef USE_FOG
+ caK *= 1.0 - fogFactor;
+ #endif
+ if (caK > 0.0) gl_FragColor.rgb += caustic(vCaW, uCaT) * caK * 0.22;`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|ca' + mode;
+  return mat;
+}
+
+// ---- Schaum am Ufer: weiche weiße Flecken entlang der Linie, an der das Gelände die Wasserfläche schneidet
+let _foamTex;
+function foamTex() {
+  if (_foamTex) return _foamTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const gr = x.createRadialGradient(32, 32, 4, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  x.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 14; i++) { x.beginPath(); x.arc(8 + Math.random() * 48, 8 + Math.random() * 48, 2 + Math.random() * 5, 0, 7); x.fillStyle = 'rgba(0,0,0,0.6)'; x.fill(); }
+  return (_foamTex = new THREE.CanvasTexture(c));
+}
+// points = [[x, z, Richtung]], y = Wasserhöhe
+export function makeShoreFoam(points, y) {
+  const n = points.length, mat = new THREE.MeshBasicMaterial({ map: foamTex(), transparent: true, depthWrite: false, opacity: 0.8, polygonOffset: true, polygonOffsetFactor: -4 });
+  const m = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat, Math.max(1, n));
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const base = points.map(([x, z, a], i) => { const w = 3.4 + (i * 7 % 5) * 0.4; return { x, z, a, w, ph: i * 1.7 }; });
+  m.count = n; m.renderOrder = 3; m.frustumCulled = false;
+  m.userData.update = t => {
+    for (let i = 0; i < n; i++) { const b = base[i], k = 0.75 + Math.sin(t * 1.6 + b.ph) * 0.25; q.setFromAxisAngle(up, b.a); M.compose(p.set(b.x, y + 0.2, b.z), q, s.set(b.w * k, 1, b.w * 0.6 * k)); m.setMatrixAt(i, M); }
+    m.instanceMatrix.needsUpdate = true; mat.opacity = 0.8 + Math.sin(t * 1.1) * 0.15;
+  };
+  m.userData.update(0); return m;
+}
+
+// ---- Umgebungspartikel rund um die Kamera: Pollen, fallende Blätter, Glühwürmchen, Staub, Tropfen, Schwebeteilchen
+const AMBIENT = {
+  pollen: { colors: [0xffffff, 0xfff6c4, 0xfff0a0], size: 0.07, add: false, fall: 0.05, wob: 0.5 },
+  leaves: { colors: [0x6fb53b, 0x9ccc65, 0xe1a43a, 0xd9762b], size: 0.2, add: false, fall: -0.7, wob: 1.2, flat: true },
+  fireflies: { colors: [0xfff27a, 0xd8ff6a], size: 0.1, add: true, fall: 0, wob: 0.8, blink: true },
+  dust: { colors: [0xfff8e6, 0xffffff], size: 0.045, add: true, fall: -0.03, wob: 0.25 },
+  drips: { colors: [0xbfe9ff, 0x9fd8ff], size: 0.06, add: false, fall: -9, wob: 0, streak: true },
+  plankton: { colors: [0xe9fbff, 0xbff0ff], size: 0.06, add: true, fall: 0.1, wob: 0.4 },
+};
+export function makeAmbient(kind, n, radius = 14, height = 8) {
+  const K = AMBIENT[kind], geo = K.flat ? new THREE.PlaneGeometry(1, 0.6) : new THREE.OctahedronGeometry(0.5, 0);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: K.add ? 0.85 : 0.9, depthWrite: false, side: THREE.DoubleSide, fog: !K.add, blending: K.add ? THREE.AdditiveBlending : THREE.NormalBlending });
+  const m = new THREE.InstancedMesh(geo, mat, n); m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const col = new THREE.Color(), P = [];
+  for (let i = 0; i < n; i++) { P.push({ x: (Math.random() * 2 - 1) * radius, y: Math.random() * height, z: (Math.random() * 2 - 1) * radius, ph: Math.random() * 7, sp: 0.6 + Math.random() * 0.8, r: Math.random() * 6 }); m.setColorAt(i, col.set(K.colors[i % K.colors.length])); }
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  let t = 0; const ox = { v: 0 }, oz = { v: 0 };
+  m.userData.update = (dt, c, floor = 0) => {
+    t += dt;
+    for (let i = 0; i < n; i++) {
+      const a = P[i];
+      a.y += (K.fall * a.sp) * dt; a.x += Math.sin(t * 0.7 * a.sp + a.ph) * K.wob * dt; a.z += Math.cos(t * 0.6 * a.sp + a.ph) * K.wob * dt;
+      if (a.y < -1) a.y += height; if (a.y > height) a.y -= height;
+      // in einer Kiste rund um die Kamera halten (springt auf die andere Seite)
+      let wx = a.x - c.x, wz = a.z - c.z; if (wx > radius) a.x -= radius * 2; else if (wx < -radius) a.x += radius * 2; if (wz > radius) a.z -= radius * 2; else if (wz < -radius) a.z += radius * 2;
+      let sz = K.size * (0.7 + a.sp * 0.4);
+      if (K.blink) sz *= Math.max(0.15, Math.sin(t * 2.2 * a.sp + a.ph));
+      a.r += dt * (K.flat ? 3 : 1) * a.sp;
+      q.setFromEuler(e.set(K.flat ? a.r : 0.3, a.r * 0.6, K.flat ? Math.sin(a.r) : 0));
+      M.compose(p.set(a.x, floor + a.y, a.z), q, K.streak ? s.set(sz * 0.5, sz * 7, sz * 0.5) : s.set(sz, sz, sz)); m.setMatrixAt(i, M);
+    }
+    m.instanceMatrix.needsUpdate = true;
+  };
+  // Startpositionen relativ zur ersten Kameraposition
+  m.userData.place = c => { for (const a of P) { a.x += c.x; a.z += c.z; } };
+  return m;
+}
+
+// ---- Pfotenabdrücke (z.B. im Sand): kleiner Ring-Puffer flacher Ovale, die langsam verblassen
+export class Prints {
+  constructor(n = 48) {
+    this.n = n; this.i = 0; this.age = new Float32Array(n).fill(99); this.pos = [];
+    this.mat = new THREE.MeshBasicMaterial({ color: 0x8a6a3a, transparent: true, opacity: 0.4, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 });
+    const g = new THREE.CircleGeometry(0.14, 8).rotateX(-Math.PI / 2); g.scale(1, 1, 1.35);
+    this.mesh = new THREE.InstancedMesh(g, this.mat, n); this.mesh.frustumCulled = false; this.mesh.count = 0; this._M = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._up = new THREE.Vector3(0, 1, 0);
+    for (let k = 0; k < n; k++) this.pos.push({ x: 0, y: 0, z: 0, yaw: 0 });
+  }
+  attach(scene, color) { this.age.fill(99); this.mesh.count = 0; scene.add(this.mesh); if (color !== undefined) this.mat.color.set(color); }
+  detach() { this.mesh.removeFromParent(); }
+  add(x, y, z, yaw) { const k = this.i++ % this.n; Object.assign(this.pos[k], { x, y, z, yaw }); this.age[k] = 0; this.mesh.count = Math.min(this.n, this.i); }
+  update(dt) {
+    if (!this.mesh.parent) return;
+    for (let k = 0; k < this.mesh.count; k++) {
+      this.age[k] += dt; const a = this.pos[k], f = Math.max(0, 1 - this.age[k] / 9); // nach 9 s weg
+      this._q.setFromAxisAngle(this._up, a.yaw); this._M.compose(this._p.set(a.x, a.y + 0.03, a.z), this._q, this._s.setScalar(f > 0 ? 0.6 + f * 0.4 : 0.0001)); this.mesh.setMatrixAt(k, this._M);
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+
+// ---- Stoßwellen-Ringe (Einsammeln, Landen, Boss-Treffer): wenige wiederverwendete flache Ringe
+export class Rings {
+  constructor(n = 8) {
+    this.group = new THREE.Group(); this.list = [];
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      m.visible = false; m.frustumCulled = false; this.group.add(m); this.list.push({ m, t: 1, life: 1, size: 1 });
+    }
+  }
+  attach(scene) { this.list.forEach(r => { r.t = r.life; r.m.visible = false; }); scene.add(this.group); }
+  detach() { this.group.removeFromParent(); }
+  spawn(pos, color = 0xffffff, size = 2.5, life = 0.5) {
+    const r = this.list.reduce((a, b) => (b.t / b.life > a.t / a.life ? b : a)); // ältesten nehmen
+    r.t = 0; r.life = life; r.size = size; r.m.position.set(pos.x, pos.y, pos.z); r.m.material.color.set(color); r.m.visible = true;
+  }
+  update(dt) {
+    for (const r of this.list) {
+      if (!r.m.visible) continue; r.t += dt; const k = r.t / r.life;
+      if (k >= 1) { r.m.visible = false; continue; }
+      const e = 1 - (1 - k) ** 3; r.m.scale.setScalar(0.2 + e * r.size); r.m.material.opacity = (1 - k) * 0.8;
+    }
+  }
 }

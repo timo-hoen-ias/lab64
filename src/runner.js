@@ -1,8 +1,8 @@
 // Albtraum: Emmentaler-Höhlen – Endlos-Runner-Rennen gegen die Ratte (Subway-Surfers-Steuerung).
 // Moll läuft auf den linken 3 Spuren, die Ratte auf den rechten 3. Käse sammeln, Hindernissen ausweichen, vor der Ratte am Ziel sein.
 import * as THREE from 'three';
-import { makeDog, animateDog, makeRat, makeFood, box, cyl, sphere } from './models.js';
-import { makeSky, FX } from './fx.js';
+import { makeDog, animateDog, makeRat, makeFood, compact, box, cyl, sphere } from './models.js';
+import { makeSky, FX, characterLook } from './fx.js';
 
 const LANE_W = 2.2, SPEED = 18, LENGTH = 700, SEG = 40;
 
@@ -21,7 +21,7 @@ export class RunnerLevel {
       : { name: 'Rattenrennen: Hinterhofgasse', music: { scale: 'mixo', root: 294, bpm: 160, seed: 31, style: 'chase' } };
     this.ratLead = 0; this.ratY = 0; this.ratVy = 0;
     this.pickups = []; this.solids = []; this.bounds = { min: { x: -1e9, z: -1e9 }, max: { x: 1e9, z: 1e9 } };
-    this.dog = makeDog(); this.scene.add(this.dog);
+    this.dog = characterLook(compact(makeDog())); this.scene.add(this.dog);
     this.rat = makeRat(1.3); this.scene.add(this.rat);
     this.lane = 1; this.ratLane = 1; this.z = 0; this.y = 0; this.vy = 0; this.score = 0; this.ratScore = 0; this.t = 0; this.done = false; this.hurtT = 0;
     this.obstacles = []; this.items = []; this.segments = [];
