@@ -7,7 +7,8 @@ const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftsha
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart'); await p.waitForTimeout(300);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(300);
+await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen
 const ev = (f, a) => p.evaluate(f, a);
 await ev(() => { window.game.loop = () => { }; });
 const sim = (n, held = {}) => ev(([n, held]) => {
@@ -45,9 +46,9 @@ res.panzer = !k1.dead && k2.flip && !k2.dead && k3.dead; console.log('  Kakerlak
 i = await meet('wollmaus', 3); await press('bark'); const bk = await foe(i); await ev(() => { window.game.player.biteCd = 0; }); await meet('wollmaus'); await press('act');
 res.bellen = bk.stun && (await foe(i)).dead; console.log('  Wollmaus angebellt (benommen', bk.stun, ') und gebissen:', res.bellen);
 // Angriff: Gegner trifft Moll, Leckerli heilt
-i = await meet('wollmaus', 4); await ev(() => { window.game.player.hurtT = 0; }); await sim(70); const hp = await ev(() => window.game.player.hp);
+i = await meet('wollmaus', 4); await ev(() => { window.game.player.hurtT = 0; }); for (let k = 0; k < 15 && await ev(() => window.game.player.hp) === 3; k++) await sim(10); const hp = await ev(() => window.game.player.hp);
 res.angriff = hp < 3; console.log('  Wollmaus greift an, Herzen:', hp);
-i = await meet('wollmaus'); await ev(() => { window.game.player.hp = 1; Math.random = () => 0.1; }); await press('act'); await sim(30);
+i = await meet('wollmaus'); await ev(i => { const r = Math.random; window.game.player.hp = 1; Math.random = () => 0.1; window.game.level.foes[i].die(); Math.random = r; }, i); await sim(30);
 const drop = await ev(() => { const t = window.game.level.enemies.find(e => e.isDrop && !e.dead); return t && [t.mesh.position.x, t.mesh.position.y, t.mesh.position.z]; });
 if (drop) await ev(([x, y, z]) => { window.game.player.pos.set(x, y - 0.3, z); }, drop); await sim(5);
 res.heilen = !!drop && await ev(() => window.game.player.hp === 2); console.log('  Leckerli fällt:', !!drop, '→ heilt:', res.heilen);
