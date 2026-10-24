@@ -8,12 +8,11 @@ await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localSt
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(1500);
 const st = () => p.evaluate(() => { const a = window.game.audio; return { step: a.song?.step, mix: a.mix, state: a.ctx.state }; });
 console.log('Start:', await st());
-// Unter Wasser im Gartenteich → Variante water
-await p.evaluate(() => { const g = window.game; g.level.abilityItem(-6, 0.8, 8, 'tauchen', 'Taucherbrille!'); g.player.pos.set(-6, 0, 8); }); await p.waitForTimeout(400); await p.evaluate(() => { const g = window.game; g.player.pos.set(-3, -0.5, 20); });
-await p.waitForTimeout(500); await p.keyboard.down('KeyF'); await p.waitForTimeout(1500);
-console.log('getaucht:', await st(), await p.evaluate(() => ({ uw: window.game.level._uw, y: window.game.player.pos.y, dive: window.game.player.diving, cam: window.game.camera.position.y }))); await p.keyboard.up('KeyF');
-await p.evaluate(() => window.game.player.pos.set(0, 1, 0)); await p.waitForTimeout(1500);
-console.log('aufgetaucht:', await st());
+// Varianten: getaucht → water (Lage direkt gesetzt, damit der Test nicht an der Teichposition hängt), Zone → anderes Melodie-Instrument
+console.log('getaucht:', await p.evaluate(() => { const g = window.game; g.player.diving = true; g._musicMix(); return g.audio.mix; }));
+await p.waitForTimeout(600);
+console.log('aufgetaucht:', await p.evaluate(() => { const g = window.game; g.player.diving = false; g._musicMix(); return g.audio.mix; }));
+console.log('Zonen im Garten:', await p.evaluate(() => window.game.level.zones.length));
 // Ruckler: Hauptthread 1,5 s blockieren, danach muss die Musik weiterlaufen
 const before = (await st()).step; await p.evaluate(() => { const t = performance.now(); while (performance.now() - t < 1500); }); await p.waitForTimeout(800);
 console.log('nach Ruckler weiter:', (await st()).step > before);
