@@ -17,24 +17,24 @@ export const GARTEN = {
     const wall = 0xf3d9a6, trim = 0xc9a66b, H = 5;
     l.box(0, 0, -23.75, 14, H, 0.5, wall); l.box(-6.75, 0, -18, 0.5, H, 12, wall); l.box(6.75, 0, -18, 0.5, H, 12, wall);
     l.box(-4.25, 0, -12.25, 5.5, H, 0.5, wall); l.box(4.25, 0, -12.25, 5.5, H, 0.5, wall); l.box(0, 3.3, -12.25, 3, H - 3.3, 0.5, wall); // Front mit Tür
-    l.deco(box(14.4, 0.4, 12.4, trim), 0, H, -18); // Traufe
+    l.prop(box(14.4, 0.4, 12.4, trim), 0, H, -18); // Traufe
     const roof = new THREE.Group(); roof.add(cone(10.2, 4.2, 0xc0392b, 0, 0, 0, 4)); roof.add(box(1, 2.2, 1, 0x8d6e63, 3.5, 0.8, 1.5)); // Dach + Schornstein
     roof.scale.set(1, 1, 0.86); l.deco(roof, 0, H + 2.1, -18, 0); roof.children[0].rotation.y = Math.PI / 4; l.roof = roof;
     l.smoke(3.5, H + 4.1, -16.7); // Rauch aus dem Schornstein
     l.shelter(-7.2, 7.2, -24.2, -11.8, H + 6); // kein Regen im Haus
-    l.deco(box(14.6, 0.15, 12.6, 0xa47148), 0, 0.02, -18); // Holzboden
-    [[-4.25, -11.95], [4.25, -11.95], [-4.25, -24.05], [4.25, -24.05]].forEach(([x, z]) => { l.deco(box(1.8, 1.4, 0.15, 0x9ad7ff), x, 2.4, z); l.deco(box(2.1, 0.15, 0.25, trim), x, 1.65, z); }); // Fenster
-    [-18, -15].forEach(z => { l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), -7.05, 2.4, z); l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), 7.05, 2.4, z); });
-    l.deco(box(0.2, 0.2, 0.2, 0xffcc33), 1.1, 1.6, -11.9); // Türknauf an der offenen Tür
+    l.prop(box(14.6, 0.15, 12.6, 0xa47148), 0, 0.02, -18); // Holzboden
+    [[-4.25, -11.95], [4.25, -11.95], [-4.25, -24.05], [4.25, -24.05]].forEach(([x, z]) => { l.prop(box(1.8, 1.4, 0.15, 0x9ad7ff), x, 2.4, z); l.prop(box(2.1, 0.15, 0.25, trim), x, 1.65, z); }); // Fenster
+    [-18, -15].forEach(z => { l.prop(box(0.15, 1.4, 1.8, 0x9ad7ff), -7.05, 2.4, z); l.prop(box(0.15, 1.4, 1.8, 0x9ad7ff), 7.05, 2.4, z); });
+    [1.36, 1.64].forEach(x => l.prop(box(0.12, 0.12, 0.2, 0xffcc33), x, 1.5, -9.8)); // Türknauf (beidseitig) am freien Ende der offenen Tür
     const door = box(0.15, 3.2, 2.6, 0x7a4a1f); l.deco(door, 1.5, 1.6, -10.7);
     l.label('Molls Haus', 0, 4.3, -11.6);
     // Einrichtung
-    l.deco(cyl(2.4, 2.4, 0.05, 0xc0392b, 0, 0, 0, 16), 0, 0.12, -17); l.deco(cyl(1.8, 1.8, 0.06, 0xe17055, 0, 0, 0, 16), 0, 0.13, -17); // Teppich
+    l.prop(cyl(2.4, 2.4, 0.05, 0xc0392b, 0, 0, 0, 16), 0, 0.12, -17); l.prop(cyl(1.8, 1.8, 0.06, 0xe17055, 0, 0, 0, 16), 0, 0.13, -17); // Teppich
     l.box(-4.5, 0, -21.2, 2.6, 0.45, 2, 0xd63031); l.deco(box(2, 0.2, 1.4, 0xff7675), -4.5, 0.5, -21.2); // Hundekörbchen
-    l.deco(cyl(0.45, 0.35, 0.3, 0x2e86de, 0, 0, 0, 12), -2.2, 0.15, -13.6); l.deco(cyl(0.35, 0.35, 0.05, 0x8b5a2b, 0, 0, 0, 10), -2.2, 0.3, -13.6); // Napf
-    l.box(3.5, 0, -22.4, 4, 1, 1.6, 0x6c5ce7); l.box(3.5, 0, -23.3, 4, 2, 0.5, 0x5f4dd6); l.box(1.65, 0, -22.4, 0.4, 1.4, 1.6, 0x5f4dd6); // Sofa
+    l.prop(cyl(0.45, 0.35, 0.3, 0x2e86de, 0, 0, 0, 12), -2.2, 0.15, -13.6); l.prop(cyl(0.35, 0.35, 0.05, 0x8b5a2b, 0, 0, 0, 10), -2.2, 0.3, -13.6); // Napf
+    l.box(3.5, 0, -22.4, 4, 1, 1.6, 0x6c5ce7); l.box(3.6, 0, -23.3, 4.2, 2, 0.5, 0x5f4dd6); l.box(1.65, 0, -22.4, 0.4, 1.4, 1.7, 0x5f4dd6); // Sofa (Teile leicht versetzt: keine flackernden Flächen)
     l.box(6, 0, -19.5, 1, 3.4, 3, 0x8d6e63); // Bücherregal (Kletterweg: Sofa → Lehne → Regal)
-    [[-19.2, 0xe74c3c], [-19.6, 0x3498db], [-20.0, 0xf1c40f], [-20.4, 0x27ae60]].forEach(([z, c], i) => l.deco(box(0.6, 0.7, 0.3, c), 5.7, 0.4 + (i % 2) * 1.1, z));
+    [[-19.2, 0xe74c3c], [-19.6, 0x3498db], [-20.0, 0xf1c40f], [-20.4, 0x27ae60]].forEach(([z, c], i) => l.prop(box(0.6, 0.7, 0.3, c), 5.7, 0.4 + (i % 2) * 1.1, z));
     l.pickup(6, 3.8, -19.5, 'bone', { value: 5 });
     l.box(2, 0, -15.5, 2.6, 1.1, 1.6, 0xb5835a); // Tisch
     l.deco(cyl(0.2, 0.15, 0.4, 0xffffff, 0, 0, 0, 8), 2.4, 1.3, -15.5);
@@ -43,14 +43,14 @@ export const GARTEN = {
     [[-2, 0xe17055], [2, 0x00b894]].forEach(([x, c]) => l.deco(box(1.4, 1, 0.08, c), x, 3, -23.45)); // Bilder
     l.goldbone('geheim', -4.5, 0.6, -21.2, { hidden: true }); // im Körbchen erschnüffeln
     // ---- Weg, Beete, Hecken
-    for (let z = 4; z > -12; z -= 1.6) l.deco(box(1.4 + Math.random() * 0.3, 0.08, 1.1, 0xd6cfc0), (Math.random() - 0.5) * 0.3, 0.04, z, Math.random() * 0.3);
+    for (let z = 4; z > -12; z -= 1.6) l.prop(box(1.4 + Math.random() * 0.3, 0.08, 1.1, 0xd6cfc0), (Math.random() - 0.5) * 0.3, 0.04, z, Math.random() * 0.3);
     [[-4.5, -10.6], [4.5, -10.6]].forEach(([x, z]) => l.deco(makeFlowers(4, 1.2, 16), x, 0, z));
     [[-9, -18], [9, -18]].forEach(([x, z]) => l.deco(makeFlowers(1.2, 6, 14), x, 0, z));
     [[-30, -30, 8], [30, -30, 8], [-30, 30, 6], [30, 30, 6]].forEach(([x, z, n]) => { for (let i = 0; i < n; i++) l.bush(x + (x < 0 ? i * 1.6 : -i * 1.6), z, 2.2); });
     // ---- Zaun mit Querlatten
     // Gartentore in alle Richtungen (bei x bzw. z = ±4..±8 offen)
     for (let i = -32; i <= 32; i += 2) { if (Math.abs(i) >= 4 && Math.abs(i) <= 8) continue; l.box(i, 0, -33, 0.3, 1.3, 0.3, 0xf5f0e1); l.box(i, 0, 33, 0.3, 1.3, 0.3, 0xf5f0e1); l.box(-33, 0, i, 0.3, 1.3, 0.3, 0xf5f0e1); l.box(33, 0, i, 0.3, 1.3, 0.3, 0xf5f0e1); }
-    [0.45, 0.95].forEach(y => [[-20.5, 25], [0, 6], [20.5, 25]].forEach(([c, w]) => { l.deco(box(w, 0.12, 0.08, 0xf5f0e1), c, y, -33); l.deco(box(w, 0.12, 0.08, 0xf5f0e1), c, y, 33); l.deco(box(0.08, 0.12, w, 0xf5f0e1), -33, y, c); l.deco(box(0.08, 0.12, w, 0xf5f0e1), 33, y, c); }));
+    [0.45, 0.95].forEach(y => [[-20.5, 25], [0, 6], [20.5, 25]].forEach(([c, w]) => { l.prop(box(w, 0.12, 0.08, 0xf5f0e1), c, y, -33); l.prop(box(w, 0.12, 0.08, 0xf5f0e1), c, y, 33); l.prop(box(0.08, 0.12, w, 0xf5f0e1), -33, y, c); l.prop(box(0.08, 0.12, w, 0xf5f0e1), 33, y, c); }));
     l.wallRing(80, 2.2, 0x8d6e63);
     // ---- Bäume
     [[-28, -12, 1.3], [28, -14, 1.2], [-29, 14, 1.4], [29, 13, 1.3], [-10, 30, 1.2], [10, 30, 1.1]].forEach(([x, z, sc], i) => { l.deco(makeRoundTree(sc, i % 2 === 0), x, 0, z); l.solids.push({ min: { x: x - 0.4 * sc, y: 0, z: z - 0.4 * sc }, max: { x: x + 0.4 * sc, y: 2 * sc, z: z + 0.4 * sc }, active: true }); });
@@ -69,9 +69,9 @@ export const GARTEN = {
     l.deco(cyl(0.08, 0.08, 1.2, 0x7a4a1f, 0, 0.6, 0, 6), 4, 0, 4); l.deco(box(0.5, 0.4, 0.7, 0x2e86de, 0, 1.3, 0), 4, 0, 4);
     // ---- Teich zum Schwimmen mit Steinrand, Seerosen, Schilf und Steg
     l.pond(0, 20, 9, 6, 3.4); // tief genug zum Tauchen
-    for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; if (Math.abs(a - Math.PI * 1.5) < 0.3) continue; const s = sphere(0.45 + Math.random() * 0.25, i % 2 ? 0xa4a4a4 : 0x8c8c8c, 0, 0, 0, 5); s.scale.y = 0.5; l.deco(s, Math.cos(a) * 9.4, 0.1, 20 + Math.sin(a) * 6.4); }
+    for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; if (Math.abs(a - Math.PI * 1.5) < 0.3) continue; const s = sphere(0.45 + Math.random() * 0.25, i % 2 ? 0xa4a4a4 : 0x8c8c8c, 0, 0, 0, 5); s.scale.y = 0.5; l.prop(s, Math.cos(a) * 9.4, 0.1, 20 + Math.sin(a) * 6.4); }
     l.lilies = [[-4, 18], [3, 22], [5, 17.5], [-2, 23]].map(([x, z]) => { const p = cyl(0.7, 0.7, 0.05, 0x2ecc71, 0, 0, 0, 10); l.deco(p, x, -0.2, z); l.deco(sphere(0.18, 0xff9ff3, 0, 0, 0, 6), x + 0.2, -0.05, z); return p; });
-    [[-8.6, 22], [-8, 24], [8.4, 17], [7.8, 15.5]].forEach(([x, z]) => { for (let k = 0; k < 4; k++) l.deco(cyl(0.05, 0.05, 1.6 + k * 0.2, 0x6ab04c, 0, 0, 0, 4), x + k * 0.2, 0.8, z + (k % 2) * 0.2); });
+    [[-8.6, 22], [-8, 24], [8.4, 17], [7.8, 15.5]].forEach(([x, z]) => { for (let k = 0; k < 4; k++) l.prop(cyl(0.05, 0.05, 1.6 + k * 0.2, 0x6ab04c, 0, 0, 0, 4), x + k * 0.2, 0.8, z + (k % 2) * 0.2); });
     l.box(0, -3.4, 14, 2.4, 3.7, 5, 0xa47148); // Steg ins Wasser (bis zum Grund, damit man nicht drunter schwimmt)
     // Krümel über dem Wasser als Belohnung fürs Schwimmen
     [[-5, 20], [0, 20], [5, 20], [0, 24]].forEach(([x, z]) => l.pickup(x, -0.1, z, 'crumb'));
@@ -123,10 +123,10 @@ export const GARTEN = {
     // Osten: Obstwiese mit Apfelbaum und Baumhaus, Vogelhaus
     l.zone(58, 0, 30, () => {
       l.box(60, 0, 0, 3, 12, 3, 0x6d4c41); l.deco(sphere(6.5, 0x4caf50, 0, 0, 0, 8), 60, 19, 0);
-      [[56, 4, 1.6], [56.5, 0, 3.2], [57, -4, 4.8], [60.5, -5, 6], [64, -3, 7.2], [66, 1.5, 8.4]].forEach(([x, z, h]) => l.box(x, h - 0.3, z, 2.6, 0.3, 2.6, 0x8d6e63)); // Astgabeln
+      [[56, 4, 1.6], [56.5, 0, 3.2], [57, -4, 4.8], [60.5, -5, 6], [64, -3, 7.2], [66, 1.5, 8.4]].forEach(([x, z, h]) => { l.box(x, h - 0.3, z, 2.6, 0.3, 2.6, 0x8d6e63); const dx = x - 60, dz = z, d = Math.hypot(dx, dz) - 1.2; l.prop(box(0.4, 0.4, d, 0x6d4c41), 60 + dx / 2 * (1 + 1.2 / Math.hypot(dx, dz)), h - 0.55, dz / 2 * (1 + 1.2 / Math.hypot(dx, dz)), Math.atan2(dx, dz)); }); // Astgabeln mit Ast zum Stamm
       l.box(60, 9.4, 4, 8, 0.4, 6, 0xa47148); l.box(60, 9.8, 6.8, 8, 3, 0.4, 0xa47148); l.thRoof = l.deco(cone(6, 2.6, 0xc0392b, 0, 0, 0, 4), 60, 14.1, 4, Math.PI / 4); l.shelter(56, 64, 1, 7, 14); // Baumhaus (Dach blendet aus, wenn Moll drin ist)
       l.goldbone('baumhaus', 62, 10.6, 4);
-      l.box(52, 0, 30, 0.6, 7, 0.6, 0x6d4c41); l.box(52, 7, 30, 2.4, 0.3, 2.4, 0x8d6e63); l.deco(cone(1.8, 1, 0xc0392b, 0, 0, 0, 4), 52, 8.4, 30, Math.PI / 4); // Vogelhaus
+      l.box(52, 0, 30, 0.6, 7, 0.6, 0x6d4c41); l.box(52, 7, 30, 2.4, 0.3, 2.4, 0x8d6e63); l.deco(cone(1.8, 1, 0xc0392b, 0, 0, 0, 4), 52, 8.4, 30, Math.PI / 4); [[-1.05, -1.05], [1.05, -1.05], [-1.05, 1.05], [1.05, 1.05]].forEach(([dx, dz]) => l.prop(box(0.14, 0.62, 0.14, 0x6d4c41), 52 + dx, 7.6, 30 + dz)); // Vogelhaus (Dach auf Eckpfosten)
       [[47, 30, 1.4], [48, 33, 2.8], [50.5, 34, 4.2], [53, 33.5, 5.6]].forEach(([x, z, h]) => l.box(x, 0, z, 1.8, h, 1.8, 0xb5835a)); // Brennholz-Stapel
       l.goldbone('vogelhaus', 52, 7.8, 30);
       for (let i = 0; i < 6; i++) l.tree(42 + (i % 3) * 12, -30 + Math.floor(i / 3) * 14, 1.2, makeRoundTree(1.2, true));
@@ -138,12 +138,13 @@ export const GARTEN = {
     l.zone(-58, 0, 30, () => {
       for (let r = 0; r < 4; r++) { l.box(-50 - r * 5, 0, -20, 3, 0.6, 14, 0x6d4c41); const kind = ['karotte', 'kartoffel', 'kuerbis', 'karotte'][r]; for (let k = 0; k < (kind === 'kuerbis' ? 5 : 10); k++) { const n = kind === 'kuerbis' ? 5 : 10, z = -26 + 12 * (k + 0.5) / n; l.fetchItem(-50 - r * 5 + (kind === 'kuerbis' ? 0 : (k % 2 - 0.5) * 1.2), 0.6, z, kind, { planted: true }); } } // Beete: Karotten, Kartoffeln, Kürbisse – beißen oder wegtrillern!
       const gx = -60, gz = 16;
+      const legs = (x, z, w, d, h) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => l.prop(box(0.14, h, 0.14, 0xb2bec3), x + sx * (w / 2 - 0.15), h / 2, z + sz * (d / 2 - 0.15)));
       const glass = new THREE.MeshLambertMaterial({ color: 0xdff9fb, transparent: true, opacity: 0.35, depthWrite: false });
       [[gx, gz - 8, 20, 0.3], [gx, gz + 8, 20, 0.3], [gx - 10, gz, 0.3, 16], [gx + 10, gz - 5, 0.3, 6], [gx + 10, gz + 5, 0.3, 6]].forEach(([x, z, w, d]) => { l.box(x, 0, z, w, 9, d, 0xdff9fb, { dynamic: true }).mesh.material = glass; });
       const roof = box(20.4, 0.3, 16.4, 0xc7ecee); roof.material = glass; roof.castShadow = false; l.deco(roof, gx, 9.1, gz); l.shelter(gx - 10.2, gx + 10.2, gz - 8.2, gz + 8.2, 9.3);
       [[-10, -8], [10, -8], [-10, 8], [10, 8]].forEach(([x, z]) => l.deco(box(0.4, 9.4, 0.4, 0xecf0f1), gx + x, 4.7, gz + z));
-      [[-6, -5, 1.5], [-2, -5, 3], [2, -5, 4.5], [6, -4, 6], [6, 1, 7.5]].forEach(([x, z, h]) => { l.box(gx + x, h - 0.3, gz + z, 3, 0.3, 2.4, 0x95a5a6); l.deco(cyl(0.6, 0.4, 0.8, 0xd35400, 0, 0.4, 0, 8), gx + x, h, gz + z); }); // Pflanzregale
-      l.box(gx + 2, 7.2, gz + 4, 8, 0.3, 2.4, 0x95a5a6);
+      [[-6, -5, 1.5], [-2, -5, 3], [2, -5, 4.5], [6, -4, 6], [6, 1, 7.5]].forEach(([x, z, h]) => { l.box(gx + x, h - 0.3, gz + z, 3, 0.3, 2.4, 0x95a5a6); l.prop(cyl(0.6, 0.4, 0.8, 0xd35400, 0, 0.4, 0, 8), gx + x, h, gz + z); legs(gx + x, gz + z, 3, 2.4, h - 0.3); }); // Pflanzregale auf Beinen
+      l.box(gx + 2, 7.2, gz + 4, 8, 0.3, 2.4, 0x95a5a6); legs(gx + 2, gz + 4, 8, 2.4, 7.2);
       l.goldbone('gewaechshaus', gx - 1, 8.1, gz + 4);
       gnome(gx - 6, 0.3, gz + 5);
       l.warp(-44, 0, -8, 'Gemüsegarten', hut());
@@ -181,23 +182,23 @@ export const GARTEN = {
 
     // ---- 1. Erdgeschoss: Terrasse neben Molls Haus (Wäscheleine, Kräuterkübel, Gartentisch)
     l.deco(box(10, 0.14, 10, 0xb08860), 13, 0.07, -17);
-    for (let i = 0; i < 6; i++) l.deco(box(0.06, 0.15, 10, 0x8d6e4a), 8.4 + i * 1.8, 0.08, -17);
+    for (let i = 0; i < 6; i++) l.prop(box(0.06, 0.15, 9.96, 0x8d6e4a), 8.4 + i * 1.8, 0.08, -17);
     l.portal(13, -16, 'Erdgeschoss', 'kueche', 0xff9f43, 0);
     l.box(17, 0, -21, 2.4, 1.1, 1.6, 0xecf0f1); l.deco(cyl(0.2, 0.2, 0.3, 0xe17055, 0, 0, 0, 8), 17.4, 1.25, -21); // Gartentisch mit Teekanne
     [[15.4, -21], [18.6, -21]].forEach(([x, z]) => l.box(x, 0, z, 0.9, 0.7, 0.9, 0x74b9ff));
     [[9, -21.5, 0x27ae60], [11.5, -21.8, 0xe84393], [17.5, -12.8, 0xfdcb6e]].forEach(([x, z, c]) => { l.box(x, 0, z, 1.3, 0.9, 1.3, 0xb5651d); l.deco(sphere(0.75, c, 0, 0, 0, 6), x, 1.3, z); });
     [[19.5, -23], [19.5, -11.5]].forEach(([x, z]) => l.box(x, 0, z, 0.2, 2.6, 0.2, 0xecf0f1)); // Wäscheleine
     l.deco(box(0.03, 0.03, 11.5, 0xffffff), 19.5, 2.5, -17.25);
-    [[-21.5, 0xe84393, 0.6], [-19.6, 0x74b9ff, 1.1], [-17.4, 0xffeaa7, 0.9], [-15, 0x55efc4, 0.6], [-13, 0xff7675, 1]].forEach(([z, c, h]) => l.deco(box(0.06, h, 0.9, c), 19.5, 2.5 - h / 2, z));
+    [[-21.5, 0xe84393, 0.6], [-19.6, 0x74b9ff, 1.1], [-17.4, 0xffeaa7, 0.9], [-15, 0x55efc4, 0.6], [-13, 0xff7675, 1]].forEach(([z, c, h]) => l.prop(box(0.06, h, 0.9, c), 19.5, 2.5 - h / 2, z));
     l.deco(box(1.4, 0.04, 0.9, 0xc0392b), 1.6, 0.05, -10.4); // Fußmatte vor der Haustür
 
     // ---- 2. Einkaufsstraße: Gehweg mit Laternen, Litfaßsäule, Mülltonnen und Zebrastreifen (hinter dem Nordwest-Tor)
     l.box(-26, 0, -49, 16, 0.12, 10, 0xb2bec3);
-    l.deco(box(24, 0.06, 4, 0x4a4a4a), -26, 0.03, -42); for (let i = 0; i < 5; i++) l.deco(box(0.7, 0.07, 3.6, 0xffffff), -30 + i * 1.3, 0.04, -42);
-    for (let i = 0; i < 6; i++) l.deco(box(1.6, 0.07, 0.2, 0xffffff), -37 + i * 4, 0.04, -40.2);
+    l.prop(box(24, 0.06, 4, 0x4a4a4a), -26, 0.03, -42); for (let i = 0; i < 5; i++) l.prop(box(0.7, 0.07, 3.6, 0xffffff), -30 + i * 1.3, 0.04, -42);
+    for (let i = 0; i < 6; i++) l.prop(box(1.6, 0.07, 0.2, 0xffffff), -37 + i * 4, 0.04, -40.2);
     l.portal(-26, -49, 'Einkaufsstraße', 'strasse', 0x54a0ff, 3);
     lamp(-33, -45); lamp(-19, -45);
-    l.box(-32, 0, -53, 2, 3.4, 2, 0x95a5a6); [[0.8, 0xe74c3c], [1.6, 0xf1c40f], [2.4, 0x3498db]].forEach(([y, c]) => l.deco(cyl(1.08, 1.08, 0.6, c, 0, 0, 0, 12), -32, y, -53)); l.deco(cone(1.3, 0.6, 0x2d3436, 0, 0, 0, 12), -32, 3.7, -53); // Litfaßsäule
+    l.box(-32, 0, -52.9, 2, 3.4, 2, 0x95a5a6); [[0.8, 0xe74c3c], [1.6, 0xf1c40f], [2.4, 0x3498db]].forEach(([y, c]) => l.prop(cyl(1.08, 1.08, 0.6, c, 0, 0, 0, 12), -32, y, -52.9)); l.prop(cone(1.3, 0.6, 0x2d3436, 0, 0, 0, 12), -32, 3.7, -52.9); // Litfaßsäule
     bin(-20, -53, 0x2d3436); bin(-21.4, -53, 0x0984e3); bin(-22.8, -53, 0xfdcb6e);
     l.box(-19, 0, -49.5, 0.7, 1.2, 0.5, 0xf1c40f); l.deco(box(0.5, 0.08, 0.1, 0x2d3436), -19, 1, -49.24); // Briefkasten
     l.box(-34, 0, -49, 0.15, 2.6, 0.15, 0x7f8c8d); l.deco(cyl(0.45, 0.45, 0.08, 0x27ae60, 0, 0, 0, 12).rotateX(Math.PI / 2), -34, 2.75, -49); // Bushaltestelle
@@ -207,10 +208,10 @@ export const GARTEN = {
     [[42, -50], [50, -50], [42, -42], [50, -42]].forEach(([x, z]) => l.box(x, 0, z, 0.7, 7.5, 0.7, 0x636e72));
     [[-4.4, 0, 0.2, 9], [0, -4.4, 9, 0.2], [4.4, 0, 0.2, 9]].forEach(([dx, dz, w, d]) => l.box(46 + dx, 8, -46 + dz, w, 1, d, 0x2d3436)); // Geländer (vorn offen)
     l.portal(46, -46, 'Das Büro', 'buero', 0x9b9b9b, 8, { y: 8 });
-    [[35, -38, 1.3], [35.5, -42.5, 2.6], [36, -47, 3.9], [38, -51.5, 5.2], [42.5, -54, 6.5]].forEach(([x, z, h], i) => { l.box(x, 0, z, 2.6, h, 2.6, i % 2 ? 0xc8a26b : 0xb8915a); l.deco(box(2.65, 0.25, 0.4, 0xecf0f1), x, h - 0.5, z); l.pickup(x, h + 0.3, z, 'crumb'); });
+    [[35, -38, 1.3], [35.5, -42.5, 2.6], [36, -47, 3.9], [38, -51.5, 5.2], [42.5, -54, 6.5]].forEach(([x, z, h], i) => { l.box(x, 0, z, 2.6, h, 2.6, i % 2 ? 0xc8a26b : 0xb8915a); l.prop(box(2.65, 0.25, 0.4, 0xecf0f1), x, h - 0.5, z); l.pickup(x, h + 0.3, z, 'crumb'); });
     [[57, -57, 6, 20, 0x7f8c8d], [60, -45, 5, 14, 0x95a5a6], [47, -61, 5, 16, 0xa4b0be], [66, -54, 4, 11, 0xb2bec3]].forEach(([x, z, w, h, c]) => {
-      l.box(x, 0, z, w, h, w, c); for (let y = 2; y < h - 1; y += 2.2) l.deco(box(w + 0.08, 0.7, w + 0.08, 0x74b9ff), x, y, z);
-      l.deco(box(w * 0.4, 1.4, w * 0.4, 0x636e72), x, h + 0.7, z);
+      l.box(x, 0, z, w, h, w, c); for (let y = 2; y < h - 1; y += 2.2) l.prop(box(w + 0.08, 0.7, w + 0.08, 0x74b9ff), x, y, z);
+      l.prop(box(w * 0.4, 1.4, w * 0.4, 0x636e72), x, h + 0.7, z);
     });
 
     // ---- 4. Grillpark: kleiner Picknickhügel östlich der Obstwiese mit Grill, Decke, Bank und Lampions
@@ -228,8 +229,8 @@ export const GARTEN = {
     l.hill(29, -76, 4.5, 2.4, { flat: 0.2, color: 0x6d4c41, side: 0x4e342e });
     [[28, -74.5, 0xa0522d], [29.5, -77, 0x8bc34a], [30.5, -75, 0xf39c12]].forEach(([x, z, c]) => l.deco(sphere(0.35, c, 0, 0, 0, 5), x, H(x, z) + 0.15, z)); // Apfelbutzen und Schalen
     bin(12, -74, 0x27ae60); bin(13.4, -75.4, 0x2d3436); bin(11.2, -76, 0x0984e3);
-    [[14, -66], [26, -66]].forEach(([x, z]) => l.box(x, 0, z, 0.3, 4.2, 0.3, 0xecf0f1));
-    for (let i = 0; i < 12; i++) for (let r = 0; r < 2; r++) l.deco(box(1, 0.5, 0.06, (i + r) % 2 ? 0x111111 : 0xffffff), 14.5 + i, 3.45 + r * 0.5, -66);
+    [[14, -66], [26, -66]].forEach(([x, z]) => l.box(x, 0, z, 0.3, 4.3, 0.3, 0xecf0f1));
+    for (let i = 0; i < 12; i++) for (let r = 0; r < 2; r++) l.prop(box(1, 0.5, 0.06, (i + r) % 2 ? 0x111111 : 0xffffff), 14.5 + i, 3.45 + r * 0.5, -66);
     [[16.5, -69], [23.5, -69]].forEach(([x, z]) => l.deco(box(0.15, 0.04, 6, 0xffffff), x, 0.03, z));
     [[24, -77], [15.5, -79], [27, -70]].forEach(([x, z]) => { const h = cyl(0.55, 0.55, 0.05, 0x1e1410, 0, 0, 0, 10); l.deco(h, x, 0.03, z); });
     [[10.5, -71], [31, -71.5]].forEach(([x, z], i) => l.deco(makeRat(0.7), x, 0, z, i ? -1.2 : 2));
@@ -240,7 +241,7 @@ export const GARTEN = {
     l.portal(-50, 44, 'Strand', 'strand', 0xffd36e, 22, { y: 0.12 });
     const umb = new THREE.Group(); umb.add(cyl(0.07, 0.07, 3, 0xffffff, 0, 1.5, 0, 6)); for (let i = 0; i < 8; i++) { const c = cone(2, 0.8, i % 2 ? 0xffffff : 0xe74c3c, 0, 3.1, 0, 8); c.geometry = new THREE.ConeGeometry(2, 0.8, 8, 1, true, i * Math.PI / 4, Math.PI / 4); umb.add(c); } l.deco(st(umb), -56, 0.12, 50);
     l.box(-54, 0.12, 52.5, 1.2, 0.4, 2.4, 0x74b9ff); l.deco(box(1.2, 1, 0.12, 0x74b9ff), -54, 0.9, 51.4).rotation.x = -0.4; // Liegestuhl
-    l.box(-44, 0.12, 50, 2.4, 0.8, 2.4, 0xe9c46a); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => { l.deco(cyl(0.35, 0.4, 1, 0xe9c46a, 0, 0, 0, 6), -44 + dx, 1.4, 50 + dz); l.deco(cone(0.42, 0.5, 0xd4a64a, 0, 0, 0, 6), -44 + dx, 2.15, 50 + dz); }); // Sandburg
+    l.box(-44, 0.12, 50, 2.4, 0.8, 2.4, 0xe9c46a); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => { l.prop(cyl(0.35, 0.4, 1, 0xe9c46a, 0, 0, 0, 6), -44 + dx, 1.4, 50 + dz); l.prop(cone(0.42, 0.5, 0xd4a64a, 0, 0, 0, 6), -44 + dx, 2.15, 50 + dz); }); // Sandburg
     l.deco(cyl(0.3, 0.22, 0.45, 0xe74c3c, 0, 0, 0, 8), -46.5, 0.35, 52); l.deco(box(0.15, 0.04, 0.9, 0x0984e3), -46, 0.16, 53, 0.6); // Eimer + Schaufel
     const ball = new THREE.Group(); [0xe74c3c, 0xffffff, 0x0984e3, 0xf1c40f].forEach((c, i) => { const s = sphere(0.5, c, 0, 0, 0, 8); s.geometry = new THREE.SphereGeometry(0.5, 8, 6, i * Math.PI / 2, Math.PI / 2); ball.add(s); }); l.deco(st(ball), -57, 0.62, 41);
     l.deco(box(1.6, 0.03, 2.6, 0x55efc4), -52.5, 0.14, 40, 0.3); [[-48, 52.5], [-58.5, 45], [-42, 41]].forEach(([x, z]) => l.deco(sphere(0.18, 0xffb3c6, 0, 0, 0, 5), x, 0.15, z)); // Handtuch, Muscheln
@@ -270,11 +271,11 @@ export const GARTEN = {
     l.mill = new THREE.Group(); for (let i = 0; i < 4; i++) { const b = box(0.5, 4.2, 0.08, 0xecf0f1, 0, 2.1, 0); const arm = new THREE.Group(); arm.add(b); arm.add(box(0.12, 4.2, 0.1, 0x8d6e63, 0, 2.1, 0)); arm.rotation.z = i * Math.PI / 2; l.mill.add(arm); }
     l.mill.add(sphere(0.35, 0x8d6e63)); l.deco(l.mill, mx - 1.9, my + 5.3, mz - 1.9, Math.PI / 4 + Math.PI);
     [[48, 60], [49.5, 61.5], [59, 50]].forEach(([x, z], i) => { const y = H(x, z); l.box(x, y, z, 1.6, 1.3, 1.6, 0xf6d365); l.deco(cyl(0.66, 0.66, 1.62, 0xe1b84a, 0, 0, 0, 10).rotateX(Math.PI / 2), x, y + 0.65, z, i * 0.7); });
-    [[57, 59], [58, 60.5], [56, 61], [51, 51]].forEach(([x, z]) => { l.deco(sphere(0.4, 0xe67e22, 0, 0, 0, 7), x, H(x, z) + 0.3, z); l.deco(box(0.08, 0.2, 0.08, 0x27ae60), x, H(x, z) + 0.75, z); });
+    [[57, 59], [58, 60.5], [56, 61], [51, 51]].forEach(([x, z]) => { l.prop(sphere(0.4, 0xe67e22, 0, 0, 0, 7), x, H(x, z) + 0.3, z); l.prop(box(0.08, 0.2, 0.08, 0x27ae60), x, H(x, z) + 0.75, z); });
     const hen = () => grp(sphere(0.3, 0xffffff, 0, 0.3, 0, 6), sphere(0.18, 0xffffff, 0, 0.6, 0.22, 6), box(0.08, 0.12, 0.12, 0xe74c3c, 0, 0.8, 0.22), cone(0.06, 0.12, 0xf39c12, 0, 0.58, 0.42, 4).rotateX(Math.PI / 2));
     [[50, 54, 0.5], [52, 53, -1], [47, 57, 2]].forEach(([x, z, a]) => l.deco(hen(), x, H(x, z), z, a));
     l.deco(grp(box(0.15, 2.4, 0.15, 0x7a4a1f, 0, 1.2, 0), box(2, 0.15, 0.15, 0x7a4a1f, 0, 1.8, 0), box(0.7, 0.9, 0.4, 0x3498db, 0, 1.6, 0), sphere(0.3, 0xf6d365, 0, 2.4, 0, 6), cone(0.5, 0.4, 0x8d6e63, 0, 2.75, 0, 8)), 59, H(59, 56), 56, -0.8);
-    for (let i = 0; i < 9; i++) { const a = 2.3 + i * 0.26, x = 54 + Math.cos(a) * 7.5, z = 56 + Math.sin(a) * 7.5; l.deco(box(0.15, 1, 0.15, 0x9c6b3f), x, H(x, z) + 0.5, z); if (i) { const a0 = a - 0.26, x0 = 54 + Math.cos(a0) * 7.5, z0 = 56 + Math.sin(a0) * 7.5; l.deco(box(0.08, 0.12, 2, 0x9c6b3f), (x + x0) / 2, H(x, z) + 0.7, (z + z0) / 2, Math.atan2(x - x0, z - z0)); } }
+    for (let i = 0; i < 9; i++) { const a = 2.3 + i * 0.26, x = 54 + Math.cos(a) * 7.5, z = 56 + Math.sin(a) * 7.5; l.prop(box(0.15, 1, 0.15, 0x9c6b3f), x, H(x, z) + 0.5, z); if (i) { const a0 = a - 0.26, x0 = 54 + Math.cos(a0) * 7.5, z0 = 56 + Math.sin(a0) * 7.5; l.prop(box(0.08, 0.12, 2, 0x9c6b3f), (x + x0) / 2, H(x, z) + 0.7, (z + z0) / 2, Math.atan2(x - x0, z - z0)); } }
 
     // ---- 9. Kanal: großes Abwasserrohr aus einem Erdwall, grüner Schleim, Gullydeckel und Ratten (Nordwest-Ecke)
     l.hill(-60, -60, 13, 7, { flat: 0.3, color: 0x6d8b4a, side: 0x5d4e37 });

@@ -43,7 +43,7 @@ export function surfaceAt(level, x, y, z) {
   for (const s of level.solids) {
     if (!s.active || x <= s.min.x || x >= s.max.x || z <= s.min.z || z >= s.max.z) continue;
     if (s.max.y > y + 0.15 || s.max.y < y - 0.3) continue;
-    take(s.max.y, s.surface ?? (s === level.groundSolid || !s.mesh ? groundSurface(level) : guessSurface(s.mesh.material.color, 'solid')));
+    take(s.max.y, s.surface ?? (s === level.groundSolid || !s.mesh?.material ? groundSurface(level) : guessSurface(s.mesh.material.color, 'solid')));
   }
   for (const t of level.terrain || []) {
     const v = level._terrainH(t, x, z); if (v === -Infinity || (t.bridge && y < v - 1.2)) continue;
