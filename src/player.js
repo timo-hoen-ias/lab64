@@ -5,7 +5,7 @@ import { makeDog, animateDog, compact } from './models.js';
 import { animateIdle } from './idle.js';
 import { makeBlobShadow, FX, characterLook } from './fx.js';
 
-const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15;
+const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15, STEP = 0.45; // STEP: so hohe Kanten steigt Moll im Laufen einfach hoch
 
 export class Player {
   constructor(game) {
@@ -125,7 +125,7 @@ export class Player {
 
     // Kollision: achsenweise
     const solids = level.solids;
-    const wasGround = this.onGround; this.onGround = false;
+    const wasGround = this.onGround; this.onGround = false; this._wasGround = wasGround;
     this.pos.x += this.vel.x * dt; this._resolve(solids, 'x'); this._terrainSide(level, 'x', this.vel.x * dt);
     this.pos.z += this.vel.z * dt; this._resolve(solids, 'z'); this._terrainSide(level, 'z', this.vel.z * dt);
     this._dt = dt; this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
@@ -257,6 +257,13 @@ export class Player {
     else if (!this.onGround && wasGround && this.vel.y <= 0 && this.pos.y - h < 0.45) { this.pos.y = h; this.vel.y = 0; this.onGround = true; } // bergab am Boden bleiben
   }
 
+  // Auf Höhe y steigen, wenn dort oben kein anderer Körper im Weg ist
+  _stepUp(solids, y) {
+    const p = this.pos;
+    for (const s of solids) if (s.active && p.x + HALF > s.min.x && p.x - HALF < s.max.x && p.z + HALF > s.min.z && p.z - HALF < s.max.z && y < s.max.y - 0.01 && y + HEIGHT > s.min.y) return false;
+    p.y = y; return true;
+  }
+
   _resolve(solids, axis) {
     const p = this.pos;
     for (const s of solids) {
@@ -266,6 +273,8 @@ export class Player {
       if (axis === 'y') {
         if (this.vel.y <= 0 && p.y - this.vel.y * Math.max(0.02, this._dt || 0) >= mx.y - 0.3) { p.y = mx.y; this.vel.y = 0; this.onGround = true; if (s.onStand) s.onStand(); }
         else if (this.vel.y > 0) { p.y = mn.y - HEIGHT; this.vel.y = 0; }
+      } else if (this._wasGround && mx.y - p.y <= STEP && this._stepUp(solids, mx.y)) {
+        continue; // kleine Kante (z.B. Rampenende an einer Plattform): hochsteigen statt anhalten
       } else if (axis === 'x') {
         if (this.vel.x > 0) p.x = mn.x - HALF; else if (this.vel.x < 0) p.x = mx.x + HALF; this.vel.x = 0;
       } else {
