@@ -5,7 +5,7 @@
 const VERSION = 'dev';
 const CACHE = 'moll64-' + VERSION;
 const SHELL = ['./', './index.html', './manifest.webmanifest', './vendor/three.module.js', './src/main.js',
-  './icons/icon-192.png', './icons/icon-512.png'];
+  './icons/icon-192.png', './icons/icon-512.png', './fonts/fredoka.woff2', './fonts/luckiest-guy.woff2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));

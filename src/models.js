@@ -377,8 +377,8 @@ export function makeSign(text, o = {}) {
     x.fillStyle = '#c8955a'; x.fillRect(0, 0, 512, 128);
     x.strokeStyle = 'rgba(90,55,21,.3)'; x.lineWidth = 3; // Maserung
     for (let i = 0; i < 6; i++) { const y = 14 + i * 21; x.beginPath(); x.moveTo(0, y); for (let k = 1; k <= 8; k++) x.lineTo(k * 64, y + Math.sin(k * 1.7 + i * 2.3) * 4); x.stroke(); }
-    let size = 64; x.font = `900 ${size}px Trebuchet MS, sans-serif`;
-    while (x.measureText(t).width > 460 && size > 16) { size -= 2; x.font = `900 ${size}px Trebuchet MS, sans-serif`; }
+    let size = 64; x.font = `700 ${size}px Fredoka, Trebuchet MS, sans-serif`;
+    while (x.measureText(t).width > 460 && size > 16) { size -= 2; x.font = `700 ${size}px Fredoka, Trebuchet MS, sans-serif`; }
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillStyle = 'rgba(255,236,200,.55)'; x.fillText(t, 257, 68); // eingeschnitzt: helle Kante unten
     x.fillStyle = o.ink ?? '#3b2412'; x.fillText(t, 256, 65);
