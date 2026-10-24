@@ -61,6 +61,6 @@ Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt
 
 Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 100/100 läuft ein Abspann.
 
-Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten.
+Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs.
 
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).

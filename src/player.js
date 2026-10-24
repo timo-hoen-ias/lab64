@@ -1,7 +1,7 @@
 // Moll – Spielerfigur: Bewegung, Sprung/Doppelsprung, Biss, Schnüffeln, AABB-Kollision gegen Level-Solids.
 // Fähigkeiten (sobald gelernt): Trillern, Gleiten, Tornado, Bellen, Bauchklatscher, Apportieren, Zoomies, Wandsprung.
 import * as THREE from 'three';
-import { makeDog, animateDog, compact } from './models.js';
+import { makeDog, animateDog, compact, headTrack } from './models.js';
 import { animateIdle } from './idle.js';
 import { makeBlobShadow, FX, characterLook } from './fx.js';
 
@@ -171,6 +171,12 @@ export class Player {
       || Math.hypot(input.move.x, input.move.y) > 0.05 || ['jump', 'act', 'sniff', 'spin', 'bark'].some(k => input.held(k)) || this.whirlT > 0 || this.charge > 0;
     this.idleT = busy ? 0 : this.idleT + dt;
     animateIdle(this.mesh, this.idleT, dt);
+    // Moll schaut nahe NPCs an – nicht beim Schlafen, Rollen, Gleiten oder Wirbeln
+    let npc = null, nd = 7;
+    for (const n of level.npcs || []) { const d = Math.hypot(n.position.x - this.pos.x, n.position.z - this.pos.z); if (d < nd && n.visible && Math.abs(n.position.y - this.pos.y) < 4) { nd = d; npc = n; } }
+    const ip = u.idlePose, awake = ip ? (1 - ip.sleep) * (1 - ip.roll / Math.PI) : 1;
+    const tr = headTrack(u, npc ? npc.position.x - this.pos.x : 0, npc ? npc.position.z - this.pos.z : 1, this.mesh.rotation.y, !!npc && !this.gliding && this.whirlT <= 0 && awake > 0.5, dt, 0.9);
+    if (!this.gliding) { const k = Math.min(1, Math.abs(tr) * 2) * awake; u.head.rotation.y = u.head.rotation.y * (1 - k) + tr * awake; } // ersetzt das ziellose Umschauen
     // Blob-Schatten auf dem höchsten Boden unter Moll
     const gy = level.groundAt ? level.groundAt(this.pos.x, this.pos.z, this.pos.y) : -Infinity;
     this.shadow.visible = gy > -Infinity && !wet;
