@@ -341,7 +341,8 @@ export class Level {
   _mergeStatic(group) {
     group.updateMatrixWorld(true);
     const buckets = new Map(), statics = [];
-    const add = m => { const t = m.material, k = `${t.type}|${t.color.getHex()}|${t.flatShading ? 1 : 0}|${t.userData.sway ? 1 : 0}`; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(m); };
+    const vc = m => m.material.vertexColors && m.geometry.attributes.color; // Vertexfarben-Modelle (GLB-Requisiten) behalten ihre Farben
+    const add = m => { const t = m.material, k = `${t.type}|${t.color.getHex()}|${t.flatShading ? 1 : 0}|${t.userData.sway ? 1 : 0}|${vc(m) ? 1 : 0}`; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(m); };
     for (const m of group.children) {
       if (m.isMesh && m.userData.merge && !m.material.transparent && !m.material.vertexColors) add(m);
       else if (m.userData.static) { m.traverse(o => { if (o.isMesh) add(o); }); statics.push(m); }
@@ -352,7 +353,8 @@ export class Level {
         const g = m.geometry.clone().applyMatrix4(m.matrixWorld), p = g.attributes.position;
         let y0 = Infinity, y1 = -Infinity; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < y0) y0 = y; if (y > y1) y1 = y; }
         const ao = y1 - y0 >= 0.6;
-        for (let i = 0; i < p.count; i++) { const k = ao ? 0.74 + 0.26 * Math.min(1, (p.getY(i) - y0) / 2.2) : 1; col.push(k, k, k); }
+        const c = vc(m) ? g.attributes.color : null;
+        for (let i = 0; i < p.count; i++) { const k = ao ? 0.74 + 0.26 * Math.min(1, (p.getY(i) - y0) / 2.2) : 1; if (c) col.push(c.getX(i) * k, c.getY(i) * k, c.getZ(i) * k); else col.push(k, k, k); }
         pos.push(...p.array); nor.push(...g.attributes.normal.array);
         if (g.index) for (const i of g.index.array) idx.push(i + off); else for (let i = 0; i < p.count; i++) idx.push(i + off);
         off += p.count; g.dispose(); if (!m.userData.static) m.geometry.dispose(); m.removeFromParent();

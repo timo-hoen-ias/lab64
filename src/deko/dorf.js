@@ -1,6 +1,6 @@
 // Dorf: Häuser an den Ausfallstraßen, Felder mit Vogelscheuche, Obstgarten mit Bienenstöcken, Weiler mit Brunnen,
 // Försterwald mit Holzfällerhütte und ein belebter Marktplatz.
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const CROPS = [0xe1b12c, 0x7bc043, 0x27ae60, 0xa29bfe, 0xf6c445, 0x6ab04c];
 

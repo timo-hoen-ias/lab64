@@ -8,6 +8,9 @@ import { GLTFLoader } from '../vendor/GLTFLoader.js';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.js';
 import { toonGradient, addSway } from './fx.js';
 
+// Requisiten unter assets/requisiten/<Funktionsname aus src/props.js>.glb
+export const PROPS = ['acUnit', 'anchorDeco', 'armchair', 'awningShop', 'barrel', 'beachHut', 'beehive', 'bench', 'bigPlant', 'bike', 'bikeRack', 'billboard', 'bin', 'birch', 'birdbath', 'bollard', 'boxes', 'buoyBob', 'busStop', 'cabinet', 'cactus', 'cafeTable', 'campfire', 'car', 'cart', 'cart2', 'chair', 'cityBlock', 'coatRack', 'cone3', 'cottage', 'crate', 'crates', 'deckChair', 'diningSet', 'fence', 'field', 'fishNet', 'fishingBoat', 'flagPole', 'floorLamp', 'flowerPatch', 'fountainSmall', 'glowShrooms', 'hayBale', 'hedge', 'hydrant', 'iceCart', 'jarShelf', 'junk', 'kiosk', 'lantern', 'lifebuoyStand', 'lifeguardTower', 'lobsterPot', 'log', 'logPile', 'marketStall', 'mushrooms', 'officeChair', 'pallet', 'palletStack', 'palmTree', 'picnicTable', 'pinwheel', 'pipeStack', 'plantBox', 'planterTree', 'pot', 'pumpkin', 'reeds', 'rock', 'rocks', 'ropeCoil', 'rowboat', 'rubberDuck', 'rug', 'sack', 'sailboat', 'sandcastle', 'scarecrow', 'shed', 'shelf', 'shoeRack', 'signpost', 'sofa', 'solarPanel', 'starfish', 'steppingStones', 'streetLamp', 'stump', 'surfboard', 'table', 'tallGrass', 'tent', 'tire', 'towel', 'toxicBarrel', 'toys', 'trashBags', 'tvStand', 'umbrella', 'van', 'veggieRow', 'volleyNet', 'warehouse', 'waterCooler', 'wateringCan', 'well', 'wheelbarrow', 'woodFence'];
+
 // name → Datei unter assets/ (ohne .glb). Neue Modelle hier eintragen und in CREDITS.md nennen.
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
@@ -16,6 +19,7 @@ export const ASSETS = {
   ...Object.fromEntries(['meise', 'spatz', 'moewe-klein', 'huhn', 'wildente', 'teichfrosch', 'frosch', 'quietscheente', 'kuh', 'fisch'].map(k => [k, 'tiere/' + k])), ball: 'deko/ball', kuckucksuhr: 'deko/kuckucksuhr', // Kleintiere, Deko (details.js, critters.js)
   ...Object.fromEntries(['schnecke', 'wespe', 'biene', 'fliege', 'bremse', 'frosch', 'kroete', 'maulwurf', 'gullyratte', 'wollmaus', 'kakerlake', 'kaefer', 'einsiedler', 'krebs', 'ratte', 'saugi', 'tacker', 'drohne', 'fledermaus', 'huhn', 'gans', 'moewe'].map(k => ['foe-' + k, 'gegner/' + ({ ratte: 'miniratte', saugi: 'putzroboter', moewe: 'minimoewe' }[k] ?? k)])), // kleine Gegner (enemies.js)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
+  ...Object.fromEntries(PROPS.map(k => ['prop-' + k, 'requisiten/' + k])), // Deko-Requisiten aus Blender (src/requisiten.js)
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
 
@@ -195,4 +199,45 @@ export function rigAsset(name, o = {}) {
   const root = copy(scene);
   const list = p => Object.keys(byName).filter(k => new RegExp(`^${p}-\\d+$`).test(k)).sort((a, b) => a.split('-').pop() - b.split('-').pop()).map(k => byName[k]);
   return { root, n: k => byName[k], list };
+}
+
+// Requisiten: ganzes Modell als EIN Vertexfarben-Mesh (Level._mergeStatic fasst alle Requisiten einer Welt zu einem
+// Zeichenaufruf zusammen). o.scale = Maßstab (am Mesh, die Gruppe bleibt frei für deko.at), o.recolor = [[alt, neu], …]
+// färbt eine Farbe samt ihren Schattierungen um, o.keep = Knoten, die beweglich bleiben (Windrad, Fahne),
+// o.sway = { knoten: Stärke } wackelt im Wind. Geometrie je Modell und Farben nur einmal gebaut.
+const propGeos = new Map();
+function recolor(list, from, to) {
+  const f = {}, t = {}; new THREE.Color(from).getHSL(f, THREE.SRGBColorSpace); new THREE.Color(to).getHSL(t, THREE.SRGBColorSpace);
+  const a = new THREE.Color(from);
+  for (const g of list) {
+    const c = g.attributes.color;
+    for (let i = 0; i < c.count; i++) {
+      tmp.setRGB(c.getX(i), c.getY(i), c.getZ(i)); tmp.getHSL(hsl, THREE.SRGBColorSpace);
+      const dh = Math.min(Math.abs(hsl.h - f.h), 1 - Math.abs(hsl.h - f.h)), dl = hsl.l - f.l;
+      const hit = f.s < 0.15 ? hsl.s < 0.15 && Math.abs(dl) < 0.12 && Math.abs(tmp.r - a.r) + Math.abs(tmp.g - a.g) + Math.abs(tmp.b - a.b) < 0.15
+        : dh < 0.03 && Math.abs(hsl.s - f.s) < 0.2 && Math.abs(dl) < 0.15;
+      if (!hit) continue;
+      tmp.setHSL(t.h, t.s, THREE.MathUtils.clamp(t.l + dl, 0, 1), THREE.SRGBColorSpace); c.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+  }
+}
+export function propAsset(name, o = {}) {
+  name = 'prop-' + name; if (!src.has(name)) return null;
+  const sway = o.sway || {}, keep = [...(o.keep || []), ...Object.keys(sway)], s = o.scale ?? 1, rc = o.recolor || [];
+  const key = `${name}|${rc.flat().join()}|${keep.join()}`;
+  if (!propGeos.has(key)) {
+    const p = parts(name, undefined, keep), body = p.body.clone(), sep = p.sep.map(q => ({ ...q, geo: q.geo.clone() }));
+    rc.forEach(([a, b]) => { if (a !== b) recolor([body, ...sep.map(q => q.geo)], a, b); });
+    propGeos.set(key, { body, sep });
+  }
+  const { body, sep } = propGeos.get(key), g = new THREE.Group();
+  const mesh = (geo, mt) => { const m = new THREE.Mesh(geo, mt); m.castShadow = true; m.receiveShadow = true; return m; };
+  g.add(mesh(body, toonMaterial())).children[0].scale.setScalar(s);
+  for (const q of sep) {
+    const k = Object.keys(sway).find(k => q.name.startsWith(k)), n = new THREE.Group(); n.name = q.name.replace(/-m$/, '');
+    n.position.copy(q.pos).multiplyScalar(s); n.quaternion.copy(q.quat); n.scale.setScalar(s);
+    n.add(mesh(q.geo, k ? addSway(toonMaterial(), sway[k]) : toonMaterial())); g.add(n);
+  }
+  g.userData.static = true;
+  return g;
 }

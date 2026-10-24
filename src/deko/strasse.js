@@ -1,6 +1,6 @@
 // Einkaufsstraße: Stadtviertel mit Wohnblöcken und Läden, Parkplatz, kleiner Stadtpark, Straßenmöbel an allen Straßen.
 import { box } from '../models.js';
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const flat = (l, m) => { m.userData.merge = true; l.group.add(m); };
 const WALLS = [0xdfe6e9, 0xffeaa7, 0xfab1a0, 0x81ecec, 0xb2bec3, 0xe8d5b7, 0xd1ccc0];

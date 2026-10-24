@@ -2,7 +2,7 @@
 // Speisekammer mit Säcken und Einmachgläsern, Wintergarten mit Pflanzen und Korbsesseln, Keller mit Gerümpel.
 // Alles im Hunde-Maßstab der Wohnung (Möbel etwa 2,4-fach), damit es zu Sofa, Regal und Kamin passt.
 import { box } from '../models.js';
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const S = 2.4;
 
