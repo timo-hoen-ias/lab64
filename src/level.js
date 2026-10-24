@@ -1,6 +1,7 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
 import { BONES } from './levels.js';
+import { asset } from './assets.js';
 import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
 import { collectPatches, surfaceAt } from './surface.js';
@@ -501,14 +502,15 @@ export class Level {
   // o.y = Höhe des Sockels (Portal auf Plateau/Turm), o.ry = Blickrichtung (sonst zur Gartenmitte)
   portal(x, z, text, target, color = 0xffcc33, need = 0, o = {}) {
     const y = o.y || 0, g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry ?? Math.atan2(-x, -z); // schaut zur Gartenmitte
-    g.add(cyl(2.3, 2.5, 0.3, 0xb8b0a0, 0, 0.15, 0, 10)); g.add(cyl(1.9, 2.1, 0.15, 0xd6cfc0, 0, 0.37, 0, 10));
+    const frame = asset('portal-rahmen'); // Sockel, Säulen, Ring und Fassungen aus Blender; Edelsteine, Kugeln und Strudel bleiben hier (Farbwechsel)
+    if (frame) g.add(frame); else { g.add(cyl(2.3, 2.5, 0.3, 0xb8b0a0, 0, 0.15, 0, 10)); g.add(cyl(1.9, 2.1, 0.15, 0xd6cfc0, 0, 0.37, 0, 10)); }
     const orbs = [];
     [-1, 1].forEach(sx => {
-      g.add(box(0.45, 3.4, 0.45, 0xcfc6b4, sx * 2.05, 2.0, 0)); g.add(box(0.7, 0.3, 0.7, 0xb8b0a0, sx * 2.05, 0.45, 0)); g.add(box(0.7, 0.25, 0.7, 0xb8b0a0, sx * 2.05, 3.8, 0));
+      if (!frame) { g.add(box(0.45, 3.4, 0.45, 0xcfc6b4, sx * 2.05, 2.0, 0)); g.add(box(0.7, 0.3, 0.7, 0xb8b0a0, sx * 2.05, 0.45, 0)); g.add(box(0.7, 0.25, 0.7, 0xb8b0a0, sx * 2.05, 3.8, 0)); }
       const orb = sphere(0.3, color, sx * 2.05, 4.25, 0, 10); orb.material.emissive = new THREE.Color(color).multiplyScalar(0.6); g.add(orb); orbs.push(orb);
     });
     const ring = new THREE.Group(); ring.position.y = 2.2; g.add(ring);
-    ring.add(new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.2, 8, 32), new THREE.MeshToonMaterial({ color: 0x9a9080, gradientMap: toonGradient() })));
+    if (!frame) ring.add(new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.2, 8, 32), new THREE.MeshToonMaterial({ color: 0x9a9080, gradientMap: toonGradient() })));
     const gems = [];
     for (let i = 0; i < 12; i++) {
       const a = i / 12 * Math.PI * 2, gm = box(0.26, 0.26, 0.5, color, Math.cos(a) * 1.6, Math.sin(a) * 1.6, 0); gm.rotation.z = a + Math.PI / 4; gm.castShadow = false;

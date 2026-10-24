@@ -15,8 +15,9 @@ export const PROPS = ['acUnit', 'anchorDeco', 'armchair', 'awningShop', 'barrel'
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
   ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell', 'ice', 'bone', 'treat', 'sock', 'cup'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (makeFood)
-  ...Object.fromEntries(['ratte', 'taube', 'moewe', 'katze', 'krabbe', 'staubsauger', 'dosenoeffner', 'einkaeufer', 'riesenmuschel'].map(k => [k, 'figuren/' + k])), // Figuren mit Knoten (rigAsset)
-  ...Object.fromEntries(['meise', 'spatz', 'moewe-klein', 'huhn', 'wildente', 'teichfrosch', 'frosch', 'quietscheente', 'kuh', 'fisch'].map(k => [k, 'tiere/' + k])), ball: 'deko/ball', kuckucksuhr: 'deko/kuckucksuhr', // Kleintiere, Deko (details.js, critters.js)
+  ...Object.fromEntries(['ratte', 'taube', 'moewe', 'katze', 'krabbe', 'staubsauger', 'dosenoeffner', 'einkaeufer', 'riesenmuschel', 'qualle'].map(k => [k, 'figuren/' + k])), // Figuren mit Knoten (rigAsset)
+  ...Object.fromEntries(['meise', 'spatz', 'moewe-klein', 'huhn', 'wildente', 'teichfrosch', 'frosch', 'quietscheente', 'kuh', 'fisch', 'schmetterling'].map(k => [k, 'tiere/' + k])), ball: 'deko/ball', kuckucksuhr: 'deko/kuckucksuhr',
+  ...Object.fromEntries(['taucherbrille', 'flammen', 'portal-rahmen', 'schild', 'schild-pfosten'].map(k => [k, 'deko/' + k])), // Blender (Glas, Glut, Leuchtteile bekommen ihr Material im Code) // Kleintiere, Deko (details.js, critters.js)
   ...Object.fromEntries(['schnecke', 'wespe', 'biene', 'fliege', 'bremse', 'frosch', 'kroete', 'maulwurf', 'gullyratte', 'wollmaus', 'kakerlake', 'kaefer', 'einsiedler', 'krebs', 'ratte', 'saugi', 'tacker', 'drohne', 'fledermaus', 'huhn', 'gans', 'moewe'].map(k => ['foe-' + k, 'gegner/' + ({ ratte: 'miniratte', saugi: 'putzroboter', moewe: 'minimoewe' }[k] ?? k)])), // kleine Gegner (enemies.js)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
   ...Object.fromEntries(PROPS.map(k => ['prop-' + k, 'requisiten/' + k])), // Deko-Requisiten aus Blender (src/requisiten.js)
