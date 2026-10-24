@@ -158,7 +158,7 @@ export class Game {
   }
 
   enterLevel(key, silent = false) {
-    this.fx.detach(); if (this.player.shadow.parent) this.player.shadow.parent.remove(this.player.shadow);
+    this.fx.detach(); this.player.mesh.removeFromParent(); this.player.shadow.removeFromParent(); // Moll wandert mit in die neue Welt: seine Geometrie nicht mit der alten Welt freigeben
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
