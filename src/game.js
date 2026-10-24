@@ -83,6 +83,11 @@ export class Game {
     }
     this.audio.underwater(under);
   }
+  // Musikvariante passend zur Lage: getaucht, Bosskampf, Innenraum oder draußen – das Stück läuft im selben Takt weiter
+  _musicMix() {
+    const L = this.level; if (!L) return;
+    this.audio.setMix(L.isRunner ? 'normal' : L._uw || this.player.diving ? 'water' : L.boss && !L.boss.dead ? 'boss' : L.bounds?.room ? 'inside' : 'normal');
+  }
   worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; w[key].special ||= []; return w[key]; }
   applyQuality() {
     const q = this.q = QUALITY[this.save.settings.quality];
@@ -244,7 +249,7 @@ export class Game {
     if (!this.paused) this.fx.update(dt);
     // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird
     if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
-    if (!this.paused) this._underwater();
+    if (!this.paused) { this._underwater(); this._musicMix(); }
     this.camera.position.add(this._shake);
     if (this.level) this.renderer.render(this.level.scene, this.camera);
     this.camera.position.sub(this._shake);
