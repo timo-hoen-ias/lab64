@@ -65,7 +65,7 @@ export function installGadgets(Level) {
     // ---- Heribert: bringt am Welteingang die Fähigkeit der Welt bei. Im Garten verkauft er Upgrades gegen Krümel.
     teacher(x, z, ability, o = {}) {
       const y = o.y ?? Math.max(0, this.top(x, z)), g = this.game;
-      const m = makeCorgi(); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z)); // Opa Heribert, alter Corgi
+      const m = makeCorgi(); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z)); // Heribert, alter Corgi
       this.solids.push({ min: { x: x - 0.5, y, z: z - 0.5 }, max: { x: x + 0.5, y: y + 1.4, z: z + 0.5 }, active: true });
       this.bruno = { x, y, z, mesh: m, ability };
       // Gespräch und Tipp zum Rätsel stehen in dialog.js („bruno.<fähigkeit>“)

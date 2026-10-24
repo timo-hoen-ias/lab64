@@ -587,8 +587,8 @@ export function makeNpcDog(fur = 0xd9a441, cap = 0xe74c3c) {
   return compact(g);
 }
 
-// Opa Heribert, ein alter Welsh Corgi Pembroke: eckig wie Moll, aber langer Rumpf auf kurzen Beinen, große Stehohren,
-// rot-weißes Fell, Stummelschwanz, gemütlich rund um den Bauch; als Opa mit grauer Schnauze, buschigen Brauen, Schnauzbart und Schiebermütze.
+// Heribert, ein alter Welsh Corgi Pembroke: eckig wie Moll, aber langer Rumpf auf kurzen Beinen, große Stehohren,
+// rot-weißes Fell, Stummelschwanz, gemütlich rund um den Bauch; mit grauer Schnauze, buschigen Brauen, Schnauzbart und Schiebermütze.
 // Gleiche userData-Teile wie makeDog (rig, front, rear, head, legs, tail, earL/earR, tongue, eyes), damit dieselben Animationen passen.
 export function makeCorgi() {
   const g = new THREE.Group(), red = 0xd9822b, dred = 0xb5651d, white = 0xf5efe3, grey = 0xd8d4cc, nose = 0x2a1a0e, cap = 0x2e7d32;
