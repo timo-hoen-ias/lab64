@@ -1,41 +1,19 @@
-// Prozedurale Chiptune-Musik und Effekte (Banjo-Kazooie-Stimmung: hüpfende Bässe, Xylophon-Melodie, Holzbläser-Antwort).
-// Kein Asset nötig – alles aus Oszillatoren.
-
-// Musikstile je Welt. motif: Tonstufen pro Schritt (null = Pause) über 2 Takte; bass: Stufe relativ zum Akkord je Schritt eines Takts.
-const _ = null;
-const STYLES = {
-  garden: { motif: [0, _, 2, 4, 7, _, 4, _, 5, 4, 2, _, 4, _, _, _], lead: 'banjo', harm: 'xylo', bass: [0, _, 4, _, 0, _, 4, _], bassInst: 'upright', prog: [0, 3, 4, 0], drums: { kick: [0, 4], hat: [2, 6], click: [1, 3, 5, 7] } },
-  kitchen: { motif: [4, 4, _, 2, 4, _, 7, _, 5, _, 4, 2, 0, _, 2, _], lead: 'marimba', bass: [0, 2, 4, 5, 4, 2, 0, -1], bassInst: 'upright', bassLen: 0.6, prog: [0, 0, 3, 4], drums: { kick: [0, 4], snare: [2, 6], click: [1, 3, 5, 7] } },
-  street: { motif: [0, 0, 4, _, 4, 5, 4, 2, 0, _, 2, 4, _, 2, 0, _], lead: 'lead', harm: 'xylo', bass: [0, 7, 0, 7, 0, 7, 0, 7], bassLen: 0.45, prog: [0, 5, 3, 4], drums: { kick: [0, 3, 4], snare: [2, 6], hat: [0, 1, 2, 3, 4, 5, 6, 7] } },
-  office: { motif: [4, _, _, 6, 5, _, 4, _, 2, _, _, _, 1, 2, 4, _], lead: 'epiano', chords: [0, 3], chordInst: 'epiano', chordLen: 2, seventh: true, bass: [0, _, 2, _, 4, _, 5, _], bassInst: 'upright', prog: [1, 4, 0, 0], swing: 0.1, drums: { hat: [0, 2, 3, 4, 6, 7], kick: [0] } },
-  bbq: { motif: [0, 2, 4, _, 4, _, 2, 4, 5, _, 4, _, 2, _, 0, _], lead: 'slide', harm: 'banjo', bass: [0, _, 4, _, 0, _, 4, _], bassInst: 'tuba', prog: [0, 0, 4, 0], drums: { kick: [0, 4], snare: [2, 6], click: [1, 3, 5, 7] } },
-  beach: { motif: [0, _, 4, 7, _, 7, 9, 7, 4, _, 2, 4, _, 0, _, _], lead: 'marimba', harm: 'xylo', bass: [0, _, 0, 4, _, 4, 5, _], bassInst: 'upright', prog: [0, 3, 4, 0], swing: 0.12, drums: { kick: [0, 3, 6], hat: [2, 5], click: [1, 4, 7] } },
-  harbor: { bar: 6, motif: [4, _, 4, 4, _, 2, 0, _, 2, 4, _, _], lead: 'accordion', bass: [0, _, _, 4, _, _], bassInst: 'tuba', chords: [1, 4], chordInst: 'accordion', chordLen: 1, prog: [0, 4, 0, 4], drums: { kick: [0], snare: [3], hat: [1, 2, 4, 5] } },
-  village: { motif: [0, 2, 4, 2, 4, 7, 4, _, 5, 4, 2, 4, 2, 0, -3, _], lead: 'flute', harm: 'accordion', bass: [0, _, 4, _, 0, _, 4, _], bassInst: 'tuba', chords: [2, 6], chordInst: 'pad', chordLen: 1, prog: [0, 4, 4, 0], drums: { kick: [0, 4], snare: [2, 6] } },
-  sewer: { motif: [0, _, _, 2, _, _, 1, _, _, _, -1, _, 0, _, _, _], lead: 'pluck', echo: true, drone: true, bass: [0, _, _, _, -1, _, _, _], bassInst: 'subbass', bassLen: 3, prog: [0, 0, 5, 4], drums: { kick: [0], click: [3, 6] } },
-  chase: { motif: [0, 2, 3, 4, 3, 2, 0, _, 7, 6, 4, 3, 4, _, 2, _], lead: 'lead', bass: [0, 0, 7, 0, 0, 7, 0, 7], bassLen: 0.4, prog: [0, 5, 3, 4], drums: { kick: [0, 2, 4, 6], snare: [2, 6], hat: [0, 1, 2, 3, 4, 5, 6, 7], roll: true } },
-  nightmare: { bar: 6, motif: [7, _, 6, 4, _, _, 3, _, 1, 0, _, _], lead: 'musicbox', echo: true, drone: true, bass: [0, _, _, 1, _, _], bassInst: 'subbass', bassLen: 2, prog: [0, 1, 0, 5], drums: { kick: [0], click: [2, 5] } },
-};
-
-const SCALES = {
-  major: [0, 2, 4, 5, 7, 9, 11],
-  mixo: [0, 2, 4, 5, 7, 9, 10],
-  dorian: [0, 2, 3, 5, 7, 9, 10],
-  minor: [0, 2, 3, 5, 7, 8, 10],
-  spooky: [0, 1, 4, 6, 7, 8, 11],
-};
+// Musik und Effekte, alles aus Oszillatoren – kein Asset nötig.
+// Die Stücke selbst stehen in music.js; hier spielt sie ein Sequenzer mit Instrumenten und synchronen Varianten (draußen, drinnen, unter Wasser, Boss).
+import { SONGS, MIXES, compile } from './music.js';
 
 export class AudioEngine {
-  constructor() { this.ctx = null; this.song = null; this.enabled = true; }
+  constructor() { this.ctx = null; this.song = null; this.enabled = true; this.mix = 'normal'; }
 
   init() {
     if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.master = this.ctx.createGain(); this.master.gain.value = 0.5;
-    this.lowpass = this.ctx.createBiquadFilter(); this.lowpass.type = 'lowpass'; this.lowpass.frequency.value = 20000; // unter Wasser dumpf
-    this.master.connect(this.lowpass); this.lowpass.connect(this.ctx.destination);
-    this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.35; this.musicGain.connect(this.master);
-    this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.7; this.sfxGain.connect(this.master);
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.5; this.master.connect(this.ctx.destination);
+    // Unter Wasser: Effekte stark gedämpft, Musik nur leicht (die Unterwasser-Variante klingt ohnehin weich)
+    this.lowpass = this.ctx.createBiquadFilter(); this.lowpass.type = 'lowpass'; this.lowpass.frequency.value = 20000; this.lowpass.connect(this.master);
+    this.musicLP = this.ctx.createBiquadFilter(); this.musicLP.type = 'lowpass'; this.musicLP.frequency.value = 20000; this.musicLP.connect(this.master);
+    this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.35; this.musicGain.connect(this.musicLP);
+    this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.7; this.sfxGain.connect(this.lowpass);
     // Mobilbrowser setzen den Kontext nach Anrufen, Sperrbildschirm oder Tab-Wechsel auf 'suspended'/'interrupted' → bei nächster Gelegenheit fortsetzen
     const wake = () => this.resume();
     ['pointerdown', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, wake, { passive: true }));
@@ -45,6 +23,7 @@ export class AudioEngine {
   underwater(on) {
     if (!this.ctx) return; const t = this.ctx.currentTime; this.lowpass.frequency.cancelScheduledValues(t);
     this.lowpass.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.08 : 0.2); if (on) this.sfx('splash');
+    this.musicLP.frequency.cancelScheduledValues(t); this.musicLP.frequency.setTargetAtTime(on ? 2400 : 20000, t, 0.2);
   }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => { }); }
 
@@ -67,95 +46,139 @@ export class AudioEngine {
   }
 
   // ---- Musik ----------------------------------------------------------
-  // theme: { style, scale, root, bpm, swing, seed }. Jeder Stil hat eigenes Motiv, Instrumente, Bass und Rhythmus.
+  // theme: { style } aus der Leveldefinition; style wählt das Stück in music.js.
   playTheme(theme) {
     if (!this.ctx) return;
     this.stopMusic();
-    const st = STYLES[theme.style] || STYLES.garden;
-    let s = theme.seed || 1; const rnd = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
-    const scale = SCALES[theme.scale || 'major'];
-    const root = theme.root || 220, bpm = theme.bpm || 128;
-    const bar = st.bar || 8, step = 60 / bpm / 2;
-    const len = bar * 8; // 8 Takte: A A' B A
-    const motif = st.motif, mel = [];
-    for (let i = 0; i < len; i++) {
-      const k = i % (bar * 2), part = Math.floor(i / (bar * 2));
-      let d = motif[k % motif.length];
-      if (part === 1 && d !== null && k >= bar) d += [1, 2, -1][Math.floor(rnd() * 3)]; // Antwort-Phrase
-      if (part === 2 && d !== null) d = d + 2 + (rnd() < 0.3 ? 1 : 0);                  // B-Teil höher
-      if (i >= len - bar) d = k % bar === 0 ? 0 : (k % bar < bar / 2 ? d : null);       // Schlusskadenz
-      mel.push(d);
-    }
-    const prog = st.prog || [0, 3, 4, 0];
-    const degFreq = (d, oct = 0) => this._note(scale[((d % 7) + 7) % 7] + 12 * (Math.floor(d / 7) + oct), root);
+    const key = SONGS[theme.style] ? theme.style : 'garden', def = SONGS[key];
+    const S = (this._compiled ||= {})[key] ||= compile(def);
+    const step = 60 / def.bpm / 2;
     // Eigener Lautstärkeregler je Stück: weich einblenden, beim Wechsel ausblenden (Crossfade statt hartem Schnitt)
     const out = this.ctx.createGain(), t0 = this.ctx.currentTime;
     out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(1, t0 + 0.6); out.connect(this.musicGain);
     let dest = out;
-    if (st.echo) { // Hall/Echo für Kanal und Albtraum
+    if (def.echo) { // Hall/Echo für Kanal und Albtraum
       const dl = this.ctx.createDelay(1), fb = this.ctx.createGain(), wet = this.ctx.createGain(), inp = this.ctx.createGain();
       dl.delayTime.value = step * 3; fb.gain.value = 0.35; wet.gain.value = 0.5;
       inp.connect(out); inp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(out); dest = inp;
     }
-    const song = { stop: false, step: 0, gain: out, nodes: [dest, out] };
+    // Jede Ebene hat einen eigenen Regler; Varianten blenden nur die Regler um, die Noten laufen im selben Takt weiter
+    const mix = MIXES[this.mix] || MIXES.normal, layers = {};
+    for (const k of Object.keys(MIXES.normal)) { const g = this.ctx.createGain(); g.gain.value = mix[k]; g.connect(k === 'drums' || k === 'boss' ? out : dest); layers[k] = g; }
+    const song = { stop: false, step: 0, gain: out, layers, def, S, stepLen: step, start: 0, nodes: [dest, out, ...Object.values(layers)] };
     this.song = song;
-    let start = this.ctx.currentTime + 0.05;
+    song.start = this.ctx.currentTime + 0.05;
     const schedule = () => {
       if (song.stop) return;
       const now = this.ctx.currentTime;
       // Hing der Hauptthread (Ruckler beim Einblenden eines Bereichs, Hintergrund-Tab), lägen die nächsten Noten in der Vergangenheit
       // und blieben stumm → Takt neu ansetzen, damit die Musik sofort weiterläuft statt abzubrechen.
-      if (start + song.step * step < now + 0.02) start = now + 0.05 - song.step * step;
-      while (start + song.step * step < now + 1.0) {
-        const i = song.step % len, b = i % bar, chord = prog[Math.floor(i / bar) % prog.length];
-        const t = start + song.step * step + (song.step % 2 ? (theme.swing ?? st.swing ?? 0.03) : 0);
-        const m = mel[i];
-        if (m !== null && m !== undefined) this._inst(st.lead, degFreq(m + (st.leadOct || 0), 1), t, step, dest);
-        if (st.harm && m !== null && m !== undefined && b % (bar / 2) === 0) this._inst(st.harm, degFreq(m - 2, 1), t, step * 2, dest);
-        // Akkorde
-        if (st.chords && st.chords.includes(b)) [0, 2, 4, st.seventh ? 6 : 7].forEach(o => this._inst(st.chordInst || 'pad', degFreq(chord + o, 0), t, step * (st.chordLen || 1.5), dest, 0.35));
-        // Bass
-        const bp = st.bass[b]; if (bp !== null && bp !== undefined) this._inst(st.bassInst || 'bass', degFreq(chord + bp, -1), t, step * (st.bassLen || 0.8), dest);
-        // Drone (Kanal, Albtraum)
-        if (st.drone && i % (bar * 2) === 0) this._tone(degFreq(0, -2), t, step * bar * 2, 'sawtooth', 0.04, dest);
-        // Schlagzeug
-        const dr = st.drums;
-        if (dr.kick && dr.kick.includes(b)) this._tone(85, t, 0.14, 'sine', 0.3, out, -60);
-        if (dr.snare && dr.snare.includes(b)) this._drumNoise(t, 0.09, 0.12, out);
-        if (dr.hat && dr.hat.includes(b)) this._drumNoise(t, 0.025, 0.035, out);
-        if (dr.click && dr.click.includes(b)) this._tone(1800, t, 0.03, 'square', 0.04, out);
-        if (dr.roll && i % (bar * 4) >= bar * 4 - 2) this._drumNoise(t + step / 2, 0.05, 0.08, out);
-        song.step++;
-      }
+      if (song.start + song.step * step < now + 0.02) song.start = now + 0.05 - song.step * step;
+      while (song.start + song.step * step < now + 1.0) { this._playStep(song, song.step); song.step++; }
       song.timer = setTimeout(schedule, 100);
     };
     schedule();
   }
-  // Instrumente aus Oszillatoren
-  _inst(kind, f, t, step, dest, vol = 1) {
-    switch (kind) {
-      case 'banjo': this._tone(f, t, step * 0.7, 'square', 0.09 * vol, dest); this._tone(f * 2, t, step * 0.3, 'triangle', 0.05 * vol, dest); break;
-      case 'marimba': this._tone(f, t, step * 0.6, 'sine', 0.24 * vol, dest); this._tone(f * 4, t, 0.04, 'sine', 0.06 * vol, dest); break;
-      case 'xylo': this._tone(f, t, step * 0.9, 'triangle', 0.22 * vol, dest); break;
-      case 'lead': this._tone(f, t, step * 0.85, 'square', 0.1 * vol, dest); break;
-      case 'epiano': this._tone(f, t, step * 1.8, 'sine', 0.14 * vol, dest); this._tone(f * 2, t, step * 0.6, 'sine', 0.04 * vol, dest); break;
-      case 'slide': this._tone(f * 0.94, t, step * 0.9, 'sawtooth', 0.06 * vol, dest, f * 0.06); break;
-      case 'accordion': this._filtered(f, t, step * 0.95, 'sawtooth', 0.08 * vol, dest, 1800); this._filtered(f * 1.005, t, step * 0.95, 'sawtooth', 0.05 * vol, dest, 1800); break;
-      case 'flute': this._vib(f, t, step * 0.95, 0.13 * vol, dest); break;
-      case 'pluck': this._tone(f, t, step * 0.5, 'triangle', 0.2 * vol, dest); this._tone(f * 1.01, t, step * 0.4, 'square', 0.03 * vol, dest); break;
-      case 'musicbox': this._tone(f * 2, t, step * 2.5, 'sine', 0.14 * vol, dest); this._tone(f * 2.02, t, step * 2, 'sine', 0.05 * vol, dest); break;
-      case 'pad': this._filtered(f, t, step, 'sawtooth', 0.03 * vol, dest, 900); break;
-      case 'tuba': this._filtered(f, t, step, 'square', 0.16 * vol, dest, 500); break;
-      case 'bass': this._tone(f, t, step, 'square', 0.11 * vol, dest); break;
-      case 'subbass': this._tone(f, t, step, 'sine', 0.3 * vol, dest); break;
-      case 'upright': this._tone(f, t, step, 'triangle', 0.3 * vol, dest); break;
+  // Variante umschalten (normal, inside, water, boss). Ebenen, die neu dazukommen, werden für die schon geplante Sekunde nachgetragen.
+  setMix(name) {
+    if (!MIXES[name] || this.mix === name) return;
+    const prev = MIXES[this.mix] || MIXES.normal; this.mix = name;
+    const sg = this.song; if (!sg || !this.ctx) return;
+    const t = this.ctx.currentTime, mix = MIXES[name], added = new Set();
+    for (const [k, g] of Object.entries(sg.layers)) {
+      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(mix[k], t, 0.15);
+      if (mix[k] > 0 && !(prev[k] > 0)) added.add(k);
+    }
+    if (added.size) for (let n = Math.max(0, Math.ceil((t + 0.03 - sg.start) / sg.stepLen)); n < sg.step; n++) this._playStep(sg, n, added);
+  }
+  _playStep(song, n, only) {
+    const { def, S, layers, stepLen: step } = song, mix = MIXES[this.mix] || MIXES.normal;
+    const on = k => (!only || only.has(k)) && mix[k] > 0;
+    const { bar, len, mel, chord } = S, i = n % len, b = i % bar, pass = Math.floor(n / len), ch = chord[i], m = mel[i];
+    const t = song.start + n * step + (n % 2 ? def.swing || 0 : 0), I = def.inst, f = midi => 440 * Math.pow(2, (midi - 69) / 12);
+    const tone = (o, base) => base + ((ch.root + o) % 12 + 12) % 12; // Akkordton oberhalb von base
+    // Melodie in drei Klangfarben: draußen, drinnen, unter Wasser
+    if (m) {
+      if (on('lead')) this._inst(I.lead, f(m.midi), t, m.len * step, layers.lead);
+      if (on('soft')) this._inst(I.soft || 'clarinet', f(m.midi), t, m.len * step, layers.soft);
+      if (on('water')) this._inst(I.water || 'vibes', f(m.midi), t, m.len * step, layers.water);
+      // Zweitstimme: nächster Akkordton mindestens eine kleine Terz darunter, ab dem zweiten Durchlauf (im Bosskampf immer)
+      if (on('harm') && b % 2 === 0 && (pass % 2 === 1 || this.mix === 'boss')) {
+        let h = -1; for (const o of ch.iv) for (let oc = 48; oc <= 84; oc += 12) { const x = tone(o, oc); if (x <= m.midi - 3 && x > h) h = x; }
+        if (h > 0) this._inst(I.harm || 'xylo', f(h), t, Math.min(m.len, 2) * step, layers.harm, 0.7);
+      }
+    }
+    // Begleitakkorde (Offbeats, Stabs)
+    if (on('comp') && def.comp.includes(b)) ch.iv.forEach(o => this._inst(I.comp, f(tone(o, 60)), t, (def.compLen || 0.6) * step, layers.comp, 0.32));
+    // Bass: Grundton zwischen G2 und F#3, 'A' = Halbton unter dem nächsten Grundton
+    const bp = def.bass[b];
+    if (on('bass') && bp !== null && bp !== undefined) {
+      const root = ((ch.root - 7) % 12 + 12) % 12 + 43, next = chord[(i + 1) % len];
+      const midi = bp === 'A' ? ((next.root - 7) % 12 + 12) % 12 + 42 : root + bp;
+      this._inst(I.bass, f(midi), t, (def.bassLen || 0.8) * step, layers.bass);
+    }
+    if (on('bass') && def.drone && i % (bar * 2) === 0) this._tone(f(((ch.root - 7) % 12 + 12) % 12 + 31), t, step * bar * 2, 'sawtooth', 0.04, layers.bass);
+    // Unter-Wasser-Ebenen: perlende Harfe und Flächenklang
+    if (on('arp')) { const k = ch.iv.length, o = ch.iv[n % k]; this._inst('harp', f(tone(o, 72) + (Math.floor(n / k) % 2) * 12), t, step * 2, layers.arp, 0.5); }
+    if (on('pad') && (i === 0 || chord[i - 1] !== ch)) {
+      let d = 1; while (d < bar && chord[(i + d) % len] === ch) d++;
+      ch.iv.forEach(o => this._inst('pad', f(tone(o, 55)), t, d * step, layers.pad, 1.2));
+    }
+    // Schlagzeug
+    const dr = def.drums, L = layers.drums;
+    if (on('drums')) {
+      if (dr.kick?.includes(b)) this._tone(85, t, 0.14, 'sine', 0.3, L, -60);
+      if (dr.snare?.includes(b)) this._drumNoise(t, 0.09, 0.12, L);
+      if (dr.hat?.includes(b)) this._drumNoise(t, 0.025, 0.035, L);
+      if (dr.brush?.includes(b)) this._drumNoise(t, 0.16, 0.05, L);
+      if (dr.shaker?.includes(b)) this._drumNoise(t, 0.03, 0.02, L);
+      if (dr.click?.includes(b)) this._tone(1500, t, 0.035, 'triangle', 0.09, L, -300); // Holzblock
+      if (def.roll && i % (bar * 4) >= bar * 4 - 2) this._drumNoise(t + step / 2, 0.05, 0.08, L);
+    }
+    // Bosskampf: Blechbläser-Stöße und Trommelwirbel
+    if (on('boss')) {
+      if (b === 0 || b === 3) ch.iv.slice(0, 3).forEach(o => this._inst('brass', f(tone(o, 55)), t, step * 0.9, layers.boss, 0.5));
+      if (b % 2 === 1) this._drumNoise(t, 0.06, 0.07, layers.boss);
+      if (i % (bar * 2) >= bar * 2 - 3) this._tone(180 - (i % bar) * 12, t, 0.18, 'sine', 0.25, layers.boss, -70);
     }
   }
-  _filtered(f, t, dur, type, vol, dest, cut) {
-    const o = this.ctx.createOscillator(), fl = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    o.type = type; o.frequency.value = f; fl.type = 'lowpass'; fl.frequency.value = cut;
+  // Instrumente aus Oszillatoren
+  _inst(kind, f, t, dur, dest, vol = 1) {
+    switch (kind) {
+      case 'banjo': this._tone(f, t, Math.min(dur * 0.7, 0.3), 'square', 0.08 * vol, dest); this._tone(f * 2, t, 0.12, 'triangle', 0.05 * vol, dest); break;
+      case 'marimba': this._tone(f, t, Math.min(dur * 0.6, 0.35), 'sine', 0.24 * vol, dest); this._tone(f * 4, t, 0.04, 'sine', 0.06 * vol, dest); break;
+      case 'xylo': this._tone(f * 2, t, Math.min(dur, 0.25), 'triangle', 0.14 * vol, dest); break;
+      case 'steeldrum': this._tone(f, t, 0.45, 'sine', 0.2 * vol, dest, -f * 0.01); this._tone(f * 2, t, 0.3, 'sine', 0.07 * vol, dest); this._tone(f * 3.01, t, 0.15, 'sine', 0.04 * vol, dest); break;
+      case 'kazoo': this._filtered(f, t, dur * 0.92, 'sawtooth', 0.1 * vol, dest, 1300, { vib: 0.015, scoop: 0.96, q: 3 }); break;
+      case 'clarinet': this._filtered(f, t, dur * 0.95, 'square', 0.07 * vol, dest, 1500, { vib: 0.006 }); break;
+      case 'harmonica': this._filtered(f, t, dur * 0.95, 'sawtooth', 0.06 * vol, dest, 2200, { vib: 0.01 }); this._filtered(f * 1.004, t, dur * 0.95, 'square', 0.03 * vol, dest, 1800); break;
+      case 'organ': this._filtered(f, t, dur, 'square', 0.06 * vol, dest, 2500); this._tone(f * 2, t, dur, 'sine', 0.04 * vol, dest); break;
+      case 'bassoon': this._filtered(f, t, dur, 'sawtooth', 0.2 * vol, dest, 650); break;
+      case 'brass': this._filtered(f, t, dur, 'sawtooth', 0.09 * vol, dest, 1600); this._filtered(f * 1.006, t, dur, 'sawtooth', 0.06 * vol, dest, 1600); break;
+      case 'vibes': this._tone(f, t, Math.max(dur, 0.8), 'sine', 0.2 * vol, dest); this._tone(f * 4, t, 0.25, 'sine', 0.03 * vol, dest); break;
+      case 'celesta': this._tone(f * 2, t, Math.max(dur, 0.6), 'sine', 0.14 * vol, dest); this._tone(f * 4, t, 0.2, 'triangle', 0.03 * vol, dest); break;
+      case 'harp': this._tone(f, t, 0.7, 'triangle', 0.16 * vol, dest); break;
+      case 'lead': this._tone(f, t, dur * 0.85, 'square', 0.1 * vol, dest); break;
+      case 'epiano': this._tone(f, t, Math.max(dur, 0.5), 'sine', 0.14 * vol, dest); this._tone(f * 2, t, 0.15, 'sine', 0.04 * vol, dest); break;
+      case 'slide': this._filtered(f, t, dur * 0.95, 'sawtooth', 0.08 * vol, dest, 2400, { scoop: 0.94 }); break;
+      case 'accordion': this._filtered(f, t, dur * 0.95, 'sawtooth', 0.08 * vol, dest, 1800); this._filtered(f * 1.005, t, dur * 0.95, 'sawtooth', 0.05 * vol, dest, 1800); break;
+      case 'flute': this._vib(f, t, dur * 0.95, 0.13 * vol, dest); break;
+      case 'pluck': this._tone(f, t, Math.min(dur * 0.5, 0.3), 'triangle', 0.2 * vol, dest); this._tone(f * 1.01, t, 0.12, 'square', 0.03 * vol, dest); break;
+      case 'musicbox': this._tone(f * 2, t, 0.9, 'sine', 0.14 * vol, dest); this._tone(f * 2.02, t, 0.7, 'sine', 0.05 * vol, dest); break;
+      case 'pad': this._filtered(f, t, dur, 'sawtooth', 0.03 * vol, dest, 900); break;
+      case 'tuba': this._filtered(f, t, dur, 'square', 0.17 * vol, dest, 500); break;
+      case 'bass': this._tone(f, t, dur, 'square', 0.11 * vol, dest); break;
+      case 'subbass': this._tone(f, t, dur, 'sine', 0.3 * vol, dest); break;
+      case 'upright': this._tone(f, t, dur, 'triangle', 0.3 * vol, dest); break;
+    }
+  }
+  _filtered(f, t, dur, type, vol, dest, cut, o = {}) {
+    const osc = this.ctx.createOscillator(), fl = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    osc.type = type; fl.type = 'lowpass'; fl.frequency.value = cut; if (o.q) fl.Q.value = o.q;
+    if (o.scoop) { osc.frequency.setValueAtTime(f * o.scoop, t); osc.frequency.exponentialRampToValueAtTime(f, t + 0.06); } else osc.frequency.value = f; // Ton von unten anschleifen
+    if (o.vib) { const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(); lfo.frequency.value = 5.5; lg.gain.value = f * o.vib; lfo.connect(lg); lg.connect(osc.frequency); lfo.start(t); lfo.stop(t + dur + 0.05); }
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.03); g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    o.connect(fl); fl.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+    osc.connect(fl); fl.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur + 0.05);
   }
   _vib(f, t, dur, vol, dest) {
     const o = this.ctx.createOscillator(), lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(), g = this.ctx.createGain();
@@ -203,6 +226,16 @@ export class AudioEngine {
     setTimeout(() => sg.nodes.forEach(n => n.disconnect()), 1600);
   }
 
+  // Musik für eine Fanfare kurz zurücknehmen und danach wieder einblenden
+  duck(sec) {
+    const g = this.musicGain.gain, t = this.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.05, t + 0.08); g.setValueAtTime(0.05, t + sec); g.linearRampToValueAtTime(0.35, t + sec + 0.8);
+  }
+  _fanfare(notes, base, t, beat, vol) { // notes: [Halbton, Länge in Schlägen] – Melodie mit Oktav-Glockenspiel und Bass
+    let x = t; for (const [s, l] of notes) { if (s !== null) { const f = this._note(s, base); this._tone(f, x, beat * l * 1.1, 'square', vol); this._tone(f * 2, x, beat * l, 'triangle', vol * 0.6); } x += beat * l; }
+    return x - t;
+  }
+
   // ---- Effekte -------------------------------------------------------
   sfx(name) {
     if (!this.ctx) return;
@@ -212,7 +245,7 @@ export class AudioEngine {
       case 'jump2': this._tone(400, t, 0.2, 'square', 0.15, null, 500); break;
       case 'land': this._noise(t, 0.06, 0.15); break;
       case 'collect': this._tone(880, t, 0.08, 'square', 0.15); this._tone(1320, t + 0.08, 0.14, 'square', 0.15); break;
-      case 'big': [0, 4, 7, 12, 16].forEach((s, i) => this._tone(this._note(s, 440), t + i * 0.08, 0.3, 'triangle', 0.2)); break;
+      case 'big': this.duck(1.2); this._fanfare([[0, 0.5], [4, 0.5], [7, 0.5], [12, 1], [11, 0.5], [12, 2]], 523, t, 0.11, 0.1); this._tone(131, t + 0.33, 0.6, 'triangle', 0.3); break;
       case 'splash': this._noise(t, 0.35, 0.3); this._tone(600, t, 0.2, 'sine', 0.12, null, -450); break;
       case 'chomp': // Zähne schnappen zu: zwei Klacks + dumpfer Biss
         this._click(t, 0.5); this._click(t + 0.07, 0.7); this._tone(180, t + 0.06, 0.12, 'sine', 0.3, null, -110); this._noise(t + 0.06, 0.05, 0.12); break;
@@ -221,8 +254,11 @@ export class AudioEngine {
       case 'hurt': this._tone(500, t, 0.3, 'square', 0.2, null, -400); break;
       case 'drawer': this._noise(t, 0.12, 0.1); this._tone(200, t, 0.1, 'triangle', 0.15, null, 100); break;
       case 'sniff': this._noise(t, 0.1, 0.08); this._noise(t + 0.15, 0.1, 0.08); break;
-      case 'win': [0, 4, 7, 12, 7, 12, 16, 19].forEach((s, i) => this._tone(this._note(s, 330), t + i * 0.1, 0.35, 'square', 0.18)); break;
-      case 'lose': [7, 4, 0, -5].forEach((s, i) => this._tone(this._note(s, 330), t + i * 0.2, 0.45, 'sawtooth', 0.15)); break;
+      case 'win': { // Goldknochen-Fanfare: Musik pausiert kurz wie bei einem großen Fund
+        const d = this._fanfare([[7, 0.5], [12, 0.5], [16, 0.5], [19, 1], [16, 0.5], [19, 0.5], [21, 0.5], [19, 0.5], [24, 2.5]], 262, t, 0.13, 0.1);
+        [[0, 0], [7, 0.39], [5, 0.78], [7, 1.17], [0, 1.56]].forEach(([s, dt]) => this._tone(this._note(s, 65.4), t + dt, 0.35, 'triangle', 0.35));
+        [0, 4, 7].forEach(s => this._tone(this._note(s + 12, 262), t + d - 0.33, 0.8, 'sine', 0.08)); this.duck(d + 0.3); break; }
+      case 'lose': this.duck(1.2); [7, 6, 5, 4].forEach((s, i) => this._tone(this._note(s, 262), t + i * 0.2, i === 3 ? 0.7 : 0.22, 'sawtooth', 0.12, null, i === 3 ? -40 : 0)); break;
       case 'vacuum': this._tone(110, t, 0.5, 'sawtooth', 0.12, null, 30); break;
       case 'ko': this._tone(90, t, 1.2, 'sine', 0.4, null, -70); this._noise(t, 0.4, 0.3); break;
       case 'portal': [0, 7, 12].forEach((s, i) => this._tone(this._note(s, 262), t + i * 0.06, 0.4, 'sine', 0.2)); break;
