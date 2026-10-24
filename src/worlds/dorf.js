@@ -2,7 +2,7 @@
 // Bauernhof mit Scheune und Hühnern im Osten, Dorfteich mit Seerosen im Westen, Bäckerei als Innenraum.
 import * as THREE from 'three';
 import { BirdBoss, Pigeon } from '../bosses.js';
-import { box, cyl, cone, sphere, makeLabel, makeNpcDog, makeRoundTree, makeFlowers } from '../models.js';
+import { box, cyl, cone, sphere, makeNpcDog, makeRoundTree, makeFlowers } from '../models.js';
 
 const WOOD = 0x8d6e63, STONE = 0xb0a99f, ROOF = 0xb71c1c, PATH = 0xcdb994;
 
@@ -71,7 +71,6 @@ export const DORF = {
       l.pickup(-40, T(-40, -130) + 0.3, -130, 'bread', { goal: true, hidden: true });
       l.pickup(38, T(38, -128) + 0.3, -128, 'treat', { special: true, onTake: () => l.keks(), onRestore: () => l.kekse++ });
       l.warp(6, T(6, -80), -80, 'Mühlenhügel', bench());
-      const s = makeLabel('Windmühle'); s.scale.set(5, 1.2, 1); l.deco(s, 0, 17, -97);
     });
 
     // ---- Osten: Bauernhof mit Scheune und Hühnern
@@ -129,7 +128,6 @@ export const DORF = {
       l.pickup(-6, y + 4.3, 92, 'treat', { special: true, onTake: () => l.keks(), onRestore: () => l.kekse++ });
       [[-30, 90], [30, 128], [-26, 130], [32, 88]].forEach(([x, z]) => l.tree(x, z, 1.5, makeRoundTree(1.5)));
       l.warp(-6, T(-6, 76), 76, 'Burgruine', bench());
-      const s = makeLabel('Burgruine'); s.scale.set(5, 1.2, 1); l.deco(s, 0, T(0, 80) + 5, 80);
     });
 
     // ---- Westen: Dorfteich mit Seerosen und Weideninsel

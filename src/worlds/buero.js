@@ -3,7 +3,7 @@
 // Kaffeeküche und Fensterbänke, oben das Dach mit Hubschrauberlandeplatz und Antennenmast.
 import * as THREE from 'three';
 import { CanOpener, Pigeon } from '../bosses.js';
-import { box, cyl, sphere, makeLabel, makeNpcDog, makeRoundTree } from '../models.js';
+import { box, cyl, sphere, makeSign, makeNpcDog, makeRoundTree } from '../models.js';
 
 const WALL = 0xf5f6fa, SLAB = 0xb2bec3, STAIR = 0x7f8c8d, F1 = 12, F2 = 24, ROOF = 36, S = 32;
 
@@ -23,7 +23,7 @@ export const BUERO = {
     slab(-26, 26, -S, S, F1); slab(26, S, -S, -28, F1); slab(-S, -26, -S, -28, F1);
     slab(-26, 26, -S, S, F2); slab(-S, -26, 28, S, F2); slab(26, S, 28, S, F2);
     slab(-S, 26, -S, S, ROOF, 0x95a5a6); slab(26, S, -S, -28, ROOF, 0x95a5a6);
-    [[30, 0, 'Treppe ↑'], [-30, F1, 'Treppe ↑'], [30, F2, 'Treppe ↑ Dach']].forEach(([x, y, t]) => { const s = makeLabel(t); s.scale.set(3.6, 0.9, 1); l.deco(s, x - Math.sign(x) * 4, y + 4, x > 0 ? 18 : -18); });
+    [[30, 0, 'Treppe ↑'], [-30, F1, 'Treppe ↑'], [30, F2, 'Treppe ↑ Dach']].forEach(([x, y, t]) => { l.deco(makeSign(t, { w: 2.4, post: 1.2 }), x - Math.sign(x) * 4, y, x > 0 ? 18 : -18); });
 
     // ---- EG: Großraumbüro mit Schubladen (Hauptziel), Aktenschrank, Kantine
     l.group.add(box(50, 0.04, 60, 0x4a6fa5, 0, 0.02, 0));

@@ -1,7 +1,7 @@
 // Molls Garten (Hub): Haus, Teich und Portale in der Mitte, rundherum Schuppen mit Werkstatt, Obstwiese mit Baumhaus,
 // Gemüsegarten mit Gewächshaus und der Aussichtshügel. 10 Goldknochen, darunter eine Suche nach 5 Gartenzwergen.
 import * as THREE from 'three';
-import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, makeGnome, makeLabel, makeNpcDog } from '../models.js';
+import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, makeGnome, makeNpcDog } from '../models.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -95,7 +95,7 @@ export const GARTEN = {
     const g = l.game, T = (x, z) => l.top(x, z);
     const hut = () => { const m = new THREE.Group(); m.add(box(1.6, 1.2, 1.6, 0xb5651d, 0, 0.6, 0)); m.add(cone(1.3, 0.8, 0x8b1e1e, 0, 1.6, 0, 4).rotateY(Math.PI / 4)); return m; };
     const gnome = (x, y, z) => l.pickup(x, y, z, 'gnome', { special: true, onTake: () => { l.zwerge++; if (l.zwerge >= 5 && !g.hasBone('hub', 'zwerge')) { g.talk('zwerge.fertig'); l.spawnGoldbone(-3, 1, -9, 'zwerge'); } else g.toast(`Gartenzwerg ${l.zwerge}/5 gefunden!`); }, onRestore: () => l.zwerge++ });
-    l.zwerge = 0; l.deco(makeGnome(), -3, 0, -9.5, 0.3); const king = makeLabel('Zwergenkönig'); king.scale.set(3, 0.8, 1); l.deco(king, -3, 2.2, -9.5);
+    l.zwerge = 0; l.deco(makeGnome(), -3, 0, -9.5, 0.3);
     l.trigger(-3, 0, -9.5, 3, () => { if (!g.hasBone('hub', 'zwerge')) g.talk('zwerge', { vars: { n: l.zwerge, r: 5 - l.zwerge } }); }, false);
     [[0, -36], [36, 0], [-36, 0], [0, 36]].forEach(([x, z]) => l.group.add(box(Math.abs(x) ? 40 : 4, 0.05, Math.abs(z) ? 40 : 4, 0xd6cfc0, x * 1.5, 0.03, z * 1.5)));
 

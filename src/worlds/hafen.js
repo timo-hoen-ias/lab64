@@ -2,7 +2,7 @@
 // Frachtschiff mit Laderaum und ein Hafenbecken zum Tauchen. Wasser bei y = 1.3, Grund bei y = -10.
 import * as THREE from 'three';
 import { BirdBoss, BeachCrab, Jelly, Pigeon } from '../bosses.js';
-import { box, cyl, cone, sphere, makeLabel, makeNpcDog } from '../models.js';
+import { box, cyl, cone, sphere, makeNpcDog } from '../models.js';
 import { FX } from '../fx.js';
 
 const WOOD = 0x8d6e4a, CONCRETE = 0xa4a7ab, SEA = 1.3, BED = -10;
@@ -34,7 +34,7 @@ export const HAFEN = {
     // Leitern aus dem Wasser an jeder Kaikante
     [[0, 28.6], [-25, 28.6], [25, 28.6], [-33.6, -14], [30.6, -16], [0, -35.6]].forEach(([x, z]) => l.box(x, SEA - 0.6, z, 1.4, 0.5, 1.2, 0x636e72));
     // Taucher Tim: gibt die Taucherbrille, falls man den Strand noch nicht kennt
-    const diver = makeNpcDog(0x2d3436, 0xf1c40f); l.deco(diver, 8, 2, 24, Math.PI); const s0 = makeLabel('Taucher Tim'); s0.scale.set(4, 1, 1); l.deco(s0, 8, 5, 24);
+    const diver = makeNpcDog(0x2d3436, 0xf1c40f); l.deco(diver, 8, 2, 24, Math.PI);
     l.abilityItem(5, 3, 22, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch.');
     l.trigger(8, 2, 24, 6, () => g.talk(g.has('tauchen') ? 'tim.tauchen' : 'tim', { mesh: diver }), false);
     l.warp(-6, 2, 24, 'Holzkai', bollard());
@@ -62,7 +62,6 @@ export const HAFEN = {
       l.goldbone('kran', 92, 30.4, -20);
       for (let i = 0; i < 4; i++) l.addEnemy(new BeachCrab(g, 70 + i * 10, 36));
       l.warp(60, 2, 38, 'Terminal', bollard());
-      const s = makeLabel('Containerterminal'); s.scale.set(6, 1.4, 1); l.deco(s, 60, 6, 42);
     });
 
     // ---- Westen: Fischmarkthalle (innen eigener Raum)

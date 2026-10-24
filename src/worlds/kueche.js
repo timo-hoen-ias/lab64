@@ -2,7 +2,7 @@
 // Wintergarten und ein Keller (eigener Raum) mit Waschmaschine und Wäschekorb.
 import * as THREE from 'three';
 import { Vacuum } from '../bosses.js';
-import { box, cyl, sphere, makeLabel, makeNpcDog, makeRoundTree } from '../models.js';
+import { box, cyl, sphere, makeSign, makeNpcDog, makeRoundTree } from '../models.js';
 import { AntSwarm } from '../abilities.js';
 
 const WALL = 0xfdf4e3, WOOD = 0xa0522d, H = 16;
@@ -19,7 +19,7 @@ export const KUECHE = {
     l.spawn.set(0, 1, 12); l.wallRing(60, H, WALL);
     wallX(l, -18, -60, 60, [[-40, -34], [4, 10], [36, 42]]); wallX(l, 18, -60, 60, [[-40, -34], [6, 12], [36, 42]]);
     wallZ(l, -18, -18, 18, [[-5, 0]]); wallZ(l, 18, -18, 18, [[-3, 3]]);
-    [[-18, 7, 'Wohnzimmer'], [18, 9, 'Flur']].forEach(([x, z, t]) => { const s = makeLabel(t); s.scale.set(4, 1, 1); l.deco(s, x, 5, z); });
+    [[-18, 7, 'Wohnzimmer'], [18, 9, 'Flur']].forEach(([x, z, t]) => { l.deco(makeSign(t, { w: 2.4 }), x, 3.4, z, Math.PI / 2); });
 
     // ---- Küche (Kern, wie bisher)
     for (let x = -16; x < 16; x += 4) for (let z = -16; z < 16; z += 4) if ((x + z) % 8 === 0) l.group.add(box(4, 0.05, 4, 0xd6bf94, x + 2, 0.03, z + 2));

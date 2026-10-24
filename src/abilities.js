@@ -1,7 +1,7 @@
 // Fähigkeiten: Texte, Krümel-Laden und die Bausteine, die Welten für Fähigkeiten-Rätsel benutzen
 // (Opa Bruno als Lehrer, Drehknöpfe, Bell-Ziele, Bodenschalter, Kisten, Erdhügel, Kletterwände, Aufwind, Apportieren).
 import * as THREE from 'three';
-import { box, cyl, sphere, cone, makeLabel, makeNpcDog } from './models.js';
+import { box, cyl, sphere, cone, makeNpcDog } from './models.js';
 import { FX } from './fx.js';
 
 // Tasten: TRILLER = C / Gamepad B / Touch 🌀, BELLEN = V / Gamepad RB / Touch 📢
@@ -51,7 +51,6 @@ export function installGadgets(Level) {
       const y = o.y ?? Math.max(0, this.top(x, z)), g = this.game;
       const m = makeNpcDog(0xc9c2b4, 0x2e7d32); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z));
       m.userData.head.add(box(0.5, 0.06, 0.06, 0xeeeeee, 0, -0.18, 0.62)); // weißer Schnauzbart
-      const lab = makeLabel('Opa Bruno'); lab.scale.set(3, 0.75, 1); lab.position.set(x, y + 2.6, z); this.group.add(lab);
       this.solids.push({ min: { x: x - 0.5, y, z: z - 0.5 }, max: { x: x + 0.5, y: y + 1.4, z: z + 0.5 }, active: true });
       this.bruno = { x, y, z, mesh: m, ability };
       // Gespräch und Tipp zum Rätsel stehen in dialog.js („bruno.<fähigkeit>“)

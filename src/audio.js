@@ -288,6 +288,7 @@ export class AudioEngine {
       case 'lose': this.duck(1.2); [7, 6, 5, 4].forEach((s, i) => this._tone(this._note(s, 262), t + i * 0.2, i === 3 ? 0.7 : 0.22, 'sawtooth', 0.12, null, i === 3 ? -40 : 0)); break;
       case 'vacuum': this._tone(110, t, 0.5, 'sawtooth', 0.12, null, 30); break;
       case 'ko': this._tone(90, t, 1.2, 'sine', 0.4, null, -70); this._noise(t, 0.4, 0.3); break;
+      case 'warp': this._noise(t, 0.9, 0.18); this._tone(220, t, 0.9, 'triangle', 0.14, null, 900); [0, 4, 7, 12].forEach((n, i) => this._tone(this._note(n + 12, 262), t + 0.15 + i * 0.12, 0.25, 'sine', 0.1)); break;
       case 'portal': [0, 7, 12].forEach((s, i) => this._tone(this._note(s, 262), t + i * 0.06, 0.4, 'sine', 0.2)); break;
       // Fähigkeiten
       case 'whirl': this._noise(t, 0.45, 0.18); this._tone(260, t, 0.45, 'triangle', 0.12, null, 520); break;

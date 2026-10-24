@@ -2,7 +2,7 @@
 // Baustelle mit Gerüst im Osten, Brunnenplatz mit Wasserfontänen und Eisdiele im Westen, Bahnhof im Süden.
 import * as THREE from 'three';
 import { Cat, Pigeon } from '../bosses.js';
-import { box, cyl, cone, sphere, makeLabel, makeNpcDog, makeRoundTree } from '../models.js';
+import { box, cyl, cone, sphere, makeSign, makeNpcDog, makeRoundTree } from '../models.js';
 
 const WALK = 0xbdbdbd, ROAD = 0x5a5a5a, STEEL = 0x95a5a6, WOOD = 0x7a4a1f;
 
@@ -51,7 +51,7 @@ export const STRASSE = {
     l.zone(0, -110, 55, () => {
       l.box(0, 0, -112, 44, 18, 28, 0xdfe6e9); l.box(0, 18, -112, 46, 0.6, 30, 0x636e72);
       for (let i = 0; i < 3; i++) for (let k = -3; k <= 3; k++) l.deco(box(4, 2.4, 0.2, 0x74b9ff), k * 6, 3 + i * 5.5, -97.9);
-      const s = makeLabel('KAUFHAUS'); s.scale.set(8, 2, 1); l.deco(s, 0, 20.5, -97);
+      l.deco(makeSign('KAUFHAUS', { w: 10, post: 0.4 }), 0, 18.6, -99);
       l.door(0, 0, -97.6, { x: 2000, y: 0.2, z: 11, yaw: Math.PI }, { label: 'Eingang', frame: 0x2d3436 });
       [[-30, -90], [30, -90], [-30, -130], [30, -130]].forEach(([x, z]) => l.tree(x, z, 1.4, makeRoundTree(1.4)));
       l.warp(6, 0, -88, 'Kaufhaus', bench());
