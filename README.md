@@ -12,6 +12,9 @@ python3 -m http.server 8000
 ```
 Online spielen: **https://timo-hoen-ias.github.io/lab64/** – wird bei jedem Push auf `main` per GitHub Actions veröffentlicht (`.github/workflows/pages.yml`).
 
+### Als App auf Android installieren
+Moll64 ist eine PWA: In Chrome auf Android die Seite öffnen und im Menü auf **„App installieren“** tippen (oder auf den grünen Knopf **📲 App installieren** im Spielmenü). Die App startet dann im Vollbild und quer, läuft nach dem ersten Start auch offline (`manifest.webmanifest`, `sw.js`, `src/pwa.js`).
+
 ## Steuerung
 | | Tastatur | Gamepad | Touch |
 |---|---|---|---|
