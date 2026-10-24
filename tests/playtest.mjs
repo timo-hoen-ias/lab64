@@ -42,6 +42,13 @@ for (const mode of ['rattenrennen', 'albtraum']) {
 }
 await p.evaluate(() => window.game.enterLevel('hub')); await W(500);
 for (const id of ['huegel', 'geheim']) { const q = await p.evaluate(id => { const q = window.game.level.pickups.find(q => q.boneId === id); return [q.x, q.y, q.z]; }, id); await p.keyboard.down('KeyF'); await tp(q[0], q[1] - 0.6, q[2]); await W(400); await p.keyboard.up('KeyF'); }
+// Leerlauf: Moll legt sich hin, rollt, schläft – eine Taste weckt sie sofort
+await p.evaluate(() => { const pl = window.game.player; pl.pos.set(0, 0, 4); pl.vel.set(0, 0, 0); }); await W(400);
+const idle = [];
+for (const t of [10, 15.5, 30]) { await p.evaluate(t => { window.game.player.idleT = t; }, t); await W(2000); idle.push(await p.evaluate(() => { const q = window.game.player.mesh.userData.idlePose; return `platz ${q.down.toFixed(1)} rolle ${q.roll.toFixed(1)} schlaf ${q.sleep.toFixed(1)}`; })); }
+await p.keyboard.down('KeyW'); await W(400); await p.keyboard.up('KeyW');
+idle.push(await p.evaluate(() => { const q = window.game.player.mesh.userData.idlePose; return `wach: platz ${q.down.toFixed(1)} schlaf ${q.sleep.toFixed(1)}`; }));
+report.push('Leerlauf: ' + idle.join(' | '));
 const tot = await p.evaluate(() => window.game.boneCount());
 console.log(report.join('\n')); console.log(await p.evaluate(() => Object.keys(window.game.save.bones).join(' '))); console.log('Knochen gesamt:', tot, 'ERR:', JSON.stringify(errs));
 await p.evaluate(() => window.game.enterLevel('hub')); await W(800); await p.screenshot({ path: process.argv[2] + '/hub_progress.png' });
