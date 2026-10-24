@@ -147,13 +147,43 @@ export function makeClouds(n, radius, height, scale = 1) {
   return g;
 }
 
+// ---- Wasser-Look für Meer, Kanal und Teiche: Fresnel (flach betrachtet spiegelt es den Himmel, von oben sieht man hinein),
+// Sonnen-Glanzlicht auf feinen Kräuselwellen und Wellenringe (WATER.ripple), wenn Moll schwimmt, etwas hineinspringt oder es regnet.
+const RIPS = 12;
+export const WATER = {
+  uWT: { value: 0 }, uWSky: { value: new THREE.Color(0xbfe3ff) }, uWSun: { value: new THREE.Vector3(0.4, 0.8, 0.3).normalize() }, uWSunK: { value: 0 },
+  uRip: { value: Array.from({ length: RIPS }, () => new THREE.Vector4(0, 0, 9, 0)) }, _i: 0,
+  ripple(x, z, s = 1) { const r = this.uRip.value[this._i++ % RIPS]; r.set(x, z, 0, s); },
+  update(dt) { this.uWT.value += dt; for (const r of this.uRip.value) if (r.w > 0) { r.z += dt; if (r.z > 1.8) r.w = 0; } },
+};
+function waterLook(sh) {
+  Object.assign(sh.uniforms, { uWT: WATER.uWT, uWSky: WATER.uWSky, uWSun: WATER.uWSun, uWSunK: WATER.uWSunK, uRip: WATER.uRip });
+  sh.vertexShader = 'varying vec3 vWw;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vWw = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  sh.fragmentShader = `varying vec3 vWw; uniform float uWT, uWSunK; uniform vec3 uWSky, uWSun; uniform vec4 uRip[${RIPS}];\n` + sh.fragmentShader.replace('#include <opaque_fragment>', `
+    vec3 wN = normalize(cross(dFdx(vWw), dFdy(vWw))); if (wN.y < 0.0) wN = -wN;
+    vec2 q = vWw.xz;
+    wN = normalize(wN + vec3(sin(q.x * 2.1 + uWT * 2.3) * 0.05 + sin(q.y * 3.7 - uWT * 1.7) * 0.035, 0.0, cos(q.y * 2.4 + uWT * 2.0) * 0.05 + cos(q.x * 3.3 + uWT * 1.3) * 0.035));
+    float rip = 0.0;
+    for (int i = 0; i < ${RIPS}; i++) { vec4 r = uRip[i]; if (r.w <= 0.0) continue;
+      float d = length(q - r.xy), rad = 0.25 + r.z * 2.2, fade = (1.0 - r.z / 1.8) * r.w, e1 = (d - rad) * 6.0, e2 = (d - rad * 0.55) * 7.0;
+      rip += (exp(-e1 * e1) + exp(-e2 * e2) * 0.5) * fade; }
+    vec3 V = normalize(cameraPosition - vWw);
+    float top = gl_FrontFacing ? 1.0 : 0.0, F = top * (0.05 + 0.95 * pow(1.0 - max(dot(wN, V), 0.0), 4.0));
+    outgoingLight = mix(outgoingLight, uWSky, F * 0.6);
+    float rs = max(dot(reflect(-V, wN), uWSun), 0.0);
+    outgoingLight += vec3(1.0, 0.95, 0.8) * (pow(rs, 220.0) * 3.0 + pow(rs, 14.0) * 0.1) * uWSunK * top;
+    outgoingLight += vec3(0.92, 0.97, 1.0) * min(rip, 1.0) * 0.5;
+    diffuseColor.a = min(1.0, mix(diffuseColor.a, 1.0, F) + rip * 0.25);
+    #include <opaque_fragment>`);
+}
+
 // Wasser mit Wellen (Vertex-Animation im Shader des Lambert-Materials)
 export function makeWater(color, size) {
   const geo = new THREE.PlaneGeometry(size * 2.4, size * 2.4, 48, 48);
   const mat = new THREE.MeshLambertMaterial({ color, flatShading: true, emissive: color, emissiveIntensity: 0.15 });
   const uni = { uTime: { value: 0 } };
   mat.onBeforeCompile = sh => {
-    sh.uniforms.uTime = uni.uTime;
+    sh.uniforms.uTime = uni.uTime; waterLook(sh);
     sh.vertexShader = 'uniform float uTime;\nvarying vec2 vW;\n' + sh.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\n transformed.z += sin(position.x * 0.35 + uTime * 1.6) * 0.18 + cos(position.y * 0.3 + uTime * 1.2) * 0.14;\n vW = position.xy;');
     // Glitzern: helle Wellenkämme, die über das Wasser wandern
@@ -234,7 +264,7 @@ export const FX = {
   gold: (pt, pos) => { pt.burst(pos, { n: 40, color: [0xffcc33, 0xfff3a0, 0xffd700], speed: 7, up: 8, life: 1.4, size: 0.18, gravity: -6 }); pt.burst(pos, { n: 16, color: 0xffffff, speed: 10, up: 1, life: 0.5, size: 0.1, gravity: 0, flat: true }); pt.rings?.spawn(pos, 0xffd84a, 4.5, 0.7); pt.rings?.spawn(pos, 0xffffff, 2.5, 0.45); FX.confetti(pt, pos); },
   hit: (pt, pos) => { pt.burst(pos, { n: 18, color: [0xffffff, 0xffe066, 0xff6b6b], speed: 8, up: 3, life: 0.45, size: 0.22, gravity: -4 }); pt.rings?.spawn(pos, 0xffe066, 3.2, 0.35); },
   bite: (pt, pos) => pt.burst(pos, { n: 5, color: 0xffffff, speed: 3, up: 1, life: 0.25, size: 0.14, gravity: 0 }),
-  splash: (pt, pos) => pt.burst(pos, { n: 20, color: [0x9ad7ff, 0xffffff, 0x4fa3ff], speed: 3, up: 7, life: 0.8, size: 0.22, gravity: -18 }),
+  splash: (pt, pos) => { pt.burst(pos, { n: 20, color: [0x9ad7ff, 0xffffff, 0x4fa3ff], speed: 3, up: 7, life: 0.8, size: 0.22, gravity: -18 }); pt.burst(pos, { n: 14, color: 0xffffff, speed: 4.5, up: 3, life: 0.5, size: 0.1, gravity: -12 }); pt.burst(pos, { n: 10, color: 0xe8f6ff, speed: 2.4, up: 0.4, life: 0.6, size: 0.18, gravity: 0, drag: 3, flat: true }); WATER.ripple(pos.x, pos.z, 1.2); setTimeout(() => WATER.ripple(pos.x, pos.z, 0.7), 260); },
   confetti: (pt, pos) => pt.burst(pos, { n: 45, color: [0xff6b6b, 0xfeca57, 0x48dbfb, 0x1dd1a1, 0xff9ff3, 0xa29bfe, 0xffffff], speed: 7, up: 9, life: 2.2, size: 0.2, gravity: -5, drag: 2.5 }),
   petals: (pt, pos) => pt.burst(pos, { n: 2, color: [0xff9ff3, 0xffffff, 0xfeca57, 0x9ccc65], speed: 1.5, up: 2.2, life: 1.0, size: 0.12, gravity: -3, drag: 2.5 }),
   sparkle: (pt, pos) => pt.burst(pos, { n: 1, color: [0xfff3a0, 0xffffff], speed: 0.6, up: 1.2, life: 0.8, size: 0.14, gravity: 0, spread: 0.6 }),
@@ -245,7 +275,7 @@ export function makePond(rx, rz, depth = 1.8) {
   const g = new THREE.Group(), uni = { uTime: { value: 0 } };
   const wm = new THREE.MeshLambertMaterial({ color: 0x3fa9f5, transparent: true, opacity: 0.82, emissive: 0x1e6fb0, emissiveIntensity: 0.25, flatShading: true, side: THREE.DoubleSide }); // von unten sichtbar beim Tauchen
   wm.onBeforeCompile = sh => {
-    sh.uniforms.uTime = uni.uTime;
+    sh.uniforms.uTime = uni.uTime; waterLook(sh);
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\n transformed.z += sin(position.x * 4.0 + uTime * 2.0) * 0.012 + cos(position.y * 5.0 + uTime * 1.5) * 0.01;');
   };
