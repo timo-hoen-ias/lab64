@@ -11,7 +11,7 @@ export class Menu {
   constructor(game) {
     this.game = game; this.card = document.querySelector('#menu .card'); this.options = false;
     const st = game.save.settings;
-    st.music ??= 100; st.sfx ??= 100; st.vibration ??= true;
+    st.music ??= 100; st.sfx ??= 100; st.vibration ??= true; st.invertY ??= false;
     this._slider('optMusic', 'music'); this._slider('optSfx', 'sfx');
     $('optQuality').addEventListener('click', e => {
       const q = e.target.closest('button')?.dataset.q; if (!q) return;
@@ -21,6 +21,10 @@ export class Menu {
       const v = e.target.closest('button')?.dataset.v; if (v === undefined) return;
       game.save.settings.vibration = v === '1'; game.persist(); this.apply(); this.sync();
       if (v === '1') game.input.vibrate(120);
+    });
+    $('optInvert').addEventListener('click', e => {
+      const i = e.target.closest('button')?.dataset.i; if (i === undefined) return;
+      game.save.settings.invertY = i === '1'; game.persist(); this.apply(); this.sync();
     });
     $('btnOptions').addEventListener('click', () => this.show(true));
     $('btnBack').addEventListener('click', () => this.show(false));
@@ -49,6 +53,7 @@ export class Menu {
     const st = this.game.save.settings;
     this.game.audio.setVolume(st.music / 100, st.sfx / 100);
     this.game.input.noVibrate = !st.vibration;
+    this.game.input.invertY = !!st.invertY;
   }
   // Anzeige an den Spielstand anpassen
   sync() {
@@ -60,6 +65,7 @@ export class Menu {
     $('optQuality').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.q === st.quality));
     $('optQualityHint').textContent = QUALITY_HINT[st.quality] || '';
     $('optVibe').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === !!st.vibration));
+    $('optInvert').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.i === '1') === !!st.invertY));
   }
   show(options) {
     this.options = options; this.card.classList.toggle('opts', options); this.card.scrollTop = 0;

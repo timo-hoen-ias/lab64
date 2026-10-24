@@ -120,7 +120,7 @@ export class Input {
     const mx = dz(gp.axes[0] || 0), my = -dz(gp.axes[1] || 0);
     if (mx || my) { this.move.x = mx; this.move.y = my; }
     const cx = dz(gp.axes[2] || 0), cy = dz(gp.axes[3] || 0);
-    this.cam.x += cx * 0.05; this.cam.y += cy * 0.05;
+    this.cam.x += cx * 0.05; this.cam.y += cy * (this.invertY ? -0.05 : 0.05); // vertikal invertierbar (Optionen)
     const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
     this._gp = {
       jump: b(0), act: b(2), sniff: b(3) || b(4), spin: b(1) || b(7), bark: b(5) || b(6), pause: b(9),
