@@ -16,6 +16,34 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async hafen() {
+    await shot('hafen_start', null, 0.25);
+    await tp(5, 2.6, 22); await W(600); console.log('  tauchen:', await ev(() => window.game.has('tauchen')));
+    await grabBone('kletter'); await grabBone('kran'); await shot('hafen_kran', -1.2, 0.35);
+    await grabBone('mole'); await shot('hafen_mole', 0.4, 0.3);
+    // Fischmarkt über die Tür
+    await tp(-75.0, 2.2, -15); await W(900); console.log('  im Fischmarkt:', await ev(() => window.game.player.pos.x > 2900));
+    await shot('hafen_markt', null, 0.3); await grabBone('markt'); await grabAll("q.kind === 'crumb' && q.x > 2900 && q.x < 3200");
+    await tp(3000, 0.2, 13.8); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    // Frachter: Laderaum
+    await tp(44.6, 6.6, 92); await W(900); console.log('  im Laderaum:', await ev(() => window.game.player.pos.x > 3200));
+    await shot('hafen_laderaum', null, 0.3); await grabBone('laderaum'); await grabAll("q.kind === 'crumb' && q.x > 3200");
+    await tp(3300, 0.2, 11.8); await W(900); console.log('  an Deck:', await ev(() => window.game.player.pos.x < 500 && window.game.player.pos.y > 5));
+    // Anker tauchen
+    await grabBone('anker'); await shot('hafen_anker', 0.8, 0.1);
+    // Bojen
+    for (const [x, z] of [[-5, 45], [10, 60], [25, 72], [15, 88], [-2, 100]]) { await tp(x, 0.6, z); await W(400); }
+    await W(500); await grabBone('bojen');
+    // Geheim
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
+    // Fische (versteckt) mit Nase
+    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], q[1] - 0.3, q[2]); await W(450); }
+    await p.keyboard.up('KeyF'); console.log('  Fische:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    await W(2500); await tp(0, 2.2, 10); await W(800); await shot('hafen_boss', 0, 0.3);
+    for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
+    await W(1500); await grabBone('boss');
+  },
   async park() {
     await shot('park_start', null, 0.25);
     await grabBone('kletter'); await grabBone('turm'); await shot('park_turm', 0.6, 0.35);
