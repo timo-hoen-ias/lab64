@@ -11,7 +11,7 @@ for (const key of ['kueche', 'strasse', 'buero', 'park', 'hafen', 'dorf', 'kanal
   await p.evaluate(k => window.game.enterLevel(k), key); await W(400);
   const info = await p.evaluate(() => { const l = window.game.level; return { crumbs: l.crumbTotal, cr: l.pickups.filter(q => !q.goal && q.kind !== 'goldbone').map(q => [q.x, q.y, q.z]) }; });
   // alle Krümel einsammeln
-  for (const [x, y, z] of info.cr) { await tp(x, y - 0.3, z); await W(260); }
+  for (const [x, y, z] of info.cr) { await tp(x, y - 0.3, z); await W(380); }
   await W(300);
   const k = await p.evaluate(() => { const l = window.game.level; const b = l.pickups.find(q => q.boneId === 'kruemel'); return { have: l.crumbHave, b: b && [b.x, b.y, b.z] }; });
   if (k.b) { await tp(k.b[0], k.b[1] - 0.5, k.b[2]); await W(300); }

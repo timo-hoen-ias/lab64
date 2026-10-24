@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, cyl, sphere } from './models.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, toonGradient, FX } from './fx.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, toonGradient, FX } from './fx.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -12,11 +12,19 @@ export class Level {
   constructor(game, def, key) {
     this.game = game; this.def = def; this.key = key; this._scatter = [];
     this.scene = new THREE.Scene();
-    const dark = new THREE.Color(def.sky || 0x6fc3ff).getHSL({}).l < 0.35;
-    this.sky = makeSky(def.sky || 0x6fc3ff, dark); this.scene.add(this.sky.mesh);
+    const dark = new THREE.Color(def.sky || 0x6fc3ff).getHSL({}).l < 0.35, out = !def.indoor, q = game.q;
+    // Außenwelten: Himmel mit Sonne und Tageszeit, Fernsicht mit Kulisse, zwei Wolkenschichten, Vögel
+    this.sky = makeSky(def.sky || 0x6fc3ff, dark, out ? def.time || 'mittag' : null); this.scene.add(this.sky.mesh); this.T = this.sky.T;
     this.scene.background = this.sky.horizon.clone();
-    this.scene.fog = new THREE.Fog(this.sky.horizon, def.fogNear || 40, def.fogFar || 110);
-    if (!def.indoor) { this.clouds = makeClouds(Math.round((def.size || 40) / 3), (def.size || 40) * 1.8, 38); this.scene.add(this.clouds); }
+    this.scene.fog = out ? new THREE.Fog(this.sky.horizon, def.fogNear || 50, def.fogFar || q.fog) : new THREE.Fog(this.sky.horizon, def.fogNear || 40, def.fogFar || 110);
+    this.follow = [this.sky.mesh];
+    if (out) {
+      const size = def.size || 40, k = this.T.clouds;
+      this.clouds = makeClouds(Math.round(size / 3 * k), size * 1.8, 38); this.scene.add(this.clouds);
+      this.farClouds = makeClouds(Math.round(12 * k), 330, 60, 4.5); this.scene.add(this.farClouds);
+      if (def.backdrop) { this.backdrop = makeBackdrop(def.backdrop, this.sky.horizon, this.sky.top); this.scene.add(this.backdrop); this.follow.push(this.backdrop); }
+      this.skyLife = makeSkyLife(160); this.scene.add(this.skyLife);
+    }
     this.solids = []; this.pickups = []; this.enemies = []; this.portals = []; this.interact = []; this.hideSpots = [];
     this.terrain = []; this.zones = []; this.doors = []; this.killY = def.killY ?? -25;
     this.bounds = this.mainArea = { min: { x: -(def.size || 40), z: -(def.size || 40) }, max: { x: def.size || 40, z: def.size || 40 } };
@@ -29,14 +37,16 @@ export class Level {
     def.build(this);
     this._placeScatter();
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
+    if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
     this.crumbTotal = this.pickups.filter(p => !p.goal && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
 
   _light() {
-    this.scene.add(new THREE.HemisphereLight(0xdff1ff, 0x8a6b3f, 1.3));
+    const T = this.T;
+    this.scene.add(new THREE.HemisphereLight(0xdff1ff, 0x8a6b3f, T ? T.hemi : 1.3));
     // Sonne folgt dem Hund: kleiner Schattenbereich = scharfe Schatten auch auf großen Karten
-    const sun = new THREE.DirectionalLight(0xfff0d0, 2.4); sun.castShadow = true; this.sunOff = new THREE.Vector3(18, 34, 12);
+    const sun = new THREE.DirectionalLight(T ? T.sun : 0xfff0d0, T ? T.sunI : 2.4); sun.castShadow = true; this.sunOff = new THREE.Vector3(...(T ? T.sunOff : [18, 34, 12])).normalize().multiplyScalar(41);
     sun.shadow.mapSize.set(1024, 1024); const s = 26; sun.shadow.camera.left = -s; sun.shadow.camera.right = s; sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s; sun.shadow.camera.far = 90;
     sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
     this.scene.add(sun, sun.target); this.sun = sun;
@@ -47,6 +57,11 @@ export class Level {
     if (this.def.water) { g = makeWater(color, size); this.water = g; }
     else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; }
     g.receiveShadow = true; this.scene.add(g); this.groundMesh = g;
+    // Weiter Boden bis zum Horizont (ohne Kollision), damit man auf großen Sichtweiten keine Kante sieht
+    if (!this.def.indoor && !this.def.water) {
+      const far = new THREE.Mesh(new THREE.RingGeometry(size * 1.2, 520, 64, 1), new THREE.MeshToonMaterial({ color: this.def.farGround ?? color, gradientMap: toonGradient() }));
+      far.rotation.x = -Math.PI / 2; far.position.y = -0.03; far.receiveShadow = true; this.scene.add(far);
+    }
     this.groundSolid = { min: { x: -size * 1.2, y: -5, z: -size * 1.2 }, max: { x: size * 1.2, y: 0, z: size * 1.2 }, active: true };
     this.solids.push(this.groundSolid);
   }
@@ -159,6 +174,19 @@ export class Level {
     this.bounds = this.areaAt(to.x, to.z); this.game.snapCam = true; this.game.fade(); this.game.audio.sfx('portal'); this._doorCd = 0.8;
   }
 
+  // Gras auf freiem Boden und Hügeln (nicht in Kisten, nicht im Wasser), Dichte je Grafik-Stufe
+  _plantGrass(colors) {
+    const n = this.game.q.grass, b = this.mainArea, pts = [];
+    for (let i = 0; i < n * 4 && pts.length < n; i++) {
+      const x = b.min.x + Math.random() * (b.max.x - b.min.x), z = b.min.z + Math.random() * (b.max.z - b.min.z);
+      if (this.waterAt(x, z) !== null || (this.def.hazard && this.def.hazard(x, z))) continue;
+      const th = this.heightAt(x, z); let top = th > -Infinity ? th : 0, blocked = false;
+      for (const s of this.solids) if (s.active && s.mesh && x > s.min.x - 0.2 && x < s.max.x + 0.2 && z > s.min.z - 0.2 && z < s.max.z + 0.2 && s.max.y > top - 0.05) { blocked = true; break; }
+      if (!blocked && (th > -Infinity || this.groundAt(x, z, 0.1) > -0.1)) pts.push([x, top, z]);
+    }
+    this.grass = makeGrass(pts, colors); this.scene.add(this.grass);
+  }
+
   // Statische Kisten gleicher Farbe zu einem Mesh zusammenfassen: viel weniger Zeichenaufrufe auf großen Karten
   _mergeStatic(group) {
     const buckets = new Map();
@@ -251,8 +279,12 @@ export class Level {
     this.t += dt;
     const pl = this.game.player, pp = pl.pos;
     this.sun.position.copy(pp).add(this.sunOff); this.sun.target.position.copy(pp);
-    this.sky.mesh.position.copy(this.game.camera.position);
+    const cp = this.game.camera.position;
+    this.sky.mesh.position.copy(cp); if (this.backdrop) this.backdrop.position.set(cp.x, 0, cp.z);
     if (this.clouds) this.clouds.userData.update(dt);
+    if (this.farClouds) { this.farClouds.userData.update(dt * 0.3); this.farClouds.position.set(cp.x, 0, cp.z); }
+    if (this.skyLife) this.skyLife.userData.update(dt, this.t);
+    if (this.grass) this.grass.userData.update(dt);
     if (this.water) this.water.userData.update(dt);
     for (const p of this.ponds || []) p.mesh.userData.update(dt);
     // Ferne Bereiche ausblenden (Sichtweite je Grafik-Stufe)

@@ -11,9 +11,9 @@ import { Particles } from './fx.js';
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
 const QUALITY = {
-  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220 },
-  mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150 },
-  niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95 },
+  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220, fog: 330, grass: 3500 },
+  mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150, fog: 240, grass: 1600 },
+  niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500 },
 };
 const QUALITY_ORDER = ['hoch', 'mittel', 'niedrig'];
 
@@ -65,6 +65,7 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.ratio));
     if (this.renderer.shadowMap.enabled !== q.shadows) { this.renderer.shadowMap.enabled = q.shadows; this.level?.scene?.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); }); }
     if (this.level?.sun) this._sunQuality(this.level.sun);
+    if (this.level?.scene?.fog && this.level.def && !this.level.def.indoor && !this.level.def.fogFar) this.level.scene.fog.far = q.fog;
     const b = document.getElementById('btnQuality'); if (b) b.textContent = `Grafik: ${q.name}`;
     this.resize?.();
   }
