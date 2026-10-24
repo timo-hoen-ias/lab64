@@ -130,3 +130,47 @@ export const FX = {
   splash: (pt, pos) => pt.burst(pos, { n: 20, color: [0x9ad7ff, 0xffffff, 0x4fa3ff], speed: 3, up: 7, life: 0.8, size: 0.22, gravity: -18 }),
   sparkle: (pt, pos) => pt.burst(pos, { n: 1, color: [0xfff3a0, 0xffffff], speed: 0.6, up: 1.2, life: 0.8, size: 0.14, gravity: 0, spread: 0.6 }),
 };
+
+// Teich: Wasserfläche als Ellipse mit leichten Wellen, dazu Becken (Wand + Grund)
+export function makePond(rx, rz, depth = 1.8) {
+  const g = new THREE.Group(), uni = { uTime: { value: 0 } };
+  const wm = new THREE.MeshLambertMaterial({ color: 0x3fa9f5, transparent: true, opacity: 0.82, emissive: 0x1e6fb0, emissiveIntensity: 0.25, flatShading: true });
+  wm.onBeforeCompile = sh => {
+    sh.uniforms.uTime = uni.uTime;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n transformed.z += sin(position.x * 4.0 + uTime * 2.0) * 0.012 + cos(position.y * 5.0 + uTime * 1.5) * 0.01;');
+  };
+  const water = new THREE.Mesh(new THREE.RingGeometry(0, 1, 48, 6), wm); // Ring mit Radius 0 = Scheibe mit mehr Vertices für Wellen
+  water.rotation.x = -Math.PI / 2; water.scale.set(rx, rz, 1); water.position.y = -0.25; water.renderOrder = 2; g.add(water);
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, depth, 40, 1, true), new THREE.MeshToonMaterial({ color: 0x8d7b5a, gradientMap: toonGradient(), side: THREE.BackSide }));
+  wall.scale.set(rx, 1, rz); wall.position.y = -depth / 2; g.add(wall);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshToonMaterial({ color: 0xd8c38a, gradientMap: toonGradient() }));
+  floor.rotation.x = -Math.PI / 2; floor.scale.set(rx, rz, 1); floor.position.y = -depth + 0.01; g.add(floor);
+  g.userData.update = dt => { uni.uTime.value += dt; };
+  return g;
+}
+
+// Portal-Scheibe: Spiralstrudel in der Weltfarbe (Shader)
+export function makePortalDisk(color, r = 1.45) {
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uLocked: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: `uniform float uTime; uniform vec3 uColor; uniform float uLocked; varying vec2 vUv;
+      void main(){
+        vec2 p = vUv * 2.0 - 1.0; float r = length(p); if (r > 1.0) discard;
+        float a = atan(p.y, p.x);
+        float sp = sin(a * 3.0 + r * 10.0 - uTime * 3.0) * 0.5 + 0.5;
+        float sp2 = sin(a * 5.0 - r * 14.0 + uTime * 2.0) * 0.5 + 0.5;
+        vec3 c = mix(uColor * 0.6, mix(uColor, vec3(1.0), 0.6), sp * 0.7 + sp2 * 0.3);
+        c += vec3(1.0) * pow(1.0 - r, 3.0) * 0.8;
+        vec3 grey = vec3(dot(c, vec3(0.3, 0.59, 0.11))) * 0.45;
+        c = mix(c, grey, uLocked);
+        float alpha = mix(0.92, 0.6, uLocked) * smoothstep(1.0, 0.85, r);
+        gl_FragColor = vec4(c, alpha);
+      }`,
+  });
+  const m = new THREE.Mesh(new THREE.CircleGeometry(r, 40), mat);
+  m.userData.update = (dt, locked) => { mat.uniforms.uTime.value += dt * (locked ? 0.25 : 1); mat.uniforms.uLocked.value = locked ? 1 : 0; };
+  return m;
+}

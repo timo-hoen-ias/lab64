@@ -1,8 +1,8 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
 import { BONES } from './levels.js';
-import { box, makeFood, makeLabel, makeTree, makeBush, cyl } from './models.js';
-import { makeSky, makeClouds, makeWater, toonGradient, FX } from './fx.js';
+import { box, makeFood, makeLabel, makeTree, makeBush, cyl, sphere } from './models.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, toonGradient, FX } from './fx.js';
 
 export class Level {
   constructor(game, def, key) {
@@ -39,9 +39,32 @@ export class Level {
     let g;
     if (this.def.water) { g = makeWater(color, size); this.water = g; }
     else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; }
-    g.receiveShadow = true; this.scene.add(g);
-    this.solids.push({ min: { x: -size * 1.2, y: -5, z: -size * 1.2 }, max: { x: size * 1.2, y: 0, z: size * 1.2 }, active: true });
+    g.receiveShadow = true; this.scene.add(g); this.groundMesh = g;
+    this.groundSolid = { min: { x: -size * 1.2, y: -5, z: -size * 1.2 }, max: { x: size * 1.2, y: 0, z: size * 1.2 }, active: true };
+    this.solids.push(this.groundSolid);
   }
+
+  // Schwimmteich (Ellipse): Loch im Boden, Becken, Wasser. Moll schwimmt darin (siehe Player).
+  pond(x, z, rx, rz, depth = 1.8) {
+    const size = (this.def.size || 40) * 1.2, color = this.groundMesh.material.color;
+    // Boden neu: Rechteck mit elliptischem Loch
+    const shape = new THREE.Shape(); shape.moveTo(-size, -size); shape.lineTo(size, -size); shape.lineTo(size, size); shape.lineTo(-size, size); shape.lineTo(-size, -size);
+    const hole = new THREE.Path(); hole.absellipse(x, -z, rx, rz, 0, Math.PI * 2, false, 0); shape.holes.push(hole);
+    this.groundMesh.geometry.dispose(); this.groundMesh.geometry = new THREE.ShapeGeometry(shape, 48);
+    // Kollision: Boden in Streifen um die Ellipse herum, Beckengrund tiefer
+    this.solids.splice(this.solids.indexOf(this.groundSolid), 1);
+    const add = (x0, x1, z0, z1, top = 0) => { if (x1 > x0 && z1 > z0) this.solids.push({ min: { x: x0, y: -5, z: z0 }, max: { x: x1, y: top, z: z1 }, active: true }); };
+    add(-size, size, -size, z - rz); add(-size, size, z + rz, size);
+    const strips = 24, h = rz * 2 / strips;
+    for (let i = 0; i < strips; i++) {
+      const z0 = z - rz + i * h, zc = Math.max(Math.abs(z0 - z), Math.abs(z0 + h - z)), half = rx * Math.sqrt(Math.max(0, 1 - (zc / rz) ** 2));
+      add(-size, x - half, z0, z0 + h); add(x + half, size, z0, z0 + h);
+    }
+    add(x - rx, x + rx, z - rz, z + rz, -depth);
+    const p = makePond(rx, rz, depth); p.position.set(x, 0, z); this.scene.add(p);
+    this.ponds = (this.ponds || []).concat({ x, z, rx, rz, y: -0.25, mesh: p });
+  }
+  waterAt(x, z) { for (const p of this.ponds || []) if (((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2 < 1) return p.y; return null; }
 
   // Fester Block: x,y,z = Mittelpunkt (y = Unterkante), w,h,d
   box(x, y, z, w, h, d, color, opts = {}) {
@@ -67,19 +90,42 @@ export class Level {
     this.pickups.push(p); return p;
   }
 
+  // Portal: Steinsockel, zwei Säulen, Runenring mit Strudel; verschlossen = grau mit Vorhängeschloss
   portal(x, z, text, target, color = 0xffcc33, need = 0) {
-    const g = new THREE.Group();
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.25, 8, 20), new THREE.MeshLambertMaterial({ color }));
-    ring.position.y = 1.9; g.add(ring);
-    const disk = new THREE.Mesh(new THREE.CircleGeometry(1.4, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
-    disk.position.y = 1.9; g.add(disk);
-    // Wirbel im Ring
-    const swirl = new THREE.Group(); swirl.position.y = 1.9; g.add(swirl);
-    for (let i = 0; i < 3; i++) { const arc = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.35, 0.05, 4, 16, Math.PI * 1.2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 - i * 0.12, side: THREE.DoubleSide })); arc.rotation.z = i * 2.1; swirl.add(arc); }
-    g.position.set(x, 0, z); this.group.add(g);
-    const prog = this.game.levelProgress(target); const locked = need > this.game.boneCount();
-    const lab = makeLabel(locked ? `${text} 🔒${need}` : `${text} ${prog.have}/${prog.total}`); lab.scale.set(6, 1.5, 1); lab.position.set(0, 4.6, 0); g.add(lab);
-    this.portals.push({ x, z, target, group: g, disk, need, ring, swirl });
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = Math.atan2(-x, -z); // schaut zur Gartenmitte
+    g.add(cyl(2.3, 2.5, 0.3, 0xb8b0a0, 0, 0.15, 0, 10)); g.add(cyl(1.9, 2.1, 0.15, 0xd6cfc0, 0, 0.37, 0, 10));
+    const orbs = [];
+    [-1, 1].forEach(sx => {
+      g.add(box(0.45, 3.4, 0.45, 0xcfc6b4, sx * 2.05, 2.0, 0)); g.add(box(0.7, 0.3, 0.7, 0xb8b0a0, sx * 2.05, 0.45, 0)); g.add(box(0.7, 0.25, 0.7, 0xb8b0a0, sx * 2.05, 3.8, 0));
+      const orb = sphere(0.3, color, sx * 2.05, 4.25, 0, 10); orb.material.emissive = new THREE.Color(color).multiplyScalar(0.6); g.add(orb); orbs.push(orb);
+    });
+    const ring = new THREE.Group(); ring.position.y = 2.2; g.add(ring);
+    ring.add(new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.2, 8, 32), new THREE.MeshToonMaterial({ color: 0x9a9080, gradientMap: toonGradient() })));
+    const gems = [];
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, gm = box(0.26, 0.26, 0.5, color, Math.cos(a) * 1.6, Math.sin(a) * 1.6, 0); gm.rotation.z = a + Math.PI / 4; gm.castShadow = false;
+      gm.material.emissive = new THREE.Color(color).multiplyScalar(0.5); ring.add(gm); gems.push(gm);
+    }
+    const disk = makePortalDisk(color); ring.add(disk);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 2.0, 7, 20, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    beam.position.y = 3.5; g.add(beam);
+    const lock = new THREE.Group(); lock.position.set(0, 2.0, 0.35); g.add(lock);
+    lock.add(box(0.9, 0.75, 0.3, 0x8a8f99)); const sh = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 6, 12, Math.PI), new THREE.MeshToonMaterial({ color: 0x8a8f99, gradientMap: toonGradient() })); sh.position.y = 0.37; lock.add(sh);
+    lock.add(box(0.12, 0.25, 0.05, 0x333333, 0, -0.05, 0.16));
+    const prog = this.game.levelProgress(target);
+    const crown = sphere(0.35, 0xffcc33, 0, 5.0, 0, 4); crown.material.emissive = new THREE.Color(0x8a5a00); crown.visible = prog.total > 0 && prog.have === prog.total; g.add(crown); // alles gesammelt
+    this.group.add(g);
+    const po = { x, z, target, text, group: g, disk, need, ring, gems, orbs, beam, lock, crown, color: new THREE.Color(color), locked: null };
+    this.portals.push(po); this._portalState(po);
+  }
+  _portalState(po) {
+    const locked = po.need > this.game.boneCount(); if (locked === po.locked) return; po.locked = locked;
+    const c = locked ? new THREE.Color(0x777777) : po.color;
+    [...po.gems, ...po.orbs].forEach(m => { m.material.color.copy(c); m.material.emissive.copy(c).multiplyScalar(locked ? 0.1 : 0.5); });
+    po.beam.visible = !locked; po.lock.visible = locked;
+    const prog = this.game.levelProgress(po.target);
+    if (po.label) po.group.remove(po.label);
+    po.label = makeLabel(locked ? `${po.text} 🔒${po.need}` : `${po.text} ${prog.have}/${prog.total}`); po.label.scale.set(6, 1.5, 1); po.label.position.set(0, 5.8, 0); po.group.add(po.label);
   }
 
   // Interaktion in Reichweite (Schublade etc.)
@@ -102,6 +148,7 @@ export class Level {
     this.sky.mesh.position.copy(this.game.camera.position);
     if (this.clouds) this.clouds.userData.update(dt);
     if (this.water) this.water.userData.update(dt);
+    for (const p of this.ponds || []) p.mesh.userData.update(dt);
     // Sammeln
     let nearestHidden = null, nd = 1e9;
     for (const p of this.pickups) {
@@ -126,13 +173,15 @@ export class Level {
     this.game.sniffHint(pl.sniffing ? nearestHidden : null, nd);
     // Portale
     for (const po of this.portals) {
-      const locked = po.need > this.game.boneCount(); po.ring.material.color.set(locked ? 0x777777 : 0xffcc33);
-      po.ring.rotation.z += dt * 0.6; po.disk.material.opacity = 0.3 + Math.sin(this.t * 3) * 0.1;
-      po.group.rotation.y = Math.atan2(this.game.camera.position.x - po.x, this.game.camera.position.z - po.z); // Ring schaut zur Kamera
-      po.swirl.rotation.z -= dt * (locked ? 0.4 : 3); po.swirl.visible = !locked;
-      if (!locked && Math.random() < dt * 6) FX.sparkle(this.game.fx, { x: po.x + (Math.random() - 0.5) * 2.4, y: 0.6 + Math.random() * 2.6, z: po.z });
+      this._portalState(po); const locked = po.locked;
+      po.disk.userData.update(dt, locked);
+      po.gems.forEach((gm, i) => gm.scale.setScalar(locked ? 1 : 1 + Math.max(0, Math.sin(this.t * 4 - i * 0.52)) * 0.35)); // Lauflicht
+      po.orbs.forEach((o, i) => { o.position.y = 4.25 + Math.sin(this.t * 2 + i) * 0.08; });
+      po.lock.rotation.z = Math.sin(this.t * 2) * 0.12; po.crown.rotation.y += dt * 2;
+      po.beam.material.opacity = 0.1 + Math.sin(this.t * 2.5) * 0.04;
+      if (!locked && Math.random() < dt * 8) this.game.fx.burst({ x: po.x + (Math.random() - 0.5) * 3, y: 0.5, z: po.z + (Math.random() - 0.5) * 3 }, { n: 1, color: [po.color.getHex(), 0xffffff], speed: 0.2, up: 2.2, life: 1.4, size: 0.12, gravity: 0, drag: 0 });
       if (Math.hypot(po.x - pp.x, po.z - pp.z) < 1.3 && pp.y < 3) {
-        if (locked) { this.game.toast(`Verschlossen – ${po.need} Goldknochen nötig`); pl.vel.z -= 5; pl.vel.x -= 5; }
+        if (locked) { this.game.toast(`Verschlossen – ${po.need} Goldknochen nötig`); const dx = pp.x - po.x, dz = pp.z - po.z, l = Math.hypot(dx, dz) || 1; pl.vel.x += dx / l * 9; pl.vel.z += dz / l * 9; }
         else this.game.enterLevel(po.target);
       }
     }

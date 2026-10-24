@@ -191,6 +191,7 @@ export class AudioEngine {
       case 'land': this._noise(t, 0.06, 0.15); break;
       case 'collect': this._tone(880, t, 0.08, 'square', 0.15); this._tone(1320, t + 0.08, 0.14, 'square', 0.15); break;
       case 'big': [0, 4, 7, 12, 16].forEach((s, i) => this._tone(this._note(s, 440), t + i * 0.08, 0.3, 'triangle', 0.2)); break;
+      case 'splash': this._noise(t, 0.35, 0.3); this._tone(600, t, 0.2, 'sine', 0.12, null, -450); break;
       case 'chomp': // Zähne schnappen zu: zwei Klacks + dumpfer Biss
         this._click(t, 0.5); this._click(t + 0.07, 0.7); this._tone(180, t + 0.06, 0.12, 'sine', 0.3, null, -110); this._noise(t + 0.06, 0.05, 0.12); break;
       case 'bark': this._tone(220, t, 0.08, 'sawtooth', 0.25, null, -120); this._noise(t, 0.08, 0.2); break;
