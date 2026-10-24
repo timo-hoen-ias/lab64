@@ -20,6 +20,18 @@ export const SONGS = {
     drums: { kick: [0, 4], snare: [2, 6], click: [1, 3, 5, 7] },
     stops: { 3: null, 4: 2 },
   },
+  // Hauptmenü: schließt nahtlos ans Intro an (gleiche Tonart, beginnt mit dem Auftakt aus dem Intro-Motiv), gemütlich, läuft in Schleife
+  menu: {
+    bpm: 116, swing: 0.08,
+    chords: 'C Am F G7 C Am Dm7 G7 | F G7 Em A7 Dm7 G7 C G7',
+    mel: `g4 - c5 e5 g5 _ e5 c5 | a4 - c5 e5 a5 _ g5 e5 | f5 - a5 c6 a5 - f5 - | g5 _ f5 d5 b4 - d5 - |
+          e5 - g5 c6 e6 _ d6 c6 | c6 - a5 e5 c6 _ b5 a5 | f5 - a5 - c6 - a5 f5 | g5 _ _ - g4 - - - |
+          a5 _ g5 a5 c6 - a5 - | b5 _ a5 b5 d6 - b5 - | g5 - e5 g5 b5 _ a5 g5 | c#6 _ a5 - e5 - g5 - |
+          f5 - d5 f5 a5 _ g5 f5 | d5 - f5 a5 b5 - d6 - | c6 _ g5 e5 c5 e5 g5 c6 | b5 - g5 - f5 d5 b4 g4`,
+    inst: { lead: 'marimba', harm: 'banjo', soft: 'clarinet', water: 'vibes', comp: 'banjo', bass: 'tuba' },
+    bass: [0, _, 7, _, 0, _, 7, 'A'], comp: [2, 6],
+    drums: { kick: [0, 4], click: [2, 6], shaker: [0, 1, 2, 3, 4, 5, 6, 7] },
+  },
   // Molls Garten (Hub): fröhlich, Banjo und Tuba, kleine chromatische Frechheiten
   garden: {
     bpm: 120, swing: 0.07,
