@@ -29,7 +29,7 @@ export const BONES = {
   kanal: ['boss', 'kruemel', 'geheim', 'kletter', 'pumpe', 'rohre', 'becken', 'gully', 'nest', 'lampen', 'tornado'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
-export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Hochhaus', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
+export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Das Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
 
 export const LEVELS = {
   strand: STRAND,

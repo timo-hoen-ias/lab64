@@ -68,7 +68,7 @@ export const SONGS = {
     bass: [0, _, 4, _, 7, _, 9, 'A'], comp: [1, 3, 5, 7],
     drums: { kick: [0, 3, 4], snare: [2, 6], hat: [0, 1, 2, 3, 4, 5, 6, 7] },
   },
-  // Hochhaus/Büro: jazzig, E-Piano, Besen-Schlagzeug, Swing
+  // Das Büro (Amt): jazzig, E-Piano, Besen-Schlagzeug, Swing
   office: {
     bpm: 112, swing: 0.13,
     chords: 'Dm7 G7 Dm7 G7 Em7,A7 Dm7,G7 Cmaj7 A7 | Fmaj7 Fm7,Bb7 Em7 A7 Dm7 G7 Cmaj7 A7',

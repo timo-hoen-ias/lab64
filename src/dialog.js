@@ -9,7 +9,7 @@ export const VOICES = {
   Moll: { base: 330, wave: 'square', formant: 1.15, range: 5, speed: 1.15, dur: 0.07, slide: 0.2, vol: 0.56, face: '🐶', color: '#a0561b' },
   'Opa Bruno': { base: 118, wave: 'sawtooth', formant: 0.85, range: 4, speed: 0.85, dur: 0.12, vib: 0.03, vibRate: 7, slide: 0.1, vol: 1.26, face: '👴', color: '#2e7d32' },
   Zwergenkönig: { base: 560, wave: 'triangle', formant: 1.45, range: 6, speed: 1.25, dur: 0.06, slide: 0.25, vol: 0.87, face: '👑', color: '#c0392b' },
-  'Chef Bruno': { base: 140, wave: 'sawtooth', formant: 0.95, range: 3, speed: 1.2, dur: 0.08, slide: -0.08, vol: 1.26, face: '💼', color: '#2d3436' },
+  'Amtsleiter Bruno': { base: 140, wave: 'sawtooth', formant: 0.95, range: 3, speed: 1.2, dur: 0.08, slide: -0.08, vol: 1.26, face: '💼', color: '#2d3436' },
   Kaffeemaschine: { base: 200, wave: 'square', formant: 1, range: 0, speed: 0.95, dur: 0.09, slide: 0, dry: 0.4, vol: 1.04, face: '☕', color: '#6d4c41' },
   'Bäcker Bruno': { base: 175, wave: 'triangle', formant: 0.95, range: 5, speed: 1, dur: 0.1, slide: 0.15, vol: 2.4, face: '🥨', color: '#d4a373' },
   'Bauer Bernd': { base: 125, wave: 'sawtooth', formant: 1.05, range: 4, speed: 0.95, dur: 0.1, slide: 0.18, vol: 1.26, face: '🌾', color: '#388e3c' },
@@ -130,16 +130,18 @@ export const TALKS = {
   },
   'bruno.bauchklatscher': {
     first: [
-      [B, 'Puh … zwölf Stockwerke! Mit dem Aufzug zwar, aber trotzdem anstrengend.'],
-      [M, 'Opa, was machst du denn in einem Bürohaus?'],
-      [B, 'Ich war hier mal Wachhund. Dreißig Jahre lang! Ich hab genau einen Einbrecher erwischt: mich selbst, am Kühlschrank.'],
+      [B, 'Puh … ich warte hier schon seit Dienstag. Meine Nummer ist 4711, aufgerufen wird gerade die 12.'],
+      [M, 'Opa, was machst du denn auf einem Amt?'],
+      [B, 'Ich beantrage einen Antrag. Damit ich nächste Woche den richtigen Antrag beantragen darf. So läuft das hier.'],
+      [B, 'Und weil das dauert, bring ich dir solange was bei. Das Warten muss sich ja lohnen!'],
       [B, 'Heute lernst du den Bauchklatscher. Spring hoch, drück in der Luft BISS – und dann PLUMPS, mit vollem Gewicht nach unten!'],
       [M, 'Mit vollem Gewicht? Ich bin doch federleicht!'],
-      [B, 'Nach all den Krümeln? Glaub mir, Kind, das kracht. Die drei roten Knöpfe am Boden schaffst du nur so!'],
+      [B, 'Nach all den Krümeln? Glaub mir, Kind, das kracht. Die drei Riesenstempel am Boden kriegst du nur so runter – und ohne drei Stempel genehmigt hier keiner was!'],
     ],
     again: [
       [B, 'Bürostühle sind was Feines. Man dreht sich, bis man vergisst, warum man reingekommen ist.'],
       [B, 'Wenn der Dosenöffner kommt: Bauchklatscher drauf! So erledigt man Papierkram.'],
+      [B, 'Hast du schon eine Nummer gezogen? Nein? Dann bist du offiziell gar nicht hier.'],
     ],
   },
   'bruno.buddeln': {
@@ -232,35 +234,36 @@ export const TALKS = {
     ],
   },
 
-  // ---------------------------------------------------------------- Hochhaus
+  // ---------------------------------------------------------------- Das Büro (Amt)
   chef: {
     first: [
-      ['Chef Bruno', 'Termin? Haben Sie einen Termin? Niemand kommt ohne Termin zu Chef Bruno!'],
+      ['Amtsleiter Bruno', 'Termin? Haben Sie einen Termin? Ohne Termin kein Termin! Und ohne Termin auch keinen Termin für einen Termin!'],
       [M, 'Bist du mit Opa Bruno verwandt?'],
-      ['Chef Bruno', 'Entfernt. SEHR entfernt. Er wohnt im Garten, ich im zwölften Stock. Das ist die Entfernung.'],
-      ['Chef Bruno', 'Mein goldener Mitarbeiter-des-Monats-Knochen steht ganz oben im Pokalschrank. 47 Monate in Folge!'],
-      [M, 'Wie viele Mitarbeiter gibt es hier denn?'],
-      ['Chef Bruno', '… Einen. Mich. Aber die Konkurrenz war hart!'],
+      ['Amtsleiter Bruno', 'Dafür bin ich nicht zuständig. Verwandtschaftsfragen: Zimmer 0815, Kellergeschoss. Das Amt hat kein Kellergeschoss.'],
+      ['Amtsleiter Bruno', 'Mein goldener Beamter-des-Monats-Knochen steht ganz oben im Pokalschrank. 47 Monate in Folge!'],
+      [M, 'Wie viele Beamte gibt es hier denn?'],
+      ['Amtsleiter Bruno', '… Einen. Mich. Aber das Auswahlverfahren hat elf Jahre gedauert!'],
     ],
     again: [
-      ['Chef Bruno', 'Zeit ist Leckerli! Husch, husch, an die Arbeit!'],
-      ['Chef Bruno', 'Besprechung um drei, Nickerchen um vier, Feierabend um fünf nach vier.'],
+      ['Amtsleiter Bruno', 'Formular A38 gibt es am Schalter 1. Schalter 1 ist heute geschlossen. Bitte gehen Sie zu Schalter 1.'],
+      ['Amtsleiter Bruno', 'Sprechstunde Dienstag von 9:00 bis 9:05. Ungerade Wochen. In Schaltjahren.'],
+      ['Amtsleiter Bruno', 'Stempel drauf, Stempel drunter, Stempel daneben. Ordnung muss sein!'],
     ],
   },
   kaffee: {
     first: [
-      ['Kaffeemaschine', 'GUTEN MORGEN. ICH BIN DIE KAFFEEMASCHINE 3000. BITTE 4 TASSEN EINSTELLEN.'],
+      ['Kaffeemaschine', 'GUTEN MORGEN. ICH BIN DIE KAFFEEMASCHINE 3000, AMTLICH GEPRÜFT. BITTE 4 TASSEN EINSTELLEN.'],
       [M, 'Kannst du auch Kakao?'],
-      ['Kaffeemaschine', 'FEHLER. KAKAO NICHT GEFUNDEN. AKTUELLE TASSEN: {n} VON 4.'],
+      ['Kaffeemaschine', 'KAKAO MUSS SCHRIFTLICH BEANTRAGT WERDEN. BEARBEITUNGSZEIT: 6 BIS 8 WOCHEN. AKTUELLE TASSEN: {n} VON 4.'],
     ],
     again: [
       ['Kaffeemaschine', 'BITTE. 4. TASSEN. EINSTELLEN. AKTUELL: {n}. BLUBB.'],
-      ['Kaffeemaschine', 'TASSEN: {n} VON 4. ICH WARTE. ICH HABE ZEIT. ICH BIN EINE MASCHINE.'],
+      ['Kaffeemaschine', 'TASSEN: {n} VON 4. ICH WARTE. ICH HABE ZEIT. ICH BIN IM ÖFFENTLICHEN DIENST.'],
     ],
   },
   'kaffee.fertig': {
     first: [
-      ['Kaffeemaschine', 'TASSEN VOLLSTÄNDIG. BRÜHE … BRÜHE … BLUBB, ZISCH! ERGEBNIS: 1 GOLDKNOCHEN. GUTEN APPETIT.'],
+      ['Kaffeemaschine', 'TASSEN VOLLSTÄNDIG. VORGANG WIRD BEARBEITET … BRÜHE … STEMPEL … BLUBB, ZISCH! ERGEBNIS: 1 GOLDKNOCHEN. GENEHMIGT.'],
       [M, 'Der beste Kaffee, den ich nie getrunken habe!'],
     ],
   },
@@ -540,9 +543,9 @@ export const TALKS = {
   },
   'boss.buero': {
     first: [
-      ['Der Dosenöffner', 'KLACK, KLACK! Ich öffne Dosen, ich öffne Türen – von Hunden lass ich mich nicht führen!'],
+      ['Der Dosenöffner', 'KLACK, KLACK! Antrag auf Dosenöffnung: ABGELEHNT! Hier öffne nur ICH – mit Stempel und Brief!'],
       [M, 'Der Thunfisch in der Kantine gehört allen, du Blechbüchse!'],
-      ['Der Dosenöffner', 'Ich schneide Blech, ich schneide fein – gleich wirst du eine Dose sein!'],
+      ['Der Dosenöffner', 'Ich schneide Blech, ich schneide fein – gleich wirst du abgeheftet sein!'],
     ],
   },
   'boss.strand': {
@@ -575,7 +578,7 @@ export const TALKS = {
   },
   'bossdown.kueche': { again: [[M, 'Ausgesaugt! Jetzt bist du nur noch ein Mopp mit Kabel.']] },
   'bossdown.strasse': { again: [['Der große Kater', 'Miau-weh … ich geh mich putzen. Und schmollen.']] },
-  'bossdown.buero': { again: [[M, 'Dose auf, Feierabend!']] },
+  'bossdown.buero': { again: [[M, 'Dose auf, Akte zu – Feierabend!']] },
   'bossdown.strand': { again: [['Kneifer, die Riesenkrabbe', 'Zwick … zwack … ich geh seitwärts nach Hause.']] },
   'bossdown.hafen': { again: [['Die Möwe', 'KREEE … Na gut. Dann klau ich eben bei den Touristen.']] },
   'bossdown.dorf': { again: [['Die Obertaube', 'Gurr … ab heute bin ich nur noch Untertaube.']] },

@@ -202,11 +202,11 @@ export const GARTEN = {
     l.box(-19, 0, -49.5, 0.7, 1.2, 0.5, 0xf1c40f); l.deco(box(0.5, 0.08, 0.1, 0x2d3436), -19, 1, -49.24); // Briefkasten
     l.box(-34, 0, -49, 0.15, 2.6, 0.15, 0x7f8c8d); l.deco(cyl(0.45, 0.45, 0.08, 0x27ae60, 0, 0, 0, 12).rotateX(Math.PI / 2), -34, 2.75, -49); // Bushaltestelle
 
-    // ---- 3. Hochhaus: Aussichtsplattform auf Stelzen, über Stapel aus Aktenkartons zu erklettern, dahinter Mini-Wolkenkratzer
+    // ---- 3. Das Büro (Amt): Aussichtsplattform auf Stelzen, über Stapel aus Aktenkartons zu erklettern, dahinter Mini-Wolkenkratzer
     l.box(46, 7.5, -46, 9, 0.5, 9, 0x95a5a6);
     [[42, -50], [50, -50], [42, -42], [50, -42]].forEach(([x, z]) => l.box(x, 0, z, 0.7, 7.5, 0.7, 0x636e72));
     [[-4.4, 0, 0.2, 9], [0, -4.4, 9, 0.2], [4.4, 0, 0.2, 9]].forEach(([dx, dz, w, d]) => l.box(46 + dx, 8, -46 + dz, w, 1, d, 0x2d3436)); // Geländer (vorn offen)
-    l.portal(46, -46, 'Hochhaus', 'buero', 0x9b9b9b, 8, { y: 8 });
+    l.portal(46, -46, 'Das Büro', 'buero', 0x9b9b9b, 8, { y: 8 });
     [[35, -38, 1.3], [35.5, -42.5, 2.6], [36, -47, 3.9], [38, -51.5, 5.2], [42.5, -54, 6.5]].forEach(([x, z, h], i) => { l.box(x, 0, z, 2.6, h, 2.6, i % 2 ? 0xc8a26b : 0xb8915a); l.deco(box(2.65, 0.25, 0.4, 0xecf0f1), x, h - 0.5, z); l.pickup(x, h + 0.3, z, 'crumb'); });
     [[57, -57, 6, 20, 0x7f8c8d], [60, -45, 5, 14, 0x95a5a6], [47, -61, 5, 16, 0xa4b0be], [66, -54, 4, 11, 0xb2bec3]].forEach(([x, z, w, h, c]) => {
       l.box(x, 0, z, w, h, w, c); for (let y = 2; y < h - 1; y += 2.2) l.deco(box(w + 0.08, 0.7, w + 0.08, 0x74b9ff), x, y, z);
@@ -291,8 +291,8 @@ export const GARTEN = {
     path([[-6, -34], [-13, -40], [-21, -45]]); path([[6, -34], [12, -48], [17, -66]]); path([[6, -34], [26, -36], [33.5, -37]]);
     path([[34, 6], [50, 12], [61, 16.5]]); path([[-34, -6], [-42, -28], [-44, -44]]);
     path([[-6, 34], [-28, 40], [-41, 42]]); path([[-46, 54.5], [-45.5, 63]], 0xc8b48a); path([[6, 34], [30, 40], [48, 50]]);
-    sign(-8.5, -36, [['Einkaufsstraße', -26, -49], ['Rattenrennen', 20, -72], ['Hochhaus', 46, -46], ['Kanal', -47, -47]]);
-    sign(36, 9, [['Grillpark', 70, 18], ['Hochhaus', 46, -46]]);
+    sign(-8.5, -36, [['Einkaufsstraße', -26, -49], ['Rattenrennen', 20, -72], ['Das Büro', 46, -46], ['Kanal', -47, -47]]);
+    sign(36, 9, [['Grillpark', 70, 18], ['Das Büro', 46, -46]]);
     sign(-8.5, 36, [['Strand', -50, 44], ['Hafen', -64, 67], ['Dorf', 54, 56]]);
     sign(-3.5, 3.5, [['Erdgeschoss', 13, -16], ['Nordtor', -6, -33], ['Südtor', -6, 33], ['Osttor', 33, 6]]);
   },

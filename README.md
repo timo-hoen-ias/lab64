@@ -1,6 +1,6 @@
 # 🐕 MOLL – Der Labrador
 
-Low-Poly-3D-Jump'n'Run im Stil von Mario 64 / Banjo-Kazooie, gebaut mit Three.js. Man spielt Moll, einen braunen Labrador, und frisst sich durch Erdgeschoss, Einkaufsstraße, Hochhaus, Grillpark, Badestrand, Hafen, Dorf und Kanalsystem – große Welten im Banjo-Kazooie-Format mit vielen Bereichen und Ebenen. Die Bosse: Staubsauger, Kater, Dosenöffner, Möwe, Obertaube und die Ratte, die Moll in einen Albtraum aus Emmentaler schickt.
+Low-Poly-3D-Jump'n'Run im Stil von Mario 64 / Banjo-Kazooie, gebaut mit Three.js. Man spielt Moll, einen braunen Labrador, und frisst sich durch Erdgeschoss, Einkaufsstraße, das Büro (ein Amt), Grillpark, Badestrand, Hafen, Dorf und Kanalsystem – große Welten im Banjo-Kazooie-Format mit vielen Bereichen und Ebenen. Die Bosse: Staubsauger, Kater, Dosenöffner, Möwe, Obertaube und die Ratte, die Moll in einen Albtraum aus Emmentaler schickt.
 
 ![Molls Garten](docs/screenshots/garten.png)
 
@@ -45,7 +45,7 @@ Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, a
 | Garten | Apportieren | Ball/Stock mit BISS tragen und ablegen | Ball zur Hundehütte bringen |
 | Erdgeschoss | Trillern | Drehung um die eigene Achse, trifft alles ringsum, zieht Krümel an | Drei Herdknöpfe, Ameisenstraßen, Staubsauger benommen wirbeln |
 | Einkaufsstraße | Bellen | WUFF nach vorn: verscheucht Tauben, löst Dinge aus | Drei Autos mit Alarmanlage, Kater erschrecken |
-| Hochhaus | Bauchklatscher | In der Luft BISS: senkrecht runter und stampfen | Drei Not-Aus-Knöpfe, Kartons, Dosenöffner umhauen |
+| Das Büro | Bauchklatscher | In der Luft BISS: senkrecht runter und stampfen | Drei Riesenstempel, Kartons, Dosenöffner umhauen |
 | Grillpark | Buddeln | BISS an Erdhügeln | Fünf Erdhügel, in einem ein Goldknochen |
 | Rattenrennen | Zoomies | Nach Vollgas-Anlauf schneller und weiter springen | Belohnung für den Sieg |
 | Badebucht | Tauchen | Taucherbrille | (wie bisher) |
@@ -58,7 +58,7 @@ Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, a
 | Garten (Hub, 160 m) | Haus, Teich zum Tauchen, Schuppen mit Werkstatt, Obstwiese mit Baumhaus, Gewächshaus, Aussichtshügel, 5 Gartenzwerge |
 | Erdgeschoss | Küche, Speisekammer, Wohnzimmer mit Bücherregal, Flur mit Galerie und Standuhr, Wintergarten, Keller |
 | Einkaufsstraße | Dächer-Parcours, Kaufhaus mit 3 Etagen, Baustelle, Brunnenplatz mit Fontänen, Bahnhof |
-| Hochhaus | 4 Ebenen: Großraumbüro, Konferenz + Chefbüro, Serverraum + Kaffeeküche, Dach mit Antennenmast |
+| Das Büro | Ein Amt auf 4 Ebenen: Wartehalle mit Nummernautomat und Schaltern, Sitzungssaal + Amtsleitung, Aktenarchiv + Kaffeeküche, Dach mit Antennenmast |
 | Grillpark | Grillwiese, See mit Insel, Wald mit Baumkronenpfad, Spielplatz, Aussichtsturm, Dachsbau |
 | Badebucht | Strand, Riff zum Tauchen, Wrack, Leuchtturm, Riesenrad, Dünen |
 | Hafen | Holzkai, Containerterminal mit Kran, Fischmarkt, Mole mit Leuchtturm, Frachter mit Laderaum |
