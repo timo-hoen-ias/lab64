@@ -5,7 +5,7 @@ import { ICON, GOAL_ICON } from './hud.js';
 
 // Ab wie vielen Goldknochen das Portal im Garten aufgeht (garten.js baut die Portale damit)
 export const PORTAL_NEED = { kueche: 0, strasse: 3, buero: 8, park: 14, rattenrennen: 18, strand: 22, hafen: 30, dorf: 40, kanal: 52 };
-// Welche Fähigkeit Opa Bruno in welcher Welt beibringt (Zoomies gibt es für den Sieg im Rattenrennen)
+// Welche Fähigkeit Heribert in welcher Welt beibringt (Zoomies gibt es für den Sieg im Rattenrennen)
 export const WORLD_ABILITY = { hub: 'apportieren', kueche: 'trillern', strasse: 'bellen', buero: 'bauchklatscher', park: 'buddeln', rattenrennen: 'zoomies', hafen: 'gleiten', dorf: 'wandsprung', kanal: 'tornado' };
 
 const NAME = {
@@ -27,7 +27,7 @@ const TASKS = ['boss', 'sieg', 'gierig', 'kruemel', ...Object.keys(ABILITY_BONE)
 const name = id => NAME[id] || id[0].toUpperCase() + id.slice(1);
 const tag = id => id === 'boss' ? '👑' : id === 'geheim' ? '👃' : ABILITY_BONE[id] ? ABILITIES[ABILITY_BONE[id]].icon : id === 'kruemel' ? '✦' : '';
 
-// Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (oder ein Upgrade aus Opas Laden)
+// Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (oder ein Upgrade aus Heriberts Laden)
 function backTile(g, key, id) {
   const need = BACKTRACK[key][id], a = ABILITIES[need] || UPGRADES.find(u => u.id === need), ok = g.hasBone(key, id), can = g.has(need);
   return `<div class="bt back ${ok ? 'ok' : can ? 'can' : ''}">${ICON.bone(ok)}<span>${can && !ok ? 'Jetzt: ' : ''}${a.name}</span><i>${can || ok ? a.icon : '🔒'}</i></div>`;
@@ -49,7 +49,7 @@ export function pauseHTML(g) {
     const alive = (L.foes?.length || 0) - (L.foesGone || 0);
     if (alive > 0) chips.push(chip(ICON.badge('💥'), 'Gegner besiegt', `${L.foesDown}/${alive}`, L.foesDown >= alive));
     const ab = WORLD_ABILITY[key];
-    if (ab) chips.push(chip(ICON.badge(ABILITIES[ab].icon), g.has(ab) ? 'Fähigkeit gelernt' : 'Bei Opa Bruno lernen', ABILITIES[ab].name, g.has(ab)));
+    if (ab) chips.push(chip(ICON.badge(ABILITIES[ab].icon), g.has(ab) ? 'Fähigkeit gelernt' : 'Bei Heribert lernen', ABILITIES[ab].name, g.has(ab)));
     const back = Object.keys(BACKTRACK[key] || {}), ids = BONES[key].filter(id => !back.includes(id)), tasks = ids.filter(id => TASKS.includes(id)), rest = ids.filter(id => !TASKS.includes(id)).sort((a, b) => (a === 'geheim') - (b === 'geheim'));
     const p = g.levelProgress(key);
     html += `<div class="pzWorld"><h4>${WORLD_NAMES[key]} <span>${p.have}/${p.total} ${ICON.bone(true)}</span></h4><div class="chips">${chips.join('')}</div>`

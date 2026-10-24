@@ -29,7 +29,7 @@ export const KANAL = {
     l.goldbone('kletter', 22, 6.8, -18);
     // ---- Fähigkeit dieser Welt: Tornado-Trillern. Der Lüftungsschacht über dem Gehweg ist zu hoch zum Springen
     l.teacher(-16, 23, 'tornado');
-    // Rückkehr-Knochen: nur mit der Supernase aus Opas Krümel-Laden zu riechen
+    // Rückkehr-Knochen: nur mit der Supernase aus Heriberts Krümel-Laden zu riechen
     l.backbone('r_nase', 'supernase', 'nose', -35, 13); l.backbone('r_nase2', 'supernase', 'nose', 33, -11);
     l.box(-12, 6.6, 6, 4, 0.5, 3, RUST); l.deco(box(4, 2.6, 0.3, 0x2f3542), -12, 8.4, 4.6);
     l.goldbone('tornado', -12, 7.9, 6);

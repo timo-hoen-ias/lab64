@@ -274,7 +274,7 @@ export class Treat {
 }
 
 // Gegner nach dem Aufbau verteilen: in Gruppen auf freien, flachen Flächen, gern dort, wo Krümel liegen (so auch auf oberen
-// Ebenen und in Innenräumen), nie zu nah am Start, an Opa Bruno, an Portalen, Türen oder Goldknochen.
+// Ebenen und in Innenräumen), nie zu nah am Start, an Heribert, an Portalen, Türen oder Goldknochen.
 export function placeFoes(lvl, rand) {
   const plan = WORLD_FOES[lvl.key]; lvl.foes = []; lvl.foesDown = 0; lvl.foesGone = 0; if (!plan) return;
   const S = (lvl.def.size || 40) - 4, def = lvl.def, wall = (x, y, z) => blocked(lvl, x, y, z, 0.45);

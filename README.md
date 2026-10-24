@@ -32,10 +32,10 @@ Moll64 ist eine PWA: In Chrome auf Android die Seite öffnen und im Menü auf **
 **Stand:** 118 Goldknochen. Jede Welt hat 13 (die Badebucht 12): 11 schafft man beim ersten Besuch (Boss, alle Krümel, Geheimversteck, Knochen in jedem Bereich und eine Fähigkeiten-Prüfung), **2 Rückkehr-Knochen** brauchen eine Fähigkeit aus einer späteren Welt. Dazu 13 im Garten und 2 im Rattenrennen.
 
 ### Fähigkeiten
-Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt Moll die Fähigkeit dieser Welt bei. Jede Welt hat außerdem zwei **Rückkehr-Knochen**, an die man erst mit einer Fähigkeit aus einer späteren Welt kommt – wie in Banjo-Kazooie lohnt sich ein zweiter Besuch. Ein Schild mit dem Fähigkeiten-Symbol zeigt, was fehlt; nach dem Lernen sagt Moll, wo jetzt neue Knochen erreichbar sind. Im Garten verkauft Opa Bruno im **Leckerli-Laden** Upgrades gegen Krümel (4. und 5. Herz, Trillern+, Lange Ohren, Supernase) – nett, aber für keinen Goldknochen nötig.
+Am Eingang jeder Welt wartet **Heribert** (ein alter Welsh Corgi Pembroke) und bringt Moll die Fähigkeit dieser Welt bei. Jede Welt hat außerdem zwei **Rückkehr-Knochen**, an die man erst mit einer Fähigkeit aus einer späteren Welt kommt – wie in Banjo-Kazooie lohnt sich ein zweiter Besuch. Ein Schild mit dem Fähigkeiten-Symbol zeigt, was fehlt; nach dem Lernen sagt Moll, wo jetzt neue Knochen erreichbar sind. Im Garten verkauft Heribert im **Leckerli-Laden** Upgrades gegen Krümel (4. und 5. Herz, Trillern+, Lange Ohren, Supernase) – nett, aber für keinen Goldknochen nötig.
 
 ### Dialoge
-Alle Figuren sprechen mit Moll – und brabbeln dabei wie in Banjo-Kazooie: Der Text erscheint Buchstabe für Buchstabe, und an jeder Silbe blubbert die eigene Stimme der Figur (tiefes Opa-Brummeln, piepsiger Zwergenkönig, Roboter-Kaffeemaschine …), alles live aus Oszillatoren, Lautstärke über den Effekte-Regler. Beim ersten Treffen gibt es ein ganzes Gespräch (Spiel hält an, SPRUNG/BISS/Tippen blättert weiter, Pause überspringt), danach nur noch kurze Sprüche nebenbei. Bosse stellen sich in Reimen vor. Texte und Stimmen: `src/dialog.js`.
+Alle Figuren sprechen mit Moll – und brabbeln dabei wie in Banjo-Kazooie: Der Text erscheint Buchstabe für Buchstabe, und an jeder Silbe blubbert die eigene Stimme der Figur (tiefes Corgi-Brummeln, piepsiger Zwergenkönig, Roboter-Kaffeemaschine …), alles live aus Oszillatoren, Lautstärke über den Effekte-Regler. Beim ersten Treffen gibt es ein ganzes Gespräch (Spiel hält an, SPRUNG/BISS/Tippen blättert weiter, Pause überspringt), danach nur noch kurze Sprüche nebenbei. Bosse stellen sich in Reimen vor. Texte und Stimmen: `src/dialog.js`.
 
 ### Low-Poly-Modelle (GLB)
 Neben den Grundkörper-Modellen aus `src/models.js` gibt es fertige Low-Poly-Modelle als GLB unter `assets/` – selbst in Blender gebaute (`tools/make_cars.py`) und heruntergeladene CC0-Modelle (Kenney, Quaternius, Poly Haven …, Nachweis in [CREDITS.md](CREDITS.md)). `src/assets.js` lädt sie vor dem Start (vendored `GLTFLoader`), macht aus Material- bzw. Palettenfarben Vertexfarben mit dem Toon-Material des Spiels und fasst jedes Modell zu einem Zeichenaufruf zusammen; `placeAsset(l, name, x, y, z, ry, { size, paint, solid: 'car' | 'box' })` stellt eins mit Kollision in eine Welt. Fehlt eine Datei, bauen die Welten ihr altes Modell. Fremde Modelle mit Textur-Palette vorher umwandeln: `python3 tools/lowpoly.py ein.glb assets/…/aus.glb`. Test: `tests/assets.mjs`.
@@ -67,7 +67,7 @@ Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, a
 | Badebucht | Helikopter-Ohren, Wandsprung |
 | Hafen | Wandsprung, Tornado |
 | Dorf | Tornado (Sockel und verrostetes Ventil) |
-| Kanal | Supernase aus Opas Laden (zwei Geruchs-Verstecke) |
+| Kanal | Supernase aus Heriberts Laden (zwei Geruchs-Verstecke) |
 
 | Welt | Bereiche |
 |---|---|
@@ -100,6 +100,6 @@ Läufer stürmen nach kurzem Ducken los, Frösche und Tacker hüpfen heran, Flie
 
 Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 118/118 läuft ein Abspann.
 
-Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt beim ersten Besuch auf 11/11 und holt danach mit allen Fähigkeiten die Rückkehr-Knochen (13/13), `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs, `node tests/ball.mjs` den rollenden Ball und den Ball im Maul, `node tests/dialog.mjs` Gespräche, Stimmen und Schreibmaschinen-Text, `node tests/gegner.mjs` die Gegner (Biss, Trillern, Panzer, Bellen, Flieger, Maulwurf, Leckerli). `node tests/previews.mjs` rendert die Portal-Vorschaubilder (previews/*.jpg) neu, wenn sich der Startpunkt einer Welt ändert.
+Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt beim ersten Besuch auf 11/11 und holt danach mit allen Fähigkeiten die Rückkehr-Knochen (13/13), `node tests/abilities.mjs` lernt jede Fähigkeit bei Heribert und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs, `node tests/ball.mjs` den rollenden Ball und den Ball im Maul, `node tests/dialog.mjs` Gespräche, Stimmen und Schreibmaschinen-Text, `node tests/gegner.mjs` die Gegner (Biss, Trillern, Panzer, Bellen, Flieger, Maulwurf, Leckerli). `node tests/previews.mjs` rendert die Portal-Vorschaubilder (previews/*.jpg) neu, wenn sich der Startpunkt einer Welt ändert.
 
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).

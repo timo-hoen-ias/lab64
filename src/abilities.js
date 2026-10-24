@@ -1,5 +1,5 @@
 // Fähigkeiten: Texte, Krümel-Laden und die Bausteine, die Welten für Fähigkeiten-Rätsel benutzen
-// (Opa Bruno als Lehrer, Drehknöpfe, Bell-Ziele, Bodenschalter, Kisten, Erdhügel, Kletterwände, Aufwind, Apportieren).
+// (Heribert als Lehrer, Drehknöpfe, Bell-Ziele, Bodenschalter, Kisten, Erdhügel, Kletterwände, Aufwind, Apportieren).
 import * as THREE from 'three';
 import { box, cyl, sphere, cone, makeNpcDog, makeSign } from './models.js';
 import { FX } from './fx.js';
@@ -33,7 +33,7 @@ export const ABILITIES = {
   tornado: { name: 'Tornado-Trillern', icon: '🌪️', how: 'Am Boden TRILLER gedrückt halten, bis es funkelt, dann loslassen: Moll schießt als Wirbelsturm nach oben.' },
 };
 
-// Krümel-Laden bei Opa Bruno im Garten: nur Werte, für keinen Goldknochen nötig
+// Krümel-Laden bei Heribert im Garten: nur Werte, für keinen Goldknochen nötig
 export const UPGRADES = [
   { id: 'herz4', name: 'Viertes Herz', icon: '❤️', price: 150, text: 'Moll hält einen Treffer mehr aus.' },
   { id: 'herz5', name: 'Fünftes Herz', icon: '❤️', price: 300, needs: 'herz4', text: 'Noch ein Herz obendrauf.' },
@@ -62,7 +62,7 @@ export class AntSwarm {
 
 export function installGadgets(Level) {
   Object.assign(Level.prototype, {
-    // ---- Opa Bruno: bringt am Welteingang die Fähigkeit der Welt bei. Im Garten verkauft er Upgrades gegen Krümel.
+    // ---- Heribert: bringt am Welteingang die Fähigkeit der Welt bei. Im Garten verkauft er Upgrades gegen Krümel.
     teacher(x, z, ability, o = {}) {
       const y = o.y ?? Math.max(0, this.top(x, z)), g = this.game;
       const m = makeNpcDog(0xc9c2b4, 0x2e7d32); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z));
@@ -76,7 +76,7 @@ export function installGadgets(Level) {
         if (ability && !g.has(ability)) g.learn(ability, true, m);
         else if (o.shop) g.openShop();
         else if (ability) g.learn(ability, true, m);
-      }, o.shop ? 'BISS = Leckerli-Laden' : 'BISS = Opa fragen');
+      }, o.shop ? 'BISS = Leckerli-Laden' : 'BISS = Heribert fragen');
       return this.bruno;
     },
 
@@ -115,7 +115,7 @@ export function installGadgets(Level) {
       contents.forEach(p => this.bury(p));
       const d = { x, y, z, mesh: m, contents, dug: false }; (this.digSpots ||= []).push(d);
       this.interactable(x, y, z, 1.4, it => {
-        if (!this.game.has('buddeln')) { it.used = false; this.game.toast('Riecht nach Knochen … aber wie buddelt man? Opa Bruno weiß es!'); return; }
+        if (!this.game.has('buddeln')) { it.used = false; this.game.toast('Riecht nach Knochen … aber wie buddelt man? Heribert weiß es!'); return; }
         this.dig(d);
       }, 'BISS = buddeln');
       return d;
@@ -289,7 +289,7 @@ export function installGadgets(Level) {
       if (it.squeak) { if (pl.onGround && it._air) this.toySqueak(it); it._air = !pl.onGround; } // Landung mit Knochen im Maul: quiek
     },
 
-    // ---- Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (oder ein Upgrade aus Opas Laden).
+    // ---- Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (oder ein Upgrade aus Heriberts Laden).
     // Beim ersten Besuch sieht man sie schon, kommt aber nicht ran – später zurückkommen, wie in Banjo-Kazooie.
     // kind: spin (Ventil, o.strong = nur Tornado), bark (Krähe mit Knochen), stomp (Bodenschalter), dig (Erdhügel),
     //       glide (Säule + Aufwind), wall (Backstein-Schornstein), ledge (glatter Sockel, nur per Tornado), nose (nur Supernase riecht ihn)
