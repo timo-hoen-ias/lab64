@@ -1,7 +1,7 @@
 // Kanalsystem: Gerümpel, Fässer, Reifen, Müllsäcke und leuchtende Pilze in allen Ecken, Rohre an den Wänden
 // und eine Quietscheente, die jemand hier unten verloren hat.
 import { cyl } from '../models.js';
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 export function kanal(d, l) {
   const junk = i => [[P.toxicBarrel(), P.barrel(0x57606f), P.crates(), P.tire(), P.trashBags(), P.junk(), P.glowShrooms(), P.pipeStack(), P.cart2(), P.boxes(2)][i % 10], { s: 1.4, solid: [[1, 1.1, 1], [1, 1.1, 1], [2.6, 2.2, 1.4], undefined, [1.6, 1, 1.2], [2, 0.8, 1.4], undefined, [1.7, 1.5, 3], [1.4, 1.2, 0.9], [0.9, 1.2, 0.7]][i % 10], w: 1, d: 1 }];

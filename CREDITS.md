@@ -10,6 +10,7 @@ Fertige Low-Poly-Modelle liegen als GLB unter `assets/` und werden über `src/as
 | `assets/figuren/*.glb` (Ratte, Taube, Möwe, Kater, Krabbe, Staubsauger, Dosenöffner, Einkäufer, Riesenmuschel) | in Blender gebaut, bewegliche Teile als Knoten |
 | `assets/gegner/*.glb` (kleine Gegner) | in Blender gebaut |
 | `assets/tiere/*.glb`, `assets/deko/{ball,kuckucksuhr}.glb` | in Blender gebaut |
+| `assets/requisiten/*.glb` (111 Deko-Requisiten, je eine Funktion aus `src/props.js`) | in Blender gebaut (einfarbige Materialien) |
 | `assets/pflanzen/*.glb`, `assets/deko/gartenzwerg.glb`, `assets/sammeln/{ice,bone,treat,sock,cup}.glb` | in Blender gebaut (einfarbige Materialien) |
 | `assets/sammeln/*.glb` (Goldknochen, Keks, Wurst, Brot, Schinken, Käse, Fisch, Pommes, Muschel) | für Moll64 generiert mit Scenario (Meshy, Text-zu-3D), verkleinert mit `tools/shrink_glb.py` |
 

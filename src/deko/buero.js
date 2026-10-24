@@ -1,6 +1,6 @@
 // Hochhaus: Pflanzen, Wasserspender, Aktenschränke, Sofas und Bürostühle auf allen Etagen, Klimageräte und
 // Solarzellen auf dem Dach. Die Treppen-Rampen an den Außenwänden bleiben frei (siehe Deko.free).
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const F1 = 12, F2 = 24, ROOF = 36;
 

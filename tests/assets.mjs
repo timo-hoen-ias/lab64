@@ -21,6 +21,21 @@ ok('Essen liegt auf den Autodächern', r.roofFood.length === 2 && r.roofFood.eve
 await p.evaluate(() => { const pl = window.game.player; pl.pos.set(-4, 6, -20); pl.vel.set(0, 0, 0); }); await p.waitForTimeout(1200);
 const y = await p.evaluate(() => window.game.player.pos.y);
 ok('Moll steht auf dem roten Auto', y > 2, y.toFixed(2));
+// Requisiten (src/requisiten.js): Standard-Aufruf = GLB, Farbe färbt um, abweichende Länge = altes Grundkörper-Modell;
+// in der Welt landen alle Requisiten in einem einzigen Vertexfarben-Mesh (Level._mergeStatic)
+const q = await p.evaluate(async () => {
+  const R = await import('./src/requisiten.js'), P = await import('./src/props.js'), A = await import('./src/assets.js');
+  const vc = g => { let v = false; g.traverse(o => { if (o.isMesh && o.material.vertexColors) v = true; }); return v; };
+  const col = g => { const c = g.children[0].geometry.attributes.color; let r = 0, b = 0; for (let i = 0; i < c.count; i++) { r += c.getX(i); b += c.getZ(i); } return b > r; };
+  const pw = R.pinwheel(), fl = R.flagPole(), l = window.game.level;
+  let merged = 0; l.group.children.forEach(m => { if (m.isMesh && m.material.vertexColors && m.material.color.getHex() === 0xffffff && m.geometry.attributes.color && m.geometry.attributes.position.count > 5000) merged++; });
+  return { glb: A.PROPS.filter(k => vc(R[k]())).length, all: A.PROPS.length, blue: col(R.car(0x0984e3)) && !col(R.car()), fence: !vc(R.fence(9)), spin: !!pw.userData.spin && pw.userData.spin.children.length === 1, wave: !!fl.userData.wave, merged };
+});
+ok('Requisiten als GLB', q.glb === q.all - 1, `${q.glb}/${q.all} (glowShrooms bleibt Grundkörper)`);
+ok('Farbparameter färbt um (blaues Auto)', q.blue);
+ok('andere Länge → altes Modell', q.fence);
+ok('Windrad dreht, Fahne weht', q.spin && q.wave);
+ok('Requisiten der Welt zusammengefasst', q.merged >= 1, `${q.merged} Mesh(es)`);
 console.log(errs.length ? 'ERR ' + JSON.stringify(errs) : 'ERR []');
 console.log(bad ? `${bad} FEHLER` : 'alles ok');
 await b.close(); process.exit(bad || errs.length ? 1 : 0);

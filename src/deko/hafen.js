@@ -1,6 +1,6 @@
 // Hafen: Lagerhallen, Fischstände und Fracht am Westkai, Poller und Laternen an den Kanten, Kutter am Kai,
 // Segelboote draußen auf dem Wasser und schaukelnde Bojen.
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const SEA = 1.3, BED = -10;
 

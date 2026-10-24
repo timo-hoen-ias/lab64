@@ -1,6 +1,6 @@
 // Badebucht: Strandhäuschen und Bänke an der Promenade, Sonnenschirm-Grüppchen, Beachvolleyball, Rettungsturm,
 // Palmen und Felsen an den Enden, Seesterne am Spülsaum, Segelboote und Bojen draußen.
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 const COL = [0xe74c3c, 0xfeca57, 0x48dbfb, 0x1dd1a1, 0xff9ff3];
 

@@ -1,7 +1,7 @@
 // Grillpark: Grillplätze auf der Blumenwiese, Zeltplatz, Felsen mit Pilzen, Ufer mit Schilf und Booten,
 // Laternen und Bänke an den Wegen, Kiosk am Rodelhügel.
 import { box } from '../models.js';
-import * as P from '../props.js';
+import * as P from '../requisiten.js';
 
 function grill() { const g = P.table(1.2, 0.8, 0.9, 0x2d3436); g.add(box(1.25, 0.08, 0.85, 0x636e72, 0, 0.98, 0)); for (let i = 0; i < 4; i++) g.add(box(0.15, 0.06, 0.12, 0xd35400, -0.4 + i * 0.27, 1.04, 0)); return g; }
 
