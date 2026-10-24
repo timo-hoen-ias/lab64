@@ -408,15 +408,18 @@ export function characterLook(root, thick = 0.035) {
 
 // ---- Wind für Laub: Kronen und Büsche wiegen sich leicht (gemeinsame Zeit für alle Welten)
 export const WIND = { uWind: { value: 0 } };
+// Durchschütteln (Trillern am Baum): bis zu 3 Stellen gleichzeitig, je (x, z, Stärke, Radius) – wackelt nur das Laub in der Nähe
+export const SHAKE = { uShake: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] } };
 export function addSway(mat, amp = 0.07) {
   if (mat.userData.sway) return mat; mat.userData.sway = true;
   const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
   mat.onBeforeCompile = (sh, r) => {
-    prev.call(mat, sh, r); sh.uniforms.uWind = WIND.uWind;
-    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+    prev.call(mat, sh, r); sh.uniforms.uWind = WIND.uWind; sh.uniforms.uShake = SHAKE.uShake;
+    sh.vertexShader = 'uniform float uWind;\nuniform vec4 uShake[3];\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
  vec4 swW = modelMatrix * vec4(transformed, 1.0);
  float swP = uWind * 1.4 + swW.x * 0.21 + swW.z * 0.17;
- transformed.x += sin(swP + swW.y * 0.6) * ${amp.toFixed(3)}; transformed.z += cos(swP * 0.8 + swW.y * 0.5) * ${(amp * 0.7).toFixed(3)};`);
+ transformed.x += sin(swP + swW.y * 0.6) * ${amp.toFixed(3)}; transformed.z += cos(swP * 0.8 + swW.y * 0.5) * ${(amp * 0.7).toFixed(3)};
+ for (int i = 0; i < 3; i++) { vec4 sk = uShake[i]; float k = sk.z * max(0.0, 1.0 - distance(swW.xz, sk.xy) / max(sk.w, 0.01)); transformed.x += sin(uWind * 31.0 + swW.y * 1.7) * k; transformed.z += cos(uWind * 27.0 + swW.y * 1.3) * k * 0.8; }`);
   };
   mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|sway';
   return mat;

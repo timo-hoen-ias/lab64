@@ -51,11 +51,14 @@ export class AudioEngine {
     o.connect(g); g.connect(dest || this.sfxGain); o.start(t); o.stop(t + dur + 0.05);
   }
 
-  _noise(t, dur, vol = 0.2) {
+  // Rauschen; cut = Filterfrequenz (type lowpass/highpass/bandpass), swell = an- und abschwellen statt abklingen
+  _noise(t, dur, vol = 0.2, cut = 0, type = 'lowpass', swell = false) {
     const n = Math.floor(this.ctx.sampleRate * dur), b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (swell ? Math.sin(Math.PI * i / n) : 1 - i / n);
     const s = this.ctx.createBufferSource(); s.buffer = b;
-    const g = this.ctx.createGain(); g.gain.value = vol; s.connect(g); g.connect(this.sfxGain); s.start(t);
+    const g = this.ctx.createGain(); g.gain.value = vol; g.connect(this.sfxGain);
+    if (cut) { const f = this.ctx.createBiquadFilter(); f.type = type; f.frequency.value = cut; s.connect(f); f.connect(g); } else s.connect(g);
+    s.start(t);
   }
 
   // ---- Musik ----------------------------------------------------------
@@ -196,11 +199,11 @@ export class AudioEngine {
     s.connect(g); g.connect(dest); s.start(t);
   }
   // Kurzer, heller Klick (Zähne)
-  _click(t, vol) {
+  _click(t, vol, freq = 3200) {
     const n = Math.floor(this.ctx.sampleRate * 0.025), b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
     const src = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
-    src.buffer = b; f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 2; g.gain.value = vol;
+    src.buffer = b; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 2; g.gain.value = vol;
     src.connect(f); f.connect(g); g.connect(this.sfxGain); src.start(t);
   }
   // Dauerton (z. B. Staubsaugermotor). Liefert { set(vol, pitch), stop() }.
@@ -308,9 +311,17 @@ export class AudioEngine {
     if (surf === 'sand' || surf === 'dirt') this._burst(t + 0.02, 0.15 + w * 0.2, 0.04 + w * 0.06, 'lowpass', 1500, 0.7, 500); // rieselt
   }
 
-  sfx(name) {
+  // vol < 1: leiser (Geräusche aus der Ferne), delay: später (Echo). Dafür läuft der Effekt kurz über einen eigenen Regler.
+  sfx(name, vol = 1, delay = 0) {
     if (!this.ctx) return;
-    const t = this.ctx.currentTime;
+    const t = this.ctx.currentTime + delay, main = this.sfxGain;
+    if (vol !== 1) { const g = this.ctx.createGain(); g.gain.value = Math.max(0, vol); g.connect(main); this.sfxGain = g; }
+    try { this._sfx(name, t); } finally { this.sfxGain = main; }
+  }
+  // Ein Ton auf einem Instrument der Musik (Bodenklavier, Glockenspiel …), Halbtöne über C5
+  note(semi, inst = 'marimba', vol = 1.4) { if (this.ctx) this._inst(inst, 523.25 * Math.pow(2, semi / 12), this.ctx.currentTime, 0.5, this.sfxGain, vol); }
+  _sfx(name, t) {
+    const S = this.sfxGain;
     switch (name) {
       case 'jump': this._tone(300, t, 0.18, 'square', 0.15, null, 300); break;
       case 'jump2': this._tone(400, t, 0.2, 'square', 0.15, null, 500); break;
@@ -353,6 +364,44 @@ export class AudioEngine {
         o.connect(g); g.connect(this.sfxGain); o.start(t); lfo.start(t); o.stop(t + 0.95); lfo.stop(t + 0.95); break; }
       case 'plonk': this._tone(110, t, 0.4, 'sine', 0.45, null, -60); this._noise(t, 0.18, 0.3); this._click(t + 0.02, 0.6); this._tone(520, t + 0.12, 0.12, 'triangle', 0.1, null, -200); break;
       case 'bell': [0, 12, 7].forEach((s, i) => this._tone(this._note(s, 523), t + i * 0.02, 1.2, 'sine', 0.18)); break;
+      // Spielereien in den Welten: Uhren, Feuer, Tiere, Maschinen …
+      case 'tick': this._click(t, 0.4, 4200); break;
+      case 'tock': this._click(t, 0.4, 2500); break;
+      case 'crackle': for (let i = 0; i < 3; i++) this._click(t + Math.random() * 0.45, 0.15 + Math.random() * 0.4, 1200 + Math.random() * 2600); this._noise(t, 0.5, 0.05, 500, 'lowpass', true); break;
+      case 'cuckoo': [[784, 0], [622, 0.26], [784, 0.75], [622, 1.01]].forEach(([f, d]) => this._tone(f, t + d, 0.22, 'triangle', 0.22)); break;
+      case 'gong': [[0, 0.24], [12, 0.08], [19, 0.05], [24, 0.03]].forEach(([s, v]) => this._tone(this._note(s, 98), t, 2.8, 'sine', v)); break;
+      case 'chime': [[0, 0.16], [7, 0.05], [12, 0.06]].forEach(([s, v]) => this._tone(this._note(s, 988), t, 1.3, 'sine', v)); break;
+      case 'rustle': for (let i = 0; i < 5; i++) this._noise(t + i * 0.07, 0.13, 0.1, 2400, 'highpass'); break;
+      case 'plop': this._tone(240, t, 0.1, 'sine', 0.28, null, -130); this._noise(t, 0.05, 0.08, 900); break;
+      case 'bonk': this._tone(900, t, 0.07, 'triangle', 0.22, null, -300); this._tone(1350, t + 0.06, 0.09, 'triangle', 0.12); break;
+      case 'squeak': this._tone(950, t, 0.11, 'square', 0.08, null, 800); this._tone(1750, t + 0.11, 0.13, 'square', 0.07, null, -800); break;
+      case 'quack': [0, 0.2].forEach(d => this._filtered(270, t + d, 0.15, 'sawtooth', 0.25, S, 1200, { scoop: 1.3 })); break;
+      case 'moo': this._filtered(140, t, 1.1, 'sawtooth', 0.3, S, 520, { scoop: 0.75, vib: 0.02 }); break;
+      case 'cluck': [0, 0.11, 0.2, 0.44].forEach((d, i) => this._tone(i === 3 ? 950 : 640, t + d, 0.07, 'triangle', 0.15, null, -280)); break;
+      case 'meow': this._tone(480, t, 0.2, 'triangle', 0.16, null, 280); this._tone(760, t + 0.17, 0.4, 'triangle', 0.16, null, -360); break;
+      case 'chirp': [0, 0.13, 0.3].forEach((d, i) => this._tone(2600 + i * 300, t + d, 0.07, 'sine', 0.09, null, 1400)); break;
+      case 'frog': [0, 0.17].forEach(d => this._filtered(150, t + d, 0.14, 'square', 0.16, S, 700, { scoop: 1.2 })); break;
+      case 'cricket': for (let i = 0; i < 4; i++) this._tone(4300, t + i * 0.045, 0.025, 'sine', 0.05); break;
+      case 'drip': this._tone(850, t, 0.09, 'sine', 0.15, null, 950); break;
+      case 'bubble': this._tone(330 + Math.random() * 220, t, 0.1, 'sine', 0.13, null, 520); break;
+      case 'hum': this._tone(100, t, 1.25, 'sine', 0.07); this._tone(200, t, 1.25, 'sine', 0.025); break;
+      case 'wave': this._noise(t, 2.4, 0.16, 650, 'lowpass', true); break;
+      case 'gull': this._tone(1300, t, 0.3, 'sawtooth', 0.05, null, -520); this._tone(1240, t + 0.36, 0.22, 'sawtooth', 0.045, null, -460); break;
+      case 'horn': [98, 147].forEach(f => this._filtered(f, t, 1.9, 'sawtooth', 0.24, S, 700, { scoop: 0.9 })); break;
+      case 'toot': [0, 4].forEach(s => this._filtered(this._note(s, 587), t, 0.9, 'square', 0.06, S, 2400, { vib: 0.01 })); break;
+      case 'whistle': this._filtered(2600, t, 0.55, 'square', 0.05, S, 4500, { vib: 0.05 }); break;
+      case 'slurp': [0, 0.17, 0.34].forEach(d => { this._tone(300, t + d, 0.1, 'sine', 0.16, null, 520); this._noise(t + d, 0.04, 0.06, 1500); }); break;
+      case 'brrr': this._filtered(62, t, 1.1, 'sawtooth', 0.14, S, 900, { vib: 0.3 }); this._noise(t, 1.0, 0.05, 3000); break;
+      case 'ring': for (let i = 0; i < 8; i++) this._tone(i % 2 ? 1100 : 880, t + i * 0.05, 0.05, 'square', 0.06); break;
+      case 'gurgle': for (let i = 0; i < 6; i++) this._tone(250 + Math.random() * 300, t + i * 0.09, 0.08, 'sine', 0.12, null, 300); break;
+      case 'boing': this._tone(150, t, 0.5, 'sine', 0.28, null, 450); this._tone(300, t, 0.3, 'triangle', 0.06, null, 600); break;
+      case 'sizzle': this._noise(t, 0.7, 0.06, 5000, 'highpass', true); break;
+      case 'flap': for (let i = 0; i < 5; i++) this._noise(t + i * 0.08, 0.06, 0.12, 1100); break;
+      case 'splish': this._noise(t, 0.22, 0.16, 2500); this._tone(520, t, 0.12, 'sine', 0.1, null, -320); break;
+      case 'creak': this._filtered(85, t, 0.7, 'sawtooth', 0.12, S, 1400, { vib: 0.09 }); break;
+      case 'snore': this._noise(t, 1.1, 0.08, 400, 'lowpass', true); this._filtered(70, t, 1.1, 'sawtooth', 0.05, S, 300); break;
+      case 'sneeze': this._tone(620, t, 0.3, 'triangle', 0.12, null, 380); this._noise(t + 0.34, 0.28, 0.35, 2500, 'highpass'); this._tone(520, t + 0.34, 0.18, 'sawtooth', 0.12, null, -300); break;
+      case 'giggle': [0, 0.09, 0.18, 0.27].forEach((d, i) => this._tone(880 - i * 60, t + d, 0.07, 'triangle', 0.1, null, 200)); break;
     }
   }
 }
