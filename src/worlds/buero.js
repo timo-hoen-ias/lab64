@@ -64,7 +64,7 @@ export const BUERO = {
     l.deco(box(10, 5, 0.2, 0xffffff), 0, F1 + 2, -31.2); // Whiteboard
     l.box(-12, F1, 18, 3, 2, 3, 0xdfe6e9); l.box(-15, F1, 20.5, 3, 4, 3, 0xffffff); l.box(-18, F1, 23, 3, 6, 3, 0x95a5a6); l.box(-21, F1, 25.5, 3, 8, 3, 0x6d4c41); // Kopierer, Papier, Ordner, Aktenregal
     l.goldbone('kopierer', -21, F1 + 8.8, 25.5);
-    l.door(10, F1, -31.4, { x: 2000, y: 0.2, z: 8, yaw: Math.PI }, { label: 'Chef', frame: 0x2d3436 });
+    l.door(10, F1, -31.2, { x: 2000, y: 0.2, z: 8, yaw: Math.PI }, { label: 'Chef', frame: 0x2d3436 });
     l.deco(makeRoundTree(1.2), 20, F1, 0); l.deco(makeRoundTree(1.2), -20, F1, -4);
     crumbs(F1, [[-20, 0], [-10, 6], [0, 6], [10, 6], [20, 10], [16, -20], [-16, -24], [0, 24], [12, 24]]);
     // Chefbüro (Raum): Schreibtisch, Sessel, Pokalschrank
