@@ -14,6 +14,7 @@ export class AudioEngine {
     this.musicLP = this.ctx.createBiquadFilter(); this.musicLP.type = 'lowpass'; this.musicLP.frequency.value = 20000; this.musicLP.connect(this.master);
     this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.35; this.musicGain.connect(this.musicLP);
     this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.7; this.sfxGain.connect(this.lowpass);
+    if (this.vol) this.setVolume(...this.vol);
     // Mobilbrowser setzen den Kontext nach Anrufen, Sperrbildschirm oder Tab-Wechsel auf 'suspended'/'interrupted' → bei nächster Gelegenheit fortsetzen
     const wake = () => this.resume();
     ['pointerdown', 'touchend', 'keydown'].forEach(e => window.addEventListener(e, wake, { passive: true }));
@@ -24,6 +25,11 @@ export class AudioEngine {
     if (!this.ctx) return; const t = this.ctx.currentTime; this.lowpass.frequency.cancelScheduledValues(t);
     this.lowpass.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.08 : 0.2); if (on) this.sfx('splash');
     this.musicLP.frequency.cancelScheduledValues(t); this.musicLP.frequency.setTargetAtTime(on ? 2400 : 20000, t, 0.2);
+  }
+  // Lautstärke aus den Optionen (0..1); 1 = Standardpegel. Merkt sich den Wert, falls der Kontext noch fehlt.
+  setVolume(music, sfx) {
+    this.vol = [music, sfx]; this.musicLevel = 0.35 * music * music; if (!this.ctx) return; const t = this.ctx.currentTime;
+    this.musicLevel = 0.35 * music * music; this.musicGain.gain.cancelScheduledValues(t); this.musicGain.gain.setTargetAtTime(this.musicLevel, t, 0.03); this.sfxGain.gain.setTargetAtTime(0.7 * sfx * sfx, t, 0.03); // quadratisch: klingt gleichmäßiger
   }
   resume() { if (this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.ctx.resume().catch(() => { }); }
 
@@ -229,7 +235,8 @@ export class AudioEngine {
   // Musik für eine Fanfare kurz zurücknehmen und danach wieder einblenden
   duck(sec) {
     const g = this.musicGain.gain, t = this.ctx.currentTime;
-    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.05, t + 0.08); g.setValueAtTime(0.05, t + sec); g.linearRampToValueAtTime(0.35, t + sec + 0.8);
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); const lv = this.musicLevel ?? 0.35, low = Math.min(0.05, lv);
+    g.linearRampToValueAtTime(low, t + 0.08); g.setValueAtTime(low, t + sec); g.linearRampToValueAtTime(lv, t + sec + 0.8);
   }
   _fanfare(notes, base, t, beat, vol) { // notes: [Halbton, Länge in Schlägen] – Melodie mit Oktav-Glockenspiel und Bass
     let x = t; for (const [s, l] of notes) { if (s !== null) { const f = this._note(s, base); this._tone(f, x, beat * l * 1.1, 'square', vol); this._tone(f * 2, x, beat * l, 'triangle', vol * 0.6); } x += beat * l; }

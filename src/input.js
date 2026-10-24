@@ -165,6 +165,7 @@ export class Input {
   consumeCam() { const c = { x: this.cam.x, y: this.cam.y }; this.cam.x = 0; this.cam.y = 0; return c; }
   anyPressed() { return this.pressed('jump') || this.pressed('act') || this.keys.has('Enter'); }
   vibrate(ms = 80) {
+    if (this.noVibrate) return;
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (const p of pads) if (p && p.vibrationActuator) { try { p.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: 0.6, weakMagnitude: 0.3 }); } catch (e) { } }
     if (this.touch && navigator.vibrate) { try { navigator.vibrate(ms / 2); } catch (e) { } }
