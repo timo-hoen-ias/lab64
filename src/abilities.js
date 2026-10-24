@@ -174,7 +174,7 @@ export function installGadgets(Level) {
       } else if (onGround) {
         const e = 0.25, gx = (this._ballGround(it.x + e, it.z, it.y) - this._ballGround(it.x - e, it.z, it.y)) / (2 * e), gz = (this._ballGround(it.x, it.z + e, it.y) - this._ballGround(it.x, it.z - e, it.y)) / (2 * e);
         if (Math.abs(gx) < 2 && Math.abs(gz) < 2) { it.vx -= G * 0.71 * gx * dt; it.vz -= G * 0.71 * gz * dt; } // rollende Kugel: 5/7 der Hangkraft; Kanten (Sprung im Boden) zählen nicht
-        const sp = Math.hypot(it.vx, it.vz), dec = Math.min(sp, (1.2 + sp * 0.45) * dt); // Rollreibung + Luftwiderstand
+        const sp = Math.hypot(it.vx, it.vz), dec = Math.min(sp, (1.5 + sp * 0.6) * dt); // Rollreibung + Luftwiderstand
         if (sp > 0) { it.vx -= it.vx / sp * dec; it.vz -= it.vz / sp * dec; }
         if (Math.hypot(it.vx, it.vz) < 0.03 && Math.hypot(gx, gz) < 0.02) it.vx = it.vz = 0;
       } else it.vy -= G * dt;
@@ -185,7 +185,7 @@ export function installGadgets(Level) {
         const cx = pl.pos.x + fx * t, cz = pl.pos.z + fz * t, dx = it.x - cx, dz = it.z - cz, d = Math.hypot(dx, dz), R = 0.45 + BALL_R;
         if (d < R && d > 1e-4) {
           const nx = dx / d, nz = dz / d, rel = (pl.vel.x - it.vx) * nx + (pl.vel.z - it.vz) * nz;
-          if (rel > 0) { it.vx += nx * rel * 1.35; it.vz += nz * rel * 1.35; if (rel > 4) { it.vy = Math.max(it.vy, rel * 0.25); this.game.audio.sfx('click'); } }
+          if (rel > 0) { it.vx += nx * rel * 1.1; it.vz += nz * rel * 1.1; if (rel > 4) { it.vy = Math.max(it.vy, rel * 0.25); this.game.audio.sfx('click'); } }
           if (this._ballFree(it, cx + nx * R, it.y, cz + nz * R)) { it.x = cx + nx * R; it.z = cz + nz * R; }
         }
       }
