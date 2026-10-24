@@ -1,7 +1,7 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
 import { toonGradient, addSway, makeGlow } from './fx.js';
-import { texturedAsset, model, colorAsset, rigAsset, hasAsset } from './assets.js';
+import { texturedAsset, model, colorAsset, rigAsset } from './assets.js';
 
 const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
@@ -42,13 +42,7 @@ export function compact(root) {
 }
 
 // ---------- Moll, der braune Labrador ------------------------------------
-export function makeDog(paint) {
-  // Moll selbst bleibt das eckige Grundkörper-Modell (timo mag es lieber); andere Hunde (paint = Fellfarbe) nehmen das GLB aus Blender
-  const r = paint !== undefined && rigAsset('moll', { paint });
-  if (r) {
-    r.root.userData = { rig: r.n('rig'), front: r.n('front'), rear: r.n('rear'), head: r.n('head'), legs: r.list('leg'), tail: r.n('tail'), body: r.n('body'), earL: r.n('earL'), earR: r.n('earR'), tongue: r.n('tongue'), eyes: r.list('eye'), t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
-    r.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); return r.root;
-  }
+export function makeDog() { // Moll und alle Hunde bleiben eckig aus Grundkörpern (timo mag das lieber als das Blender-Modell)
   const g = new THREE.Group();
   const brown = 0x8b5a2b, dark = 0x5a3715, light = 0xa8743f, nose = 0x2a1a0e;
   const rig = new THREE.Group(); g.add(rig); // alles außer Schatten hängt am Rig → Squash/Stretch und Neigung
@@ -586,7 +580,7 @@ export function makeClam() {
 
 // Ein anderer Hund (Rettungsschwimmer, Burg-Bauer …): Moll in anderer Fellfarbe mit Mütze
 export function makeNpcDog(fur = 0xd9a441, cap = 0xe74c3c) {
-  const g = hasAsset('moll') ? makeDog(fur) : makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
+  const g = makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
   g.traverse(o => { if (o.material && o.material.color) { const h = o.material.color.getHex(), i = from.indexOf(h); if (i >= 0) { o.material = o.material.clone(); o.material.color.copy(to).multiplyScalar([1, 0.7, 1.15][i]); } } });
   const u = g.userData; if (u.head) { const c = cyl(0.32, 0.36, 0.2, cap, 0, 0.5, 0, 10); u.head.add(c); }
   u.npc = true; // Level sammelt NPCs, damit sie Moll mit dem Kopf nachschauen (Kopf bleibt dank userData beweglich)

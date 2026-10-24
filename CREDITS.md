@@ -7,7 +7,7 @@ Fertige Low-Poly-Modelle liegen als GLB unter `assets/` und werden über `src/as
 | Dateien | Herkunft |
 |---|---|
 | `assets/autos/*.glb` (rotes, blaues, gelbes Auto, Lieferwagen) | in Blender gebaut mit `tools/make_cars.py` |
-| `assets/figuren/*.glb` (Hund für NPCs, Ratte, Taube, Möwe, Kater, Krabbe, Staubsauger, Dosenöffner, Einkäufer, Riesenmuschel) | in Blender gebaut, bewegliche Teile als Knoten |
+| `assets/figuren/*.glb` (Ratte, Taube, Möwe, Kater, Krabbe, Staubsauger, Dosenöffner, Einkäufer, Riesenmuschel) | in Blender gebaut, bewegliche Teile als Knoten |
 | `assets/gegner/*.glb` (kleine Gegner) | in Blender gebaut |
 | `assets/tiere/*.glb`, `assets/deko/{ball,kuckucksuhr}.glb` | in Blender gebaut |
 | `assets/pflanzen/*.glb`, `assets/deko/gartenzwerg.glb`, `assets/sammeln/{ice,bone,treat,sock,cup}.glb` | in Blender gebaut (einfarbige Materialien) |
