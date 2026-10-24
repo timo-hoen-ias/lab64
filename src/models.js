@@ -1,7 +1,7 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
 import { toonGradient, addSway, makeGlow } from './fx.js';
-import { texturedAsset, model, colorAsset, rigAsset } from './assets.js';
+import { texturedAsset, model, colorAsset, rigAsset, asset } from './assets.js';
 
 const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
@@ -386,10 +386,14 @@ export function makeSign(text, o = {}) {
   };
   draw(text);
   const g = new THREE.Group(), board = new THREE.Group(); board.position.y = post + h / 2; g.add(board);
-  board.add(box(w + 0.14, h + 0.14, 0.12, dark));
+  // Rahmen aus Blender (für 2,6 breit gebaut, sonst gestreckt); mit Standardpfosten 1,2 das ganze Schild samt Pfosten
+  const whole = post === 1.2 && w === 2.6 ? asset('schild-pfosten') : null, frame = whole ?? asset('schild');
+  if (whole) g.add(whole);
+  else if (frame) { frame.scale.set((w + 0.14) / 2.74, (h + 0.14) / 0.79, 1); frame.position.y = -h / 2; board.add(frame); }
+  else board.add(box(w + 0.14, h + 0.14, 0.12, dark));
   const face = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradient(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   [1, -1].forEach(s => { const f = new THREE.Mesh(new THREE.PlaneGeometry(w, h), face); f.position.z = s * 0.064; if (s < 0) f.rotation.y = Math.PI; f.receiveShadow = true; board.add(f); });
-  if (post) [-1, 1].forEach(s => g.add(box(0.16, post + h + 0.12, 0.16, dark, s * (w / 2 + 0.15), (post + h + 0.12) / 2, 0)));
+  if (post && !whole) [-1, 1].forEach(s => g.add(box(0.16, post + h + 0.12, 0.16, dark, s * (w / 2 + 0.15), (post + h + 0.12) / 2, 0)));
   g.userData.setText = draw; return g;
 }
 
@@ -496,6 +500,8 @@ export function makeFlowers(w = 3, d = 1, n = 12) {
 
 // Schmetterling: zwei Flügel an Gelenken
 export function makeButterfly(color = 0xff9ff3) {
+  const r = rigAsset('schmetterling', color === 0xff9ff3 ? {} : { paint: color });
+  if (r) { r.root.userData = { wings: r.list('wing'), t: Math.random() * 10 }; return r.root; }
   const g = new THREE.Group();
   g.add(box(0.05, 0.05, 0.25, 0x333333));
   const wings = [1, -1].map(sx => { const p = new THREE.Group(); const w = new THREE.Mesh(new THREE.CircleGeometry(0.18, 6), mat(color, { side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; w.position.x = sx * 0.17; p.add(w); g.add(p); return p; });
@@ -517,7 +523,10 @@ export function makeGnome() {
 
 // Taucherbrille: zwei Gläser, Steg und Gummiband
 export function makeGoggles() {
-  const g = new THREE.Group(), glass = new THREE.MeshLambertMaterial({ color: 0x9be7ff, transparent: true, opacity: 0.7, emissive: 0x2d9cdb, emissiveIntensity: 0.5 });
+  const glass = new THREE.MeshLambertMaterial({ color: 0x9be7ff, transparent: true, opacity: 0.7, emissive: 0x2d9cdb, emissiveIntensity: 0.5 });
+  const gl = colorAsset('taucherbrille'); // ein Mesh je Farbe: die Gläser bekommen das durchsichtige Leucht-Material
+  if (gl) { gl.children.forEach(m => { if (m.material.color.getHex() === new THREE.Color(0x9be7ff).getHex()) m.material = glass; }); gl.scale.setScalar(1.3); return gl; }
+  const g = new THREE.Group();
   [-0.32, 0.32].forEach(x => { const f = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.07, 6, 16), mat(0xff7f27)); f.position.x = x; g.add(f); const l = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), glass); l.position.set(x, 0, 0.01); g.add(l); });
   g.add(box(0.2, 0.08, 0.08, 0xff7f27));
   const band = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 4, 20, Math.PI), mat(0x2d3436)); band.rotation.set(Math.PI / 2, 0, 0); band.position.z = -0.05; g.add(band);
@@ -554,6 +563,13 @@ export function makeCrab(color = 0xe0503a) {
 
 // Qualle: halbe Glocke mit leuchtendem Kern und Saum, Tentakel aus Gliedern (schwingen weich nach)
 export function makeJelly() {
+  const r = rigAsset('qualle');
+  if (r) {
+    const m = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.7, emissive: 0xff6fd8, emissiveIntensity: 0.5 });
+    const core = r.n('core').children[0]; core.material = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
+    r.root.traverse(o => { if (o.isMesh && o !== core) o.material = m; });
+    r.root.userData = { bell: r.n('bell'), tent: r.list('tent'), tentSegs: r.list('tentSeg'), core }; return r.root;
+  }
   const g = new THREE.Group(), m = new THREE.MeshLambertMaterial({ color: 0xff9ff3, transparent: true, opacity: 0.7, emissive: 0xff6fd8, emissiveIntensity: 0.5 });
   const bell = new THREE.Mesh(new THREE.SphereGeometry(0.6, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), m); g.add(bell);
   const core = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffd6f6, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })); core.position.y = 0.05; bell.add(core);

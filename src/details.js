@@ -41,6 +41,11 @@ function makeClock(cuckoo = true, s = 1) {
   return compact(g);
 }
 function makeFlames(s = 1) {
+  const r = rigAsset('flammen');
+  if (r) { // Glut aus Blender, die drei Flammen unbeleuchtet wie vorher
+    const list = r.list('list'), mt = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true });
+    list.forEach(f => { f.children[0].material = mt; }); r.root.scale.setScalar(s); r.root.userData = { list }; return r.root;
+  }
   const g = new THREE.Group(), list = [];
   [[0, 0xff7f27, 0.45, 1.3], [-0.3, 0xffb142, 0.3, 0.9], [0.32, 0xffd32a, 0.28, 0.8]].forEach(([x, c, r, h]) => { const f = new THREE.Mesh(new THREE.ConeGeometry(r * s, h * s, 6), flame(c)); f.position.set(x * s, h * s / 2, 0); g.add(f); list.push(f); });
   g.userData = { list }; return g;
