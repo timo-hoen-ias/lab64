@@ -86,7 +86,7 @@ export const BUERO = {
       // Aktenberge auf jedem Schalter, schief gestapelt; dazu die Schalternummer als Leuchtanzeige
       const n = r * 3 + c;
       for (let k = 0, hh = 1.4; k < 2 + (n * 5) % 4; k++) { const t = 0.25 + ((n + k) % 3) * 0.12; md(box(1.1, t, 0.8, k % 2 ? 0xfdfdf5 : 0xf5e9c8), x - 2.3 + Math.sin(n + k * 2) * 0.12, hh + t / 2, z + 0.7, Math.sin(n * 3 + k) * 0.25); hh += t; }
-      l.deco(makeDisplay(String(n + 1), 0.9), x, 2.25, z - 1.55);
+      l.deco(makeDisplay(String(n + 1), 0.9), x, 2.25, z - 1.55); md(box(0.08, 0.75, 0.08, 0x636e72), x, 1.75, z - 1.55); // Anzeige auf Stange
       md(cyl(0.25, 0.25, 0.08, 0x2d3436, 0, 0.04, 0, 10), x + 0.4, 1.44, z + 0.3); md(box(0.12, 0.35, 0.12, 0x6d4c41), x + 0.4, 1.66, z + 0.3); // Stempel
     }
     desks.forEach((d, i) => {
@@ -123,7 +123,7 @@ export const BUERO = {
     l.goldbone('geheim', 24, 0.6, -24, { hidden: true });
     l.box(20, 0, 20, 6, 0.8, 6, 0xd63031); l.deco(makeSign('Kantine', { w: 2.2, post: 1.4 }), 20, 0, 16.2);
     l.pickup(-20, 0.3, 26, 'cup', { special: true, onTake: () => l.tasse(), onRestore: () => l.tassen++ });
-    crumbs(0, [[-24, 24], [-8, 24], [8, 24], [-24, 4], [24, 4], [0, -24], [-12, -26], [12, -26]]);
+    crumbs(0, [[-24, 24], [-8, 24], [8, 24], [-24, 4], [20, 4], [0, -24], [-12, -26], [12, -26]]);
 
     // ---- 1. Stock: Sitzungssaal, Kopierer-Ecke, Tür zur Amtsleitung
     l.group.add(box(52, 0.04, 64, 0x8e7cc3, 0, F1 + 0.02, 0));
@@ -167,7 +167,7 @@ export const BUERO = {
       if (l.tassen >= 4 && !g.hasBone(l.key, 'tassen')) { it.used = true; g.talk('kaffee.fertig'); l.spawnGoldbone(10, F2 + 0.6, 18.5, 'tassen'); }
       else if (!g.hasBone(l.key, 'tassen')) g.talk('kaffee', { vars: { n: l.tassen } });
     }, 'KAFFEE: BISS');
-    [[-22, 29.4, 2], [-16, 29.4, 4], [-10, 29.4, 6], [-4, 29.4, 8], [2, 29.4, 10]].forEach(([x, z, h]) => l.box(x, F2 + h - 0.4, z, 3.4, 0.4, 2.6, 0xecf0f1)); // Fensterbänke
+    [[-22, 29.4, 2], [-16, 29.4, 4], [-10, 29.4, 6], [-4, 29.4, 8], [2, 29.4, 10]].forEach(([x, z, h]) => { l.box(x, F2 + h - 0.4, z + 0.55, 3.4, 0.4, 3.7, 0xecf0f1); [-1.2, 1.2].forEach(d => md(box(0.2, 0.7, 1.4, 0xb2bec3), x + d, F2 + h - 0.75, 30.7)); }); // Wandbretter bis zur Wand, auf Konsolen
     l.goldbone('fenster', 2, F2 + 10.8, 29.4);
     l.pickup(-4, F2 + 8.3, 29.4, 'cup', { special: true, onTake: () => l.tasse(), onRestore: () => l.tassen++ });
     crumbs(F2, [[-20, 0], [-10, 8], [0, 0], [10, 8], [20, -6], [-16, -26], [16, -26], [-20, 20], [20, 14]]);
@@ -176,7 +176,7 @@ export const BUERO = {
     const hp = cyl(8, 8, 0.05, 0x2d3436, 0, 0, 0, 24); l.deco(hp, 0, ROOF + 0.02, 6); l.deco(box(1, 0.06, 6, 0xf1c40f), -2, ROOF + 0.05, 6); l.deco(box(1, 0.06, 6, 0xf1c40f), 2, ROOF + 0.05, 6); l.deco(box(3, 0.06, 1, 0xf1c40f), 0, ROOF + 0.05, 6);
     [[-20, 20, 4, 2.4, 4], [18, 18, 6, 3, 4], [-12, -24, 5, 2, 3]].forEach(([x, z, w, h, d]) => l.box(x, ROOF, z, w, h, d, 0xb2bec3));
     l.box(-22, ROOF, -10, 1.4, 16, 1.4, 0x636e72); l.box(14, ROOF, 18, 2, 1.5, 2, 0xb2bec3);
-    for (let i = 0; i < 9; i++) { const a = i * 0.8, r = 1.9; l.box(-22 + Math.cos(a) * r, ROOF + 1.2 + i * 1.6, -10 + Math.sin(a) * r, 1.6, 0.3, 1.6, 0xe74c3c); }
+    for (let i = 0; i < 9; i++) { const a = i * 0.8, r = 1.9; l.box(-22 + Math.cos(a) * r, ROOF + 1.2 + i * 1.6, -10 + Math.sin(a) * r, 1.6, 0.3, 1.6, 0xe74c3c); md(box(0.9, 0.2, 0.3, 0x636e72), -22 + Math.cos(a) * 0.95, ROOF + 1.1 + i * 1.6, -10 + Math.sin(a) * 0.95, -a); } // Trittstufen mit Trägern am Mast
     l.box(-22, ROOF + 16, -10, 3, 0.3, 3, 0x636e72); l.deco(sphere(0.4, 0xff3838, 0, 0, 0, 6), -22, ROOF + 17.6, -10);
     l.goldbone('antenne', -21, ROOF + 16.8, -9);
     l.pickup(18, ROOF + 3.3, 18, 'cup', { special: true, onTake: () => l.tasse(), onRestore: () => l.tassen++ });
