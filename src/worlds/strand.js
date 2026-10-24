@@ -51,9 +51,9 @@ export const STRAND = {
     l.zone(0, -128, 60, () => {
       l.box(-30, 6, -134, 9, 4, 6, 0xffffff); l.box(-30, 10, -134, 10, 0.4, 7, 0xe74c3c);
       l.deco(box(9.2, 0.5, 0.4, 0xffd34d), -30, 9, -130.9); l.deco(makeSign('POMMES · EIS', { w: 5, post: 0.2 }), -30, 10.4, -131.2);
-      [[-24, 6, -129], [-22, 7.3, -131], [-24.5, 8.6, -133]].forEach(([x, y, z]) => l.box(x, y, z, 1.6, 1.3, 1.6, 0xc0905a)); // Kistenstapel aufs Kioskdach
+      [[-24, 1.3, -129], [-22, 2.6, -131], [-24.5, 3.9, -133]].forEach(([x, h, z]) => l.box(x, 6, z, 1.6, h, 1.6, 0xc0905a)); // Kistenstapel aufs Kioskdach (stehen auf dem Boden)
       l.pickup(-30, 10.7, -134, 'fries', { goal: true });
-      for (let x = -110; x <= 110; x += 10) { l.deco(cyl(0.12, 0.12, 3.2, 0x2d3436, 0, 0, 0, 6), x, 7.6, -122); l.deco(sphere(0.35, 0xfff3a0, 0, 0, 0, 8), x, 9.3, -122); } // Laternen
+      for (let x = -110; x <= 110; x += 10) { l.prop(cyl(0.12, 0.12, 3.2, 0x2d3436, 0, 0, 0, 6), x, 7.6, -122); l.prop(sphere(0.35, 0xfff3a0, 0, 0, 0, 8), x, 9.3, -122); } // Laternen
       const lg = makeNpcDog(0xd9a441, 0xe74c3c); l.deco(lg, 7, 6, -121, Math.PI); l.lifeguard = lg;
       l.abilityItem(4, 7, -118, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch. Achte auf die Luft!');
       l.trigger(4, 6, -120, 7, () => g.talk(g.has('tauchen') ? 'rex.tauchen' : 'rex', { mesh: lg }), false);
@@ -62,8 +62,8 @@ export const STRAND = {
 
     // ---- Strand: Schirme, Liegen, Sandburg mit Burg-Bauer, Krabben, Palmen
     l.zone(0, -75, 90, () => {
-      [[-60, -78, 0xe74c3c], [-20, -80, 0xfeca57], [10, -74, 0x48dbfb], [-75, -95, 0xff9ff3], [85, -82, 0x1dd1a1], [-5, -98, 0xff7675]].forEach(([x, z, c]) => { l.deco(umbrella(c), x, H(x, z), z); l.box(x + 1.8, H(x, z), z, 1.2, 0.35, 2.6, 0xffffff); });
-      [[-95, -80], [-50, -105], [40, -100], [95, -95], [120, -70], [-120, -70]].forEach(([x, z]) => l.deco(palm(6 + Math.random() * 2), x, H(x, z), z));
+      [[-60, -78, 0xe74c3c], [-20, -80, 0xfeca57], [10, -74, 0x48dbfb], [-75, -95, 0xff9ff3], [85, -82, 0x1dd1a1], [-5, -98, 0xff7675]].forEach(([x, z, c]) => { l.prop(umbrella(c), x, H(x, z), z); l.box(x + 1.8, H(x, z), z, 1.2, 0.35, 2.6, 0xffffff); });
+      [[-95, -80], [-50, -105], [40, -100], [95, -95], [120, -70], [-120, -70]].forEach(([x, z]) => l.prop(palm(6 + Math.random() * 2), x, H(x, z), z));
       // Sandburg: Stufen zum Erklimmen, Pommes ganz oben
       const bx = 25, bz = -80, by = H(bx, bz);
       l.box(bx, by, bz, 8, 1.5, 8, 0xe8cf91); l.box(bx, by + 1.5, bz, 5.5, 1.5, 5.5, 0xe8cf91); l.box(bx, by + 3, bz, 3, 1.5, 3, 0xe8cf91);
@@ -87,15 +87,15 @@ export const STRAND = {
     l.zone(-105, -115, 45, () => {
       l.goldbone('geheim', -96, H(-96, -104) + 0.5, -104, { hidden: true });
       l.pickup(-126, H(-126, -116) + 0.4, -116, 'fries', { goal: true, hidden: true });
-      for (let i = 0; i < 30; i++) { const x = -140 + Math.random() * 80, z = -150 + Math.random() * 60; l.deco(seaweed(0.8), x, H(x, z), z); } // Strandhafer
+      for (let i = 0; i < 30; i++) { const x = -140 + Math.random() * 80, z = -150 + Math.random() * 60; l.prop(seaweed(0.8), x, H(x, z), z); } // Strandhafer
     });
 
     // ---- Pier mit Riesenrad
     l.zone(60, -20, 70, () => {
       l.ramp(60, -86, 60, -78, 6, 2, 3, 0xb08355);
       l.box(60, 2, -26, 6, 1, 104, 0xb08355); // Steg von z -78 bis 26
-      for (let z = -74; z <= 22; z += 8) [-2.6, 2.6].forEach(dx => l.deco(cyl(0.3, 0.3, 15, 0x7a5a3a, 0, 0, 0, 6), 60 + dx, -5.5, z));
-      for (let z = -78; z <= 26; z += 2) [-3, 3].forEach(dx => l.deco(box(0.12, 1, 0.12, 0xffffff), 60 + dx, 3.5, z));
+      for (let z = -74; z <= 22; z += 8) [-2.6, 2.6].forEach(dx => l.prop(cyl(0.3, 0.3, 15, 0x7a5a3a, 0, 0, 0, 6), 60 + dx, -5.5, z));
+      for (let z = -78; z <= 26; z += 2) [-3, 3].forEach(dx => l.prop(box(0.12, 1, 0.12, 0xffffff), 60 + dx, 3.5, z)); [-3, 3].forEach(dx => l.prop(box(0.16, 0.14, 104, 0xffffff), 60 + dx, 4.05, -26)); // Geländer mit Handlauf
       l.box(60, 2, 34, 18, 1, 16, 0xb08355); // Plattform
       l.pickup(57.5, H(57.5, -62) + 0.4, -62, 'fries', { goal: true }); // unterm Pier im flachen Wasser
       // Riesenrad (steht still): 24 Gondeln im Kreis = Kletterweg nach oben
@@ -117,12 +117,12 @@ export const STRAND = {
     // ---- Sandbank (Boss-Arena) mit Leuchtfeuer
     l.zone(-40, 20, 40, () => {
       l.deco(umbrella(0xe74c3c), -50, 0.6, 38); l.deco(palm(5), -30, 0.6, 42);
-      const flag = cyl(0.08, 0.08, 4, 0xffffff, 0, 2, 0, 6); l.deco(flag, -40, 0.6, 32); l.deco(box(1.4, 0.9, 0.05, 0xe74c3c), -39.3, 4.1, 32);
+      const flag = cyl(0.08, 0.08, 4, 0xffffff, 0, 2, 0, 6); l.deco(flag, -40, 2.6, 32); // Mast steht auf dem Sand, Fahne oben dran l.deco(box(1.4, 0.9, 0.05, 0xe74c3c), -39.3, 4.1, 32);
     });
 
     // ---- Korallenriff: Riesenmuscheln, Ringe, Quallen, Luftblasen
     l.zone(75, 75, 55, () => {
-      for (let i = 0; i < 40; i++) { const x = 30 + Math.random() * 90, z = 35 + Math.random() * 80, y = H(x, z); if (y > -2) continue; l.deco(Math.random() < 0.6 ? coral([0xff7675, 0xfd79a8, 0xfdcb6e, 0xa29bfe, 0x55efc4][i % 5], 1 + Math.random() * 1.5) : seaweed(2 + Math.random() * 2), x, y, z); }
+      for (let i = 0; i < 40; i++) { const x = 30 + Math.random() * 90, z = 35 + Math.random() * 80, y = H(x, z); if (y > -2) continue; l.prop(Math.random() < 0.6 ? coral([0xff7675, 0xfd79a8, 0xfdcb6e, 0xa29bfe, 0x55efc4][i % 5], 1 + Math.random() * 1.5) : seaweed(2 + Math.random() * 2), x, y, z); }
       l.clamsOpen = 0;
       [[45, 70], [70, 50], [90, 90], [110, 80], [60, 110]].forEach(([x, z], i) => {
         const y = H(x, z), c = makeClam(); l.deco(c, x, y + 0.3, z, i);
@@ -158,14 +158,14 @@ export const STRAND = {
     l.zone(100, 0, 40, () => {
       const top = H(100, 0);
       l.box(100, top, 0, 4.4, 18, 4.4, 0xffffff, { cam: true });
-      for (let i = 0; i < 6; i++) l.deco(cyl(2.35, 2.35, 1.5, 0xe74c3c, 0, 0, 0, 12), 100, top + 1.5 + i * 3, 0);
+      for (let i = 0; i < 6; i++) l.prop(cyl(2.35, 2.35, 1.5, 0xe74c3c, 0, 0, 0, 12), 100, top + 1.5 + i * 3, 0);
       l.deco(cyl(2.6, 2.6, 0.4, 0x2d3436, 0, 0, 0, 12), 100, top + 18.25, 0); l.deco(sphere(1.2, 0xfff3a0, 0, 0, 0, 10), 100, top + 19.6, 0);
-      for (let i = 0; i < 12; i++) { const a = i * 0.62, r = 3.8; l.box(100 + Math.cos(a) * r, top + 1.1 + i * 1.45, Math.sin(a) * r, 2, 0.4, 2, 0x95a5a6); }
+      for (let i = 0; i < 12; i++) { const a = i * 0.62, r = 3.8; l.box(100 + Math.cos(a) * r, top + 1.1 + i * 1.45, Math.sin(a) * r, 2, 0.4, 2, 0x95a5a6); l.prop(box(1.2, 0.3, 0.5, 0x7f8c8d), 100 + Math.cos(a) * 2.6, top + 0.95 + i * 1.45, Math.sin(a) * 2.6, -a); } // Wendeltreppe mit Trägern in der Turmwand
       l.box(100, top + 18, 0, 6, 0.4, 6, 0x95a5a6);
       l.goldbone('leuchtturm', 100, top + 19, 2.5);
       l.pickup(112, H(112, 10) + 0.4, 10, 'fries', { goal: true });
       l.warp(88, H(88, -8), -8, 'Insel', strandkorb());
-      const flag = cyl(0.08, 0.08, 3, 0xffffff, 0, 1.5, 0, 6); l.deco(flag, 86, H(86, 4), 4); l.deco(box(1.2, 0.8, 0.05, 0x1dd1a1), 86.6, H(86, 4) + 2.6, 4);
+      const flag = cyl(0.08, 0.08, 3, 0xffffff, 0, 1.5, 0, 6); l.deco(flag, 86, H(86, 4) + 1.5, 4); l.deco(box(1.2, 0.8, 0.05, 0x1dd1a1), 86.6, H(86, 4) + 2.6, 4);
     });
 
     // ---- Wettschwimmen mit Rex: vom Strand zur Inselflagge
