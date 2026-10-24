@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { box, cyl, sphere, cone, compact, makeBird } from './models.js';
 import { SHAKE } from './fx.js';
+import { rigAsset, asset } from './assets.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -23,6 +24,8 @@ function pinecone() {
   return CONE.clone();
 }
 function makeClock(cuckoo = true, s = 1) {
+  const r = cuckoo && rigAsset('kuckucksuhr'); // GLB aus Blender (assets/deko), sonst Grundkörper
+  if (r) { r.root.userData = { hour: r.n('hour'), minute: r.n('minute'), pend: r.n('pend'), bird: r.n('bird') }; r.root.scale.setScalar(s); return r.root; }
   const g = new THREE.Group();
   g.add(box(1.1, 1.5, 0.22, 0x8d5a2b, 0, 0, 0));
   if (cuckoo) { [-1, 1].forEach(k => { const r = box(0.85, 0.12, 0.34, 0x5d3f26, k * 0.33, 0.92, 0); r.rotation.z = -k * 0.55; g.add(r); }); g.add(box(0.36, 0.3, 0.04, 0x3b2412, 0, 0.62, 0.11)); }
@@ -43,17 +46,21 @@ function makeFlames(s = 1) {
   g.userData = { list }; return g;
 }
 function makeDuck(c = 0xffd32a, beak = 0xff7f27, s = 1) {
+  const a = asset('quietscheente', c === 0xffd32a ? {} : { paint: c }); if (a) { a.scale.setScalar(s); return a; }
   const g = new THREE.Group(); const b = sphere(0.3, c, 0, 0.2, 0, 8); b.scale.set(1, 0.75, 1.3); g.add(b);
   g.add(sphere(0.18, c, 0, 0.5, 0.25, 7)); g.add(cone(0.08, 0.2, beak, 0, 0.47, 0.48, 5).rotateX(Math.PI / 2));
   [-1, 1].forEach(k => g.add(sphere(0.035, 0x111111, k * 0.1, 0.56, 0.38, 4))); g.add(cone(0.1, 0.2, c, 0, 0.32, -0.38, 5).rotateX(-1.1));
   g.scale.setScalar(s); return compact(g);
 }
 function makeFrog() {
+  const a = asset('frosch'); if (a) return a;
   const g = new THREE.Group(); const b = sphere(0.3, 0x43a047, 0, 0.18, 0, 7); b.scale.set(1.1, 0.65, 1); g.add(b);
   [-1, 1].forEach(k => { g.add(sphere(0.1, 0x66bb6a, k * 0.15, 0.36, 0.14, 6)); g.add(sphere(0.05, 0x111111, k * 0.16, 0.39, 0.22, 4)); g.add(box(0.12, 0.06, 0.3, 0x2e7d32, k * 0.3, 0.05, -0.05)); });
   g.add(box(0.26, 0.03, 0.04, 0xc62828, 0, 0.14, 0.29)); return compact(g);
 }
 function makeCow() {
+  const r = rigAsset('kuh');
+  if (r) { r.root.userData = { head: r.n('head'), tail: r.n('tail') }; return r.root; }
   const g = new THREE.Group(), W = 0xfafafa, K = 0x2d2d2d;
   g.add(box(1.3, 1.1, 2.2, W, 0, 1.5, 0)); [[0.66, 1.6, 0.3, 0.6], [-0.66, 1.4, -0.4, 0.7], [0.66, 1.3, -0.6, 0.5]].forEach(([x, y, z, s]) => g.add(box(0.02, s, s * 1.2, K, x, y, z)));
   g.add(box(0.5, 0.35, 0.6, K, 0.2, 2.06, -0.3));
@@ -65,11 +72,13 @@ function makeCow() {
   g.userData = { head, tail }; return compact(g);
 }
 function makeFish(c = 0xff8f00, s = 1) {
+  const a = asset('fisch', c === 0xff8f00 ? {} : { paint: c }); if (a) { a.scale.setScalar(s); return a; }
   const g = new THREE.Group(); const b = sphere(0.2, c, 0, 0, 0, 7); b.scale.set(0.55, 0.8, 1.4); g.add(b);
   g.add(cone(0.16, 0.25, c, 0, 0, -0.38, 4).rotateX(-Math.PI / 2)); [-1, 1].forEach(k => g.add(sphere(0.03, 0x111111, k * 0.09, 0.05, 0.18, 4)));
   g.scale.setScalar(s); return compact(g);
 }
 function makeBall(r = 0.5) {
+  const a = asset('ball'); if (a) { a.scale.setScalar(r / 0.5); return a; }
   const g = new THREE.Group(); g.add(sphere(r, 0xffffff, 0, 0, 0, 10));
   [[0xe74c3c, 0], [0x0984e3, Math.PI / 3], [0xfeca57, -Math.PI / 3]].forEach(([c, a]) => { const t = new THREE.Mesh(new THREE.TorusGeometry(r * 1.005, r * 0.17, 4, 20), new THREE.MeshToonMaterial({ color: c })); t.rotation.y = a; g.add(t); });
   return compact(g);

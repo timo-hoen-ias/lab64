@@ -13,6 +13,7 @@ export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
   ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell', 'ice', 'bone', 'treat', 'sock', 'cup'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (makeFood)
   ...Object.fromEntries(['moll', 'ratte', 'taube', 'moewe', 'katze', 'krabbe', 'staubsauger', 'dosenoeffner', 'einkaeufer', 'riesenmuschel'].map(k => [k, 'figuren/' + k])), // Figuren mit Knoten (rigAsset)
+  ...Object.fromEntries(['meise', 'spatz', 'moewe-klein', 'huhn', 'wildente', 'teichfrosch', 'frosch', 'quietscheente', 'kuh', 'fisch'].map(k => [k, 'tiere/' + k])), ball: 'deko/ball', kuckucksuhr: 'deko/kuckucksuhr', // Kleintiere, Deko (details.js, critters.js)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
