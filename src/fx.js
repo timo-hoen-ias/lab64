@@ -281,3 +281,30 @@ export function makeBubbleColumn(h) {
   g.userData.update = (dt, t) => g.children.forEach(b => { const u = b.userData; u.y = (u.y + u.s * dt) % h; b.position.set(Math.sin(t * 2 + u.ph) * 0.25, u.y, Math.cos(t * 1.7 + u.ph) * 0.25); });
   return g;
 }
+
+// Durchsicht: Was zwischen Kamera und Moll liegt (Wände, Regale, Decken), bekommt ein gerastertes Loch,
+// damit man den Hund immer sieht. Ein Kegel von der Kamera zu Moll, Böden auf Molls Höhe bleiben stehen.
+export const SEE_THROUGH = { uCutA: { value: new THREE.Vector3() }, uCutB: { value: new THREE.Vector3() }, uCutR: { value: 0 }, uCutFeet: { value: -1e9 } };
+export function addSeeThrough(mat) {
+  if (mat.userData.seeThrough || mat.transparent) return; mat.userData.seeThrough = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r); Object.assign(sh.uniforms, SEE_THROUGH);
+    sh.vertexShader = 'varying vec3 vCutPos;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+ vec4 cutP = vec4(transformed, 1.0);
+ #ifdef USE_INSTANCING
+ cutP = instanceMatrix * cutP;
+ #endif
+ vCutPos = (modelMatrix * cutP).xyz;`);
+    sh.fragmentShader = 'uniform vec3 uCutA, uCutB;\nuniform float uCutR, uCutFeet;\nvarying vec3 vCutPos;\n' + sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+ if (uCutR > 0.0 && vCutPos.y > uCutFeet) {
+  vec3 ab = uCutB - uCutA; float len = length(ab), t = dot(vCutPos - uCutA, ab) / (len * len);
+  if (t > 0.0 && t * len < len - 1.2) {
+   float k = length(vCutPos - uCutA - ab * t) / (t * uCutR);
+   float dith = fract(dot(floor(gl_FragCoord.xy), vec2(0.5, 0.25)) + floor(gl_FragCoord.y * 0.5) * 0.5);
+   if (k < 0.7 || (k < 1.0 && dith < (1.0 - k) / 0.3)) discard;
+  }
+ }`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|see';
+}

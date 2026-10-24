@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere } from './models.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX } from './fx.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough } from './fx.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -38,6 +38,7 @@ export class Level {
     this._placeScatter();
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
+    this._seeThrough();
     this.crumbTotal = this.pickups.filter(p => !p.goal && !p.special && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
@@ -236,6 +237,15 @@ export class Level {
       if (!blocked && (th > -Infinity || this.groundAt(x, z, 0.1) > -0.1)) pts.push([x, top, z]);
     }
     this.grass = makeGrass(pts, colors); this.scene.add(this.grass);
+  }
+
+  // Kulisse wird durchsichtig, wo sie Moll verdeckt (Gegner und Sammelsachen nicht). Flache, breite Kisten
+  // (Decken, Zwischenböden) halten außerdem die Kamera auf, damit sie nicht über die Decke eines Raums fliegt.
+  _seeThrough() {
+    const skip = new Set([...this.enemies.map(e => e.mesh), ...this.pickups.map(p => p.mesh), ...(this.abilityItems || []).map(i => i.mesh)]);
+    const walk = o => { if (skip.has(o)) return; if (o.isMesh) [].concat(o.material).forEach(addSeeThrough); o.children.forEach(walk); };
+    walk(this.group); this.zones.forEach(z => walk(z.group));
+    for (const s of this.solids) if (s !== this.groundSolid && (s.max.x - s.min.x) * (s.max.z - s.min.z) > 40 && s.max.y - s.min.y < 3) s.ceil = true;
   }
 
   // Statische Kisten gleicher Farbe zu einem Mesh zusammenfassen: viel weniger Zeichenaufrufe auf großen Karten
