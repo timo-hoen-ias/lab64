@@ -2,6 +2,9 @@
 // Die Stücke selbst stehen in music.js; hier spielt sie ein Sequenzer mit Instrumenten und synchronen Varianten (draußen, drinnen, unter Wasser, Boss).
 import { SONGS, MIXES, compile } from './music.js';
 
+// Formanten (F1, F2 in Hz) je Vokal: färben das Gebrabbel, damit „a“ anders blubbert als „i“
+const FORMANTS = { a: [800, 1250], e: [480, 1900], i: [300, 2300], o: [500, 880], u: [340, 720], ä: [650, 1700], ö: [450, 1500], ü: [300, 1650], y: [300, 1650] };
+
 export class AudioEngine {
   constructor() { this.ctx = null; this.song = null; this.enabled = true; this.mix = 'normal'; }
 
@@ -244,6 +247,23 @@ export class AudioEngine {
   }
 
   // ---- Effekte -------------------------------------------------------
+  // Gebrabbel beim Sprechen (wie in Banjo-Kazooie): pro Silbe ein kurzer Ton, der durch zwei Formantfilter läuft.
+  // v = Stimme aus dialog.js, step = Halbtöne über/unter der Grundstimme, t = Startzeit (für Offline-Hörproben).
+  blub(v, vowel = 'a', step = 0, loud = 1, t = null) {
+    if (!this.ctx) return; const c = this.ctx; t ??= c.currentTime + 0.005;
+    const F = FORMANTS[vowel] || FORMANTS.a, dur = v.dur * (0.85 + Math.random() * 0.3), f0 = v.base * Math.pow(2, step / 12);
+    const o = c.createOscillator(); o.type = v.wave || 'sawtooth';
+    // Tonhöhe kippt am Silbenanfang kurz von oben (oder unten) auf den Zielton: das macht das „Blubb“
+    o.frequency.setValueAtTime(f0 * (1 + (v.slide ?? 0.15)), t); o.frequency.exponentialRampToValueAtTime(f0, t + dur * 0.5);
+    if (v.vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = v.vibRate || 9; lg.gain.value = f0 * v.vib; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur + 0.1); }
+    const out = c.createGain(), vol = 0.16 * loud * (v.vol ?? 1);
+    out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(vol, t + 0.012); out.gain.setValueAtTime(vol, t + dur * 0.45); out.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const fs = v.formant || 1;
+    [[F[0], 4, 1.6], [F[1], 7, 0.9]].forEach(([f, q, g]) => { const bp = c.createBiquadFilter(), gg = c.createGain(); bp.type = 'bandpass'; bp.frequency.value = f * fs; bp.Q.value = q; gg.gain.value = g; o.connect(bp); bp.connect(gg); gg.connect(out); });
+    const dry = c.createGain(); dry.gain.value = v.dry ?? 0.18; o.connect(dry); dry.connect(out);
+    out.connect(this.sfxGain); o.start(t); o.stop(t + dur + 0.05);
+  }
+
   sfx(name) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

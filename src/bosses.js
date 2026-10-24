@@ -34,7 +34,7 @@ class Boss {
   die() {
     this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss(); this.game.shake(0.6);
     this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, { n: 40, color: [0xffffff, 0xdddddd, 0xffe066], speed: 9, up: 6, life: 1, size: 0.35, gravity: -10 });
-    this.game.toast(`${this.name} besiegt!`);
+    this.game.toast(`${this.name} besiegt!`); this.game.later(1400, () => this.game.talk('bossdown.' + this.game.level.key));
     const lvl = this.game.level; this.game.later(800, () => lvl.spawnGoldbone(this.pos.x, this.pos.y + 1, this.pos.z));
   }
   baseUpdate(dt) {
@@ -227,7 +227,7 @@ export class FatMan {
     if (seen) this.suspicion = Math.min(1, this.suspicion + dt * (d < 4 ? 2.5 : 0.9)); else this.suspicion = Math.max(0, this.suspicion - dt * 0.8);
     this.game.suspicion(this.suspicion);
     if (this.suspicion >= 1) {
-      this.suspicion = 0; this.game.audio.sfx('lose'); this.game.toast('„HEY! Weg da, Hund!“ – Erwischt!'); p.hurt(1); p.respawn();
+      this.suspicion = 0; this.game.audio.sfx('lose'); this.game.toast('Erwischt!'); this.game.talk('dicker.mann'); p.hurt(1); p.respawn();
     }
   }
   onBite() { this.game.toast('Lieber nicht beißen. Leise bleiben!'); }

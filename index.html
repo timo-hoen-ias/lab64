@@ -71,6 +71,25 @@
   #learn{position:absolute;left:50%;top:66%;transform:translate(-50%,-50%) scale(.8);background:var(--ui);color:var(--ink);text-shadow:none;border:4px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);padding:10px 18px;max-width:min(440px,80vw);text-align:center;opacity:0;transition:opacity .25s,transform .4s cubic-bezier(.34,1.56,.64,1)}
   #learn.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
   #learn .ic{font-size:34px;line-height:1} #learn h3{margin:2px 0;font-size:21px} #learn small{display:block;color:#a0561b;letter-spacing:2px;text-transform:uppercase;font-size:11px} #learn p{margin:4px 0 0;font-size:14px;font-weight:600;line-height:1.35}
+  /* Dialoge: Namensschild, Text erscheint Buchstabe für Buchstabe; .block hält das Spiel an, .chat ist ein Spruch nebenbei */
+  #dialog{position:fixed;inset:0;z-index:45;display:none;pointer-events:none}
+  #dialog.show{display:block}
+  #dialog.block{pointer-events:auto;cursor:pointer;background:linear-gradient(transparent 50%,rgba(30,18,8,.4))}
+  #dialog .box{position:absolute;left:50%;bottom:calc(var(--sa-b) + 20px);transform:translateX(-50%);width:min(640px,90vw);box-sizing:border-box;background:var(--ui);color:var(--ink);text-shadow:none;border:4px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:18px 20px 14px}
+  #dialog .box.pop{animation:dlgPop .28s cubic-bezier(.34,1.56,.64,1)}
+  #dialog .who{position:absolute;top:-19px;left:16px;display:flex;gap:6px;align-items:center;background:var(--c,#a0561b);color:#fff;border:3px solid var(--ink);border-radius:12px;padding:1px 12px 1px 6px;font-weight:900;font-size:15px;text-shadow:0 2px 0 rgba(0,0,0,.25);white-space:nowrap}
+  #dialog .face{font-size:22px;line-height:1.2;display:inline-block;transform-origin:50% 80%}
+  #dialog.typing .face{animation:dlgFace .16s infinite alternate}
+  #dialog .text{margin:0;font-size:clamp(15px,2.3vw,20px);font-weight:700;line-height:1.4;min-height:2.8em}
+  #dialog .rest{visibility:hidden}
+  #dialog .more{position:absolute;right:14px;bottom:6px;font-size:14px;opacity:0}
+  #dialog.block.wait .more{opacity:1;animation:dlgMore .5s infinite alternate}
+  #dialog.chat .box{width:min(480px,86vw);padding:14px 16px 10px}
+  #dialog.chat .text{font-size:clamp(14px,1.9vw,17px);min-height:0}
+  body.touch #dialog.chat .box{width:min(440px,52vw);bottom:calc(var(--sa-b) + 12px)}
+  @keyframes dlgPop{from{transform:translateX(-50%) scale(.85);opacity:.4}to{transform:translateX(-50%) scale(1);opacity:1}}
+  @keyframes dlgFace{from{transform:rotate(-8deg) scaleY(1)}to{transform:rotate(6deg) scaleY(.88)}}
+  @keyframes dlgMore{from{transform:translateY(0)}to{transform:translateY(4px)}}
   #shop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(30,18,8,.6);z-index:40}
   #shop.show{display:flex}
   #shop .card{background:var(--ui);color:var(--ink);border:5px solid var(--ink);border-radius:22px;box-shadow:0 8px 0 var(--ink);padding:18px 20px;width:min(480px,92vw);max-height:90vh;overflow:auto}
@@ -181,6 +200,7 @@
   <div class="btn" id="bPause">II</div>
 </div>
 
+<div id="dialog"><div class="box"><div class="who"><span class="face"></span><span class="name"></span></div><p class="text"><span class="shown"></span><span class="rest"></span></p><span class="more">▼</span></div></div>
 <div id="shop"><div class="card"><h3>🦴 Opas Leckerli-Laden</h3><div class="wallet"></div><div class="list"></div><button class="close">Fertig</button></div></div>
 
 <div id="menu">

@@ -45,7 +45,7 @@ export const BUERO = {
     l.box(-22, 0, -20, 3, 1.5, 3, 0x95a5a6); l.box(-22, 0, -16, 3, 3, 3, 0x95a5a6); l.box(-22, 0, -12, 3, 4.5, 3, 0x95a5a6);
     l.goldbone('kletter', -22, 5.2, -12);
     // ---- Fähigkeit dieser Welt: Bauchklatscher. Drei Not-Aus-Knöpfe am Boden öffnen den Paketautomaten; Kartons zerbrechen
-    l.teacher(-5, 20, 'bauchklatscher', { y: 0, say: 'Opa Bruno: „Die drei roten Knöpfe am Boden lassen sich nur mit einem Bauchklatscher drücken!“' });
+    l.teacher(-5, 20, 'bauchklatscher', { y: 0 });
     l.knoepfe = 0;
     [[-10, 24], [8, 27], [-22, 6]].forEach(([x, z]) => l.stompPad(x, 0, z, () => {
       l.knoepfe++; if (l.knoepfe < 3) { g.toast(`KLONK! Knopf ${l.knoepfe}/3`); return; }
@@ -80,7 +80,7 @@ export const BUERO = {
     l.solids.push({ min: { x: cx - 12, y: 0, z: -9.8 }, max: { x: cx - 8, y: 2.4, z: -8.2 }, active: true });
     crumbs(0, [[cx - 6, 4], [cx + 6, 4], [cx, 6]]);
     const boss = makeNpcDog(0x2d3436, 0xc0392b); l.deco(boss, cx - 4, 0, 6, Math.PI);
-    l.trigger(cx - 4, 0, 6, 4, () => g.toast('Chef Bruno: „Mein goldener Mitarbeiter-des-Monats-Knochen? Steht ganz oben im Pokalschrank.“', 4000), false);
+    l.trigger(cx - 4, 0, 6, 4, () => g.talk('chef', { mesh: boss }), false);
     l.door(cx, 0, 10.4, { x: 10, y: F1 + 0.2, z: -29, yaw: 0 }, { label: 'Flur', ry: Math.PI });
 
     // ---- 2. Stock: Serverraum, Kaffeeküche, Fensterbänke
@@ -92,8 +92,8 @@ export const BUERO = {
     l.tassen = 0;
     l.interactable(12, F2 + 1.6, 22, 2.2, it => {
       it.used = false;
-      if (l.tassen >= 4 && !g.hasBone(l.key, 'tassen')) { it.used = true; g.toast('Blubb, zisch … die Kaffeemaschine spuckt einen Goldknochen aus!'); l.spawnGoldbone(10, F2 + 0.6, 18.5, 'tassen'); }
-      else if (!g.hasBone(l.key, 'tassen')) g.toast(`Kaffeemaschine: „Bitte 4 Tassen einstellen.“ (${l.tassen}/4)`, 3000);
+      if (l.tassen >= 4 && !g.hasBone(l.key, 'tassen')) { it.used = true; g.talk('kaffee.fertig'); l.spawnGoldbone(10, F2 + 0.6, 18.5, 'tassen'); }
+      else if (!g.hasBone(l.key, 'tassen')) g.talk('kaffee', { vars: { n: l.tassen } });
     }, 'KAFFEE: BISS');
     [[-22, 29.4, 2], [-16, 29.4, 4], [-10, 29.4, 6], [-4, 29.4, 8], [2, 29.4, 10]].forEach(([x, z, h]) => l.box(x, F2 + h - 0.4, z, 3.4, 0.4, 2.6, 0xecf0f1)); // Fensterbänke
     l.goldbone('fenster', 2, F2 + 10.8, 29.4);

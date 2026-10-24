@@ -57,7 +57,7 @@ export const STRAND = {
       const lg = makeNpcDog(0xd9a441, 0xe74c3c); l.deco(lg, 7, 6, -121, Math.PI); l.lifeguard = lg;
       const s1 = makeLabel('Rettungsschwimmer Rex'); s1.scale.set(5, 1.2, 1); l.deco(s1, 7, 9, -121);
       l.abilityItem(4, 7, -118, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch. Achte auf die Luft!');
-      l.trigger(4, 6, -120, 7, () => g.toast(g.has('tauchen') ? 'Rex: „Viel Spaß im Wasser! Fordere mich am Strand zum Wettschwimmen heraus!“' : 'Rex: „Nimm die Taucherbrille – unter Wasser liegen die besten Sachen!“', 5000), false);
+      l.trigger(4, 6, -120, 7, () => g.talk(g.has('tauchen') ? 'rex.tauchen' : 'rex', { mesh: lg }), false);
       l.warp(14, 6, -128, 'Promenade', strandkorb());
     });
 
@@ -75,9 +75,9 @@ export const STRAND = {
       const s2 = makeLabel('Burg-Bauer Bello'); s2.scale.set(5, 1.2, 1); l.deco(s2, bx - 7, by + 3, bz + 3);
       l.shellsHave = 0;
       l.interactable(bx - 7, by, bz + 3, 1.8, it => {
-        if (l.game.hasBone('strand', 'sandburg')) { g.toast('Bello: „Danke nochmal für die Muscheln!“'); it.used = false; return; }
-        if (l.shellsHave >= 5) { g.toast('Bello: „Fünf Muscheln! Meine Burg ist perfekt!“'); l.spawnGoldbone(bx - 7, by + 1, bz + 5, 'sandburg'); }
-        else { g.toast(`Bello: „Bring mir 5 Muscheln für die Burg!“ (${l.shellsHave}/5)`, 3500); it.used = false; }
+        if (l.game.hasBone('strand', 'sandburg')) { g.talk('bello.fertig', { mesh: bauer }); it.used = false; return; }
+        if (l.shellsHave >= 5) { g.talk('bello.fertig', { mesh: bauer }); l.spawnGoldbone(bx - 7, by + 1, bz + 5, 'sandburg'); }
+        else { g.talk('bello', { mesh: bauer, vars: { n: l.shellsHave, r: 5 - l.shellsHave } }); it.used = false; }
       }, 'BISS = reden');
       // Muscheln: Strand, Dünen, unter dem Pier, Riff, Insel
       [[-55, -60], [-120, -128], [62, -40], [70, 65], [106, 12]].forEach(([x, z]) => l.pickup(x, H(x, z) + 0.3, z, 'shell', { special: true, onTake: () => { l.shellsHave++; g.toast(`Muschel ${l.shellsHave}/5 – bring sie zu Bello`); }, onRestore: () => l.shellsHave++ }));
@@ -174,10 +174,10 @@ export const STRAND = {
     const rex = makeNpcDog(0xd9a441, 0xe74c3c); l.deco(rex, 40, H(40, -66), -66, 0); l.rex = { mesh: rex, state: 'wait', path: [[40, -66], [70, -30], [86, 4]], i: 0 };
     l.interactable(40, H(40, -66), -66, 2, it => {
       it.used = false; if (l.rex.state !== 'wait' || g.hasBone('strand', 'rennen')) return;
-      if (!g.has('tauchen')) { g.toast('Rex: „Hol dir erst die Taucherbrille an der Promenade!“'); return; }
-      l.rex.state = 'race'; l.rex.i = 0; g.toast('Rex: „Wettschwimmen zur Inselflagge! Los!“ (Tipp: Der Pier ist schneller)', 4000); g.audio.sfx('portal');
+      if (!g.has('tauchen')) { g.talk('rex.ohnebrille', { mesh: rex }); return; }
+      l.rex.state = 'race'; l.rex.i = 0; g.talk('rex.rennen', { mesh: rex, onDone: () => { g.toast('Tipp: Über den Pier geht es schneller!', 3000); g.audio.sfx('portal'); } });
     }, 'BISS = Wettschwimmen');
-    l.trigger(86, H(86, 4), 4, 3, () => { if (l.rex.state === 'race') { l.rex.state = 'lost'; g.toast('Gewonnen! Rex: „Du bist ja schneller als ein Seehund!“'); l.spawnGoldbone(86, H(86, 4) + 1, 6, 'rennen'); } }, false);
+    l.trigger(86, H(86, 4), 4, 3, () => { if (l.rex.state === 'race') { l.rex.state = 'lost'; g.toast('Gewonnen!'); g.talk('rex.verloren', { mesh: rex }); l.spawnGoldbone(86, H(86, 4) + 1, 6, 'rennen'); } }, false);
 
     // Krümel an Land
     l.scatter(45);

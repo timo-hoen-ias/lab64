@@ -29,7 +29,7 @@ export const STRASSE = {
     [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
     [[-4, -20, 0xd63031], [4, 12, 0x0984e3], [-4, -2, 0xfdcb6e]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
     // ---- Fähigkeit dieser Welt: Bellen. Drei Autos mit Alarmanlage – jedes einmal anbellen
-    l.teacher(6, 28, 'bellen', { say: 'Opa Bruno: „Drei Autos haben Alarmanlagen. Bell sie alle an – mal sehen, was passiert!“' });
+    l.teacher(6, 28, 'bellen');
     l.alarms = 0;
     [[-4, -20], [4, 12], [-4, -2]].forEach(([x, z]) => l.barkTarget(x, 0, z, () => {
       l.alarms++; g.audio.sfx('honk'); g.shake(0.15);
@@ -72,7 +72,7 @@ export const STRASSE = {
     [[-10, 10], [10, 10], [14, -6], [-14, -10, 6.3], [-2, -6, 6.3], [12, -12, 12.3], [18, 2, 12.3]].forEach(([x, z, y]) => l.pickup(kx + x, y ?? 0.3, z, 'crumb'));
     l.pickup(kx - 18, 6.3, -12, 'fish', { goal: true });
     const clerk = makeNpcDog(0xdfe6e9, 0xd63031); l.deco(clerk, kx + 4, 0, 10, Math.PI);
-    l.trigger(kx + 4, 0, 10, 4, () => g.toast('Verkäuferin Vera: „Oben im 2. Stock steht unser goldenes Ausstellungsstück!“', 4000), false);
+    l.trigger(kx + 4, 0, 10, 4, () => g.talk('vera', { mesh: clerk }), false);
     l.door(kx, 0, 15.4, { x: 0, y: 0.2, z: -95.4, yaw: 0 }, { label: 'Ausgang', ry: Math.PI, frame: 0x2d3436 });
 
     // ---- Osten: Baustelle mit Rohbau und Gerüst
@@ -93,7 +93,7 @@ export const STRASSE = {
       l.pickup(bx, 9.8, bz, 'sausage', { goal: true });
       l.pickup(bx - 4, 2.7, bz + 22, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });
       const worker = makeNpcDog(0xd35400, 0xf1c40f); l.deco(worker, bx - 18, 0, bz + 10, Math.PI / 2);
-      l.trigger(bx - 18, 0, bz + 10, 5, () => g.toast('Polier Paul: „Helm auf! Übers Gerüst kommst du bis aufs Dach.“', 4000), false);
+      l.trigger(bx - 18, 0, bz + 10, 5, () => g.talk('paul', { mesh: worker }), false);
       [[90, -30], [125, 25]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
       l.warp(86, 0, 8, 'Baustelle', bench());
     });
@@ -119,8 +119,8 @@ export const STRASSE = {
       l.kugeln = 0;
       l.interactable(fx - 6, 0, fz + 17.5, 2, it => {
         it.used = false;
-        if (l.kugeln >= 3 && !g.hasBone(l.key, 'eisdiele')) { it.used = true; g.toast('Eis-Ella: „Meine Kugeln! Danke! Das hier hab ich im Eisschrank gefunden!“'); l.spawnGoldbone(fx - 6, 0.6, fz + 15.5, 'eisdiele'); }
-        else if (!g.hasBone(l.key, 'eisdiele')) g.toast(`Eis-Ella: „Mir sind 3 Eiskugeln davongerollt – bis in andere Viertel!“ (${l.kugeln}/3)`, 4000);
+        if (l.kugeln >= 3 && !g.hasBone(l.key, 'eisdiele')) { it.used = true; g.talk('ella.fertig', { mesh: ella }); l.spawnGoldbone(fx - 6, 0.6, fz + 15.5, 'eisdiele'); }
+        else if (!g.hasBone(l.key, 'eisdiele')) g.talk('ella', { mesh: ella, vars: { n: l.kugeln, r: 3 - l.kugeln } });
       });
       l.pickup(fx + 16, 0.3, fz - 20, 'bread', { goal: true });
       [[-128, -24], [-90, 26], [-130, 22], [-88, -26]].forEach(([x, z]) => l.tree(x, z, 1.4, makeRoundTree(1.4)));
@@ -146,7 +146,7 @@ export const STRASSE = {
       l.pickup(-8, 4.2, 110, 'bread', { goal: true });
       l.pickup(30, 1.5, 102, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });
       const cond = makeNpcDog(0x2d3436, 0x0984e3); l.deco(cond, -10, 1.2, 101, 0);
-      l.trigger(-10, 1.2, 101, 4, () => g.toast('Schaffner Schorsch: „Die Bahnhofsuhr hat oben einen goldenen Zeiger … oder?“', 4000), false);
+      l.trigger(-10, 1.2, 101, 4, () => g.talk('schorsch', { mesh: cond }), false);
       l.warp(-6, 1.2, 100, 'Bahnhof', bench());
     });
     l.pickup(60, 0.3, -60, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });

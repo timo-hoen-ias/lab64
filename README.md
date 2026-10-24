@@ -34,6 +34,9 @@ Moll64 ist eine PWA: In Chrome auf Android die Seite öffnen und im Menü auf **
 ### Fähigkeiten
 Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt Moll die Fähigkeit dieser Welt bei. Die Welt ist darum gebaut, man muss nie zurück. Im Garten verkauft Opa Bruno im **Leckerli-Laden** Upgrades gegen Krümel (4. und 5. Herz, Trillern+, Lange Ohren, Supernase) – nett, aber für keinen Goldknochen nötig.
 
+### Dialoge
+Alle Figuren sprechen mit Moll – und brabbeln dabei wie in Banjo-Kazooie: Der Text erscheint Buchstabe für Buchstabe, und an jeder Silbe blubbert die eigene Stimme der Figur (tiefes Opa-Brummeln, piepsiger Zwergenkönig, Roboter-Kaffeemaschine …), alles live aus Oszillatoren, Lautstärke über den Effekte-Regler. Beim ersten Treffen gibt es ein ganzes Gespräch (Spiel hält an, SPRUNG/BISS/Tippen blättert weiter, Pause überspringt), danach nur noch kurze Sprüche nebenbei. Bosse stellen sich in Reimen vor. Texte und Stimmen: `src/dialog.js`.
+
 | Welt | Fähigkeit | Was sie tut | Prüfung |
 |---|---|---|---|
 | Garten | Apportieren | Ball/Stock mit BISS tragen und ablegen | Ball zur Hundehütte bringen |
@@ -61,6 +64,6 @@ Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt
 
 Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 100/100 läuft ein Abspann.
 
-Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs.
+Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs, `node tests/dialog.mjs` Gespräche, Stimmen und Schreibmaschinen-Text.
 
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).

@@ -29,7 +29,7 @@ export const PARK = {
     l.addEnemy(new FatMan(g, path, (x, z) => { l.pickup(x, 0.3, z, 'sausage', { goal: true }); g.audio.sfx('collect'); }));
     l.warp(-24, 0, 30, 'Grillwiese', bench());
     // ---- Fähigkeit dieser Welt: Buddeln. Erdhügel überall im Park, in einem steckt ein Goldknochen
-    l.teacher(-31, 24, 'buddeln', { say: 'Opa Bruno: „Fünf Erdhügel gibt es hier im Park. In einem riecht es nach Gold!“' });
+    l.teacher(-31, 24, 'buddeln');
     [[-30, 18], [22, 28], [-48, -22], [50, 32]].forEach(([x, z]) => l.digSpot(x, z, [l.pickup(x, 0.4, z, 'bone', { value: 5 })]));
     l.digSpot(-70, -30, [l.goldbone('buddeln', -70, 0.8, -30)]);
     // Wege von den Toren nach draußen
@@ -61,7 +61,7 @@ export const PARK = {
     l.goldbone('dachsbau', dx + 18, 0.8, -17);
     for (let i = 0; i < 8; i++) l.deco(sphere(0.25, 0xfff3a0, 0, 0, 0, 6), dx - 18 + i * 5, 4.5, (i % 2 ? 6 : -6)); // Glühwürmchen-Lampen
     const badger = makeNpcDog(0x636e72, 0xffffff); l.deco(badger, dx - 16, 0, 12, Math.PI / 2);
-    l.trigger(dx - 16, 0, 12, 4, () => g.toast('Dachs Dieter: „Ganz hinten in meinem Bau liegt was Goldenes. Nimm es, es glänzt so beim Schlafen!“', 4500), false);
+    l.trigger(dx - 16, 0, 12, 4, () => g.talk('dieter', { mesh: badger }), false);
     l.door(dx, 0, 19.4, { x: 18, y: 0.2, z: -69, yaw: 0 }, { label: 'Ausgang', ry: Math.PI, frame: 0x5a3715 });
 
     // ---- Süden: See mit Insel, Steg, Ruderboot, Picknick
@@ -76,9 +76,9 @@ export const PARK = {
       l.deco(blanket(0xe74c3c), 40, 0, 62); const pic = makeNpcDog(0xffffff, 0x0984e3); l.deco(pic, 40, 0, 60, Math.PI);
       l.picnic = 0;
       l.interactable(40, 0, 60, 2, it => {
-        it.used = false; if (g.hasBone('park', 'picknick')) { g.toast('Familie Pudel: „Danke, der Picknickkorb ist wieder voll!“'); return; }
-        if (l.picnic >= 5) { g.toast('Familie Pudel: „Alles wieder da! Hier, für dich!“'); l.spawnGoldbone(40, 1, 64, 'picknick'); }
-        else g.toast(`Familie Pudel: „Der Wind hat unser Picknick verweht! Findest du 5 Sachen?“ (${l.picnic}/5)`, 4000);
+        it.used = false; if (g.hasBone('park', 'picknick')) { g.talk('pudel.fertig', { mesh: pic }); return; }
+        if (l.picnic >= 5) { g.talk('pudel.fertig', { mesh: pic }); l.spawnGoldbone(40, 1, 64, 'picknick'); }
+        else g.talk('pudel', { mesh: pic, vars: { n: l.picnic, r: 5 - l.picnic } });
       }, 'BISS = reden');
       l.warp(30, 0, 56, 'See', bench());
     });
