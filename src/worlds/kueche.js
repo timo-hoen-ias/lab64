@@ -34,8 +34,8 @@ export const KUECHE = {
     l.box(-6, 3.5, -16.5, 4, 0.3, 2, 0xf5f5f5); l.box(2, 5.5, -16.5, 4, 0.3, 2, 0xf5f5f5);
     l.goldbone('kletter', 2, 6.3, -16.5);
     // ---- Fähigkeit dieser Welt: Trillern. Opa Bruno am Eingang, Übungskreisel neben ihm
-    l.teacher(-8, 13, 'trillern', { say: 'Opa Bruno: „Am Herd sind drei Drehknöpfe – dreh sie alle mit Trillern auf!“' });
-    l.spinTarget(-10.5, 0.7, 15, () => g.toast('Opa Bruno: „Genau so! Ameisen mögen das übrigens gar nicht.“'));
+    l.teacher(-8, 13, 'trillern');
+    l.spinTarget(-10.5, 0.7, 15, () => g.talk('bruno.kreisel', { mesh: l.bruno.mesh }));
     // Herd: drei Drehknöpfe vorne – alle aufgetrillert, kocht im Topf ein Goldknochen hoch
     l.herd = 0;
     [3, 6, 9].forEach(x => l.spinTarget(x, 0.9, -11.75, () => {

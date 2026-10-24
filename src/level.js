@@ -383,7 +383,7 @@ export class Level {
   interactable(x, y, z, r, cb, hintText = 'BISS') { this.interact.push({ x, y, z, r, cb, hintText, used: false }); }
 
   addEnemy(e) { this.enemies.push(e); this.group.add(e.mesh); return e; }
-  setBoss(b) { this.boss = b; this.addEnemy(b); this.game.showBoss(b); }
+  setBoss(b) { this.boss = b; this.addEnemy(b); this.game.showBoss(b); this.game.talk('boss.' + this.key); }
 
   onBite(point, r) {
     for (const e of this.enemies) if (!e.dead && e.mesh.position.distanceTo(point) < r + (e.radius || 1)) e.onBite && e.onBite();

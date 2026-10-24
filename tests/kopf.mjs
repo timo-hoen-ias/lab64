@@ -7,6 +7,7 @@ const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.click('#btnStart'); await p.waitForTimeout(500);
+await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
 await p.evaluate(() => window.game.enterLevel('dorf')); await p.waitForTimeout(800);
 const npc = await p.evaluate(() => { const n = window.game.level.npcs[0]; return { x: n.position.x, y: n.position.y, z: n.position.z, ry: n.rotation.y }; });
 // Moll steht 4 Einheiten seitlich (rechts vom NPC aus gesehen), schaut in dieselbe Richtung wie der NPC

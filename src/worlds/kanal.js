@@ -28,7 +28,7 @@ export const KANAL = {
     l.box(22, 1, -10, 3, 1.5, 3, WALL); l.box(22, 1, -14, 3, 3, 3, WALL); l.box(22, 1, -18, 3, 4.5, 3, WALL);
     l.goldbone('kletter', 22, 6.8, -18);
     // ---- Fähigkeit dieser Welt: Tornado-Trillern. Der Lüftungsschacht über dem Gehweg ist zu hoch zum Springen
-    l.teacher(-16, 23, 'tornado', { say: 'Opa Bruno: „Über dir hängt ein Lüftungsschacht. Lad das Trillern auf und schieß als Tornado hoch!“' });
+    l.teacher(-16, 23, 'tornado');
     l.box(-12, 6.6, 6, 4, 0.5, 3, RUST); l.deco(box(4, 2.6, 0.3, 0x2f3542), -12, 8.4, 4.6);
     l.goldbone('tornado', -12, 7.9, 6);
     l.goldbone('geheim', -24, 1.6, 24, { hidden: true });
@@ -83,7 +83,7 @@ export const KANAL = {
       l.lever(-44, 3.3, -3.4, 2);
       [[-50, -40], [-34, -50], [-50, 40], [-34, 50]].forEach(([x, z]) => l.pickup(x, 0.3, z, 'crumb'));
       const worker = makeNpcDog(0xf39c12, 0xf1c40f); l.deco(worker, -32, 0, -10, -Math.PI / 2);
-      l.trigger(-32, 0, -10, 5, () => g.toast('Kanal-Karl: „Die Notlampen sind aus! Die 4 Schalter sind in Pumpwerk, Rohren, Becken und Schacht.“', 4500), false);
+      l.trigger(-32, 0, -10, 5, () => g.talk('karl', { mesh: worker }), false);
       lamp(-30, 8, 20); lamp(-56, 8, -20); lamp(-56, 8, 20);
       const s = makeLabel('Klärbecken'); s.scale.set(4, 1, 1); l.deco(s, -30, 5, 0);
     });

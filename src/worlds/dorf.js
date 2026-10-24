@@ -30,7 +30,7 @@ export const DORF = {
     [[-12, 0], [12, 12], [0, -14], [14, -10]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-4, 0, 24, 'Marktplatz', bench());
     // ---- Fähigkeit dieser Welt: Wandsprung. Alter Backstein-Schornstein: zwischen den Wänden im Zickzack hoch
-    l.teacher(5, 26, 'wandsprung', { say: 'Opa Bruno: „Siehst du den alten Schornstein? Spring zwischen den Backsteinwänden hin und her bis ganz nach oben!“' });
+    l.teacher(5, 26, 'wandsprung');
     l.climbWall(-16, 0, 14, 2, 14, 4); l.climbWall(-10.5, 0, 14, 1, 14, 4);
     l.box(-18.5, 13.6, 14, 3, 0.4, 4, 0x8d4a3b); l.goldbone('wand', -18, 14.8, 14); // oben links vom Schornstein: Nest mit Goldknochen
     l.label('Schornstein', -13, 17, 14);
@@ -52,8 +52,8 @@ export const DORF = {
     l.kekse = 0;
     l.interactable(bx - 4, 0, 4, 2, it => {
       it.used = false;
-      if (l.kekse >= 5 && !g.hasBone(l.key, 'baecker')) { it.used = true; g.toast('Bäcker Bruno: „Meine Hundekekse! Danke – das hier ist für dich!“'); l.spawnGoldbone(bx - 4, 0.6, 1.5, 'baecker'); }
-      else if (!g.hasBone(l.key, 'baecker')) g.toast(`Bäcker Bruno: „Die Tauben haben meine 5 Hundekekse im ganzen Dorf verteilt!“ (${l.kekse}/5)`, 4000);
+      if (l.kekse >= 5 && !g.hasBone(l.key, 'baecker')) { it.used = true; g.talk('baecker.fertig', { mesh: baker }); l.spawnGoldbone(bx - 4, 0.6, 1.5, 'baecker'); }
+      else if (!g.hasBone(l.key, 'baecker')) g.talk('baecker', { mesh: baker, vars: { n: l.kekse, r: 5 - l.kekse } });
     });
     l.door(bx, 0, 9.4, { x: -16.5, y: 0.2, z: 0, yaw: -Math.PI / 2 }, { label: 'Ausgang', ry: Math.PI });
 
@@ -86,11 +86,11 @@ export const DORF = {
       if (!g.hasBone(l.key, 'huehner')) for (let i = 0; i < 5; i++) {
         const m = chicken(); const c = { x: px - 8 + i * 4, z: pz + (i % 2 ? 4 : -3), a: i, m, caught: false };
         l.deco(m, c.x, 0, c.z);
-        c.it = { x: c.x, y: 0.5, z: c.z, r: 1, hintText: 'BISS', used: false, cb: () => { c.caught = true; m.position.set(px + 8 + (l.huhn - 2) * 0.9, 2.5, pz - 5); l.huhn++; g.audio.sfx('collect'); if (l.huhn >= 5) { g.toast('Alle Hühner im Stall! Bauer Bernd: „Gut gemacht!“'); l.spawnGoldbone(px, 1, pz, 'huehner'); } else g.toast(`Huhn ${l.huhn}/5 eingefangen!`, 1500); } };
+        c.it = { x: c.x, y: 0.5, z: c.z, r: 1, hintText: 'BISS', used: false, cb: () => { c.caught = true; m.position.set(px + 8 + (l.huhn - 2) * 0.9, 2.5, pz - 5); l.huhn++; g.audio.sfx('collect'); if (l.huhn >= 5) { g.talk('bauer.fertig'); l.spawnGoldbone(px, 1, pz, 'huehner'); } else g.toast(`Huhn ${l.huhn}/5 eingefangen!`, 1500); } };
         l.interact.push(c.it); l.chickens.push(c);
       }
       const farmer = makeNpcDog(0x795548, 0x388e3c); l.deco(farmer, 92, 0, 20, Math.PI / 2);
-      l.trigger(92, 0, 20, 5, () => { if (!g.hasBone(l.key, 'huehner') && l.huhn < 5) g.toast('Bauer Bernd: „Meine Hühner sind ausgebüxt! Fang sie mit einem BISS!“', 4000); }, false);
+      l.trigger(92, 0, 20, 5, () => { if (!g.hasBone(l.key, 'huehner') && l.huhn < 5) g.talk('bauer', { mesh: farmer }); }, false);
       // Heuballen-Stapel und Traktor
       [[128, 0, 2], [131, 0, 2], [129.5, 1.6, 2]].forEach(([x, y, z]) => l.box(x, y, z, 2.8, 1.6, 2, 0xffd54f));
       l.box(80, 0, 40, 4, 2, 3, 0x2e7d32); l.deco(cyl(1, 1, 0.6, 0x212121, 0, 0, 0, 10).rotateZ(Math.PI / 2), 79, 1, 41.6);
@@ -143,7 +143,7 @@ export const DORF = {
       l.pickup(-112, 1.9, 7, 'treat', { special: true, onTake: () => l.keks(), onRestore: () => l.kekse++ });
       // Steg mit Angler
       l.box(-100, -0.1, 20, 3, 0.4, 8, WOOD); const fisher = makeNpcDog(0xbcaaa4, 0x1565c0); l.deco(fisher, -100, 0.3, 17, Math.PI);
-      l.trigger(-100, 0.3, 18, 4, () => g.toast('Angler Anton: „Auf der Weideninsel glitzert was. Über die Seerosen kommst du trocken hin!“', 4000), false);
+      l.trigger(-100, 0.3, 18, 4, () => g.talk('angler', { mesh: fisher }), false);
       [[-130, -40], [-80, -40], [-135, 35], [-75, 40]].forEach(([x, z]) => l.tree(x, z, 1.6, makeRoundTree(1.6)));
       l.warp(-70, 0, 8, 'Dorfteich', bench());
     });

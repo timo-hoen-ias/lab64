@@ -54,12 +54,13 @@ export function installGadgets(Level) {
       const lab = makeLabel('Opa Bruno'); lab.scale.set(3, 0.75, 1); lab.position.set(x, y + 2.6, z); this.group.add(lab);
       this.solids.push({ min: { x: x - 0.5, y, z: z - 0.5 }, max: { x: x + 0.5, y: y + 1.4, z: z + 0.5 }, active: true });
       this.bruno = { x, y, z, mesh: m, ability };
-      if (ability) this.trigger(x, y, z, 4.5, () => { if (g.has(ability)) return; g.learn(ability, true); if (o.say) g.later(6800, () => g.toast(o.say, 4500)); });
+      // Gespräch und Tipp zum Rätsel stehen in dialog.js („bruno.<fähigkeit>“)
+      if (ability) this.trigger(x, y, z, 4.5, () => { if (!g.has(ability)) g.learn(ability, true, m); });
       this.interactable(x, y, z, 1.6, it => {
         it.used = false;
-        if (ability && !g.has(ability)) g.learn(ability, true);
+        if (ability && !g.has(ability)) g.learn(ability, true, m);
         else if (o.shop) g.openShop();
-        else if (ability) g.learn(ability, true);
+        else if (ability) g.learn(ability, true, m);
       }, o.shop ? 'BISS = Leckerli-Laden' : 'BISS = Opa fragen');
       return this.bruno;
     },

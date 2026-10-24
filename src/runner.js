@@ -65,7 +65,8 @@ export class RunnerLevel {
     // Ziel
     const goal = box(16, 6, 1, 0xff6b8a, 0, 3, LENGTH); this.scene.add(goal);
     this.goalLabel = LENGTH;
-    this.game.toast(this.mode === 'albtraum' ? 'ALBTRAUM! Ein Käselabyrinth … Spur wechseln: Wischen/Stick, Springen: hoch/Sprung. Schlag die Ratte!' : 'RATTENRENNEN! Links du, rechts die Ratte. Mehr Würstchen als sie = Sieg!', 4500);
+    const intro = () => this.game.toast(this.mode === 'albtraum' ? 'ALBTRAUM! Ein Käselabyrinth … Spur wechseln: Wischen/Stick, Springen: hoch/Sprung. Schlag die Ratte!' : 'RATTENRENNEN! Links du, rechts die Ratte. Mehr Würstchen als sie = Sieg!', 4500);
+    this.game.talk('runner.' + this.mode, { onDone: intro });
   }
 
   update(dt) {

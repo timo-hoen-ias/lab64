@@ -10,7 +10,7 @@ const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.click('#btnStart'); await p.waitForTimeout(300);
 const ev = (f, a) => p.evaluate(f, a);
-await ev(() => { window.game.loop = () => { }; }); // eigene Spielschleife anhalten, ab hier steuert der Test jedes Bild
+await ev(() => { window.game.loop = () => { }; window.game.dialog.auto = true; }); // eigene Spielschleife anhalten, ab hier steuert der Test jedes Bild
 // n Bilder simulieren; held = gedrückte Tasten, move = Stick (x rechts, y vor), relativ zur Kamera
 const sim = (n, held = {}, move = [0, 0]) => ev(([n, held, move]) => {
   const g = window.game, i = g.input;

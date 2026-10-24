@@ -9,6 +9,7 @@ import { RunnerLevel } from './runner.js';
 import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
 import { ABILITIES, UPGRADES } from './abilities.js';
+import { Dialog } from './dialog.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -42,7 +43,7 @@ export class Game {
     this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
     this.paused = true; this.level = null; this.clock = new THREE.Clock();
-    this.save = this.loadSave(); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
+    this.save = this.loadSave(); this.dialog = new Dialog(this); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
     this.menu = new Menu(this);
@@ -65,9 +66,14 @@ export class Game {
     this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); this.toast(text || `Neue Fähigkeit: ${ability}!`, 6000);
   }
   // Neue Fähigkeit von Opa Bruno: große Karte mit Name und Steuerung
-  learn(ability, fromBruno) {
+  // Von Opa Bruno: erst das Gespräch (beim ersten Mal ganz, danach ein kurzer Spruch), dann die Karte.
+  learn(ability, fromBruno, mesh) {
     const a = ABILITIES[ability]; if (!a) return; const fresh = !this.has(ability);
-    if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); }
+    if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); }
+    const card = () => { if (fresh) { this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); } this._learnCard(a, fresh, fromBruno); };
+    if (fromBruno) this.talk('bruno.' + ability, { mesh, onDone: card }); else card();
+  }
+  _learnCard(a, fresh, fromBruno) {
     const el = document.getElementById('learn'); if (!el) return;
     el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Opa Bruno' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
     el.classList.add('show'); clearTimeout(this._lt); this._lt = setTimeout(() => el.classList.remove('show'), 6500);
@@ -82,6 +88,7 @@ export class Game {
   }
   openShop() {
     const el = document.getElementById('shop'); if (!el) return; this.shopOpen = true; this.shopSel = 0; this.renderShop(); el.classList.add('show');
+    this.talk('bruno.laden');
   }
   closeShop() { document.getElementById('shop').classList.remove('show'); this.shopOpen = false; }
   shopItems() { return UPGRADES.map(u => ({ ...u, owned: this.has(u.id), locked: !!u.needs && !this.has(u.needs) })); }
@@ -93,8 +100,8 @@ export class Game {
   }
   buy() {
     const u = this.shopItems()[this.shopSel]; if (!u) return;
-    if (u.owned) this.toast('Hast du schon!'); else if (u.locked) this.toast('Dafür musst du erst etwas anderes lernen.'); else if (this.save.crumbs < u.price) this.toast(`Dir fehlen noch ${u.price - this.save.crumbs} Krümel.`);
-    else { this.save.crumbs -= u.price; this.save.abilities[u.id] = true; this.persist(); this.audio.sfx('big'); this.toast(`${u.icon} ${u.name}!`); if (u.id.startsWith('herz')) { this.player.hp = this.maxHp(); this.updateHearts(); } this.updateAbilityButtons(); }
+    if (u.owned) this.toast('Hast du schon!'); else if (u.locked) this.toast('Dafür musst du erst etwas anderes lernen.'); else if (this.save.crumbs < u.price) this.talk('bruno.pleite', { vars: { n: u.price - this.save.crumbs } });
+    else { this.save.crumbs -= u.price; this.save.abilities[u.id] = true; this.persist(); this.audio.sfx('big'); this.toast(`${u.icon} ${u.name}!`); this.talk('bruno.gekauft'); if (u.id.startsWith('herz')) { this.player.hp = this.maxHp(); this.updateHearts(); } this.updateAbilityButtons(); }
     this.renderShop();
   }
   _shopInput() {
@@ -204,6 +211,7 @@ export class Game {
   }
 
   enterLevel(key, silent = false) {
+    this.dialog.reset();
     this.fx.detach(); this.rings.detach(); this.prints.detach(); this.player.mesh.removeFromParent(); this.player.shadow.removeFromParent(); // Moll wandert mit in die neue Welt: seine Geometrie nicht mit der alten Welt freigeben
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
@@ -232,6 +240,8 @@ export class Game {
   pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
   fade() { const f = document.getElementById('fade'); if (!f) return; f.classList.remove('out'); void f.offsetWidth; f.classList.add('out'); }
   shake(t = 0.3) { this.shakeT = Math.max(this.shakeT, t); }
+  // Figuren sprechen (Texte und Stimmen in dialog.js)
+  talk(id, o) { this.dialog.talk(id, o); }
   toast(text, ms = 2600) { const t = this.hud.toast; t.textContent = text; t.classList.add('show'); clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove('show'), ms); }
   hint(text) { if (text && this._hint !== text) { this.toast(text, 1200); } this._hint = text; }
   showBoss(b) { this.hud.boss.style.display = 'block'; this.hud.boss.querySelector('.name').textContent = b.name; }
@@ -281,7 +291,8 @@ export class Game {
   loop() {
     requestAnimationFrame(() => this.loop());
     const dt = Math.min(0.05, this.clock.getDelta());
-    this.input.update();
+    this.input.update(); this.dialog.update();
+    if (this.dialog.open) { this.dialog.input(this.input); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
     if (this.shopOpen) { this._shopInput(); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
     if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
     else if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }

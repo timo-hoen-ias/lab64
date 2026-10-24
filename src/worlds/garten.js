@@ -55,9 +55,9 @@ export const GARTEN = {
     l.deco(box(1.6, 0.25, 0.4, 0xffffff), -13, 1.8, 10.6); // Namensschild
     l.deco(makeGnome(), 3, 0, 13, -0.6); l.deco(makeGnome(), -11, 0, 15, 0.8);
     // Opa Bruno: bringt Moll das Apportieren bei und hat einen Leckerli-Laden (Krümel gegen Upgrades)
-    l.teacher(-9, 9.5, 'apportieren', { shop: true, say: 'Opa Bruno: „Bring den Ball zu deiner Hütte, Moll!“' });
+    l.teacher(-9, 9.5, 'apportieren', { shop: true });
     l.fetchItem(7, 0, 9, 'ball');
-    l.fetchGoal(-13, 0, 11.6, 2.6, 'ball', () => { l.game.toast('Opa Bruno: „Brav! Und schau mal, was in der Hütte lag …“'); l.spawnGoldbone(-13, 1, 13, 'apport'); });
+    l.fetchGoal(-13, 0, 11.6, 2.6, 'ball', () => { l.game.talk('bruno.apportiert', { mesh: l.bruno.mesh }); l.spawnGoldbone(-13, 1, 13, 'apport'); });
     l.deco(cyl(0.08, 0.08, 1.2, 0x7a4a1f, 0, 0.6, 0, 6), 4, 0, 4); l.deco(box(0.5, 0.4, 0.7, 0x2e86de, 0, 1.3, 0), 4, 0, 4);
     // ---- Teich zum Schwimmen mit Steinrand, Seerosen, Schilf und Steg
     l.pond(0, 20, 9, 6, 3.4); // tief genug zum Tauchen
@@ -94,9 +94,9 @@ export const GARTEN = {
   outer(l) {
     const g = l.game, T = (x, z) => l.top(x, z);
     const hut = () => { const m = new THREE.Group(); m.add(box(1.6, 1.2, 1.6, 0xb5651d, 0, 0.6, 0)); m.add(cone(1.3, 0.8, 0x8b1e1e, 0, 1.6, 0, 4).rotateY(Math.PI / 4)); return m; };
-    const gnome = (x, y, z) => l.pickup(x, y, z, 'gnome', { special: true, onTake: () => { l.zwerge++; if (l.zwerge >= 5 && !g.hasBone('hub', 'zwerge')) { g.toast('Alle 5 Gartenzwerge gefunden! Der Zwergenkönig am Haus hat was für dich.'); l.spawnGoldbone(-3, 1, -9, 'zwerge'); } else g.toast(`Gartenzwerg ${l.zwerge}/5 gefunden!`); }, onRestore: () => l.zwerge++ });
+    const gnome = (x, y, z) => l.pickup(x, y, z, 'gnome', { special: true, onTake: () => { l.zwerge++; if (l.zwerge >= 5 && !g.hasBone('hub', 'zwerge')) { g.talk('zwerge.fertig'); l.spawnGoldbone(-3, 1, -9, 'zwerge'); } else g.toast(`Gartenzwerg ${l.zwerge}/5 gefunden!`); }, onRestore: () => l.zwerge++ });
     l.zwerge = 0; l.deco(makeGnome(), -3, 0, -9.5, 0.3); const king = makeLabel('Zwergenkönig'); king.scale.set(3, 0.8, 1); l.deco(king, -3, 2.2, -9.5);
-    l.trigger(-3, 0, -9.5, 3, () => { if (!g.hasBone('hub', 'zwerge')) g.toast(`Zwergenkönig: „Meine 5 Untertanen sind im Garten verstreut!“ (${l.zwerge}/5)`, 3500); }, false);
+    l.trigger(-3, 0, -9.5, 3, () => { if (!g.hasBone('hub', 'zwerge')) g.talk('zwerge', { vars: { n: l.zwerge, r: 5 - l.zwerge } }); }, false);
     [[0, -36], [36, 0], [-36, 0], [0, 36]].forEach(([x, z]) => l.group.add(box(Math.abs(x) ? 40 : 4, 0.05, Math.abs(z) ? 40 : 4, 0xd6cfc0, x * 1.5, 0.03, z * 1.5)));
 
     // Norden: Schuppen mit Werkstatt (Raum) und Komposthaufen

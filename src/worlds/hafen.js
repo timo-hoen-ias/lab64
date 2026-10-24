@@ -36,10 +36,10 @@ export const HAFEN = {
     // Taucher Tim: gibt die Taucherbrille, falls man den Strand noch nicht kennt
     const diver = makeNpcDog(0x2d3436, 0xf1c40f); l.deco(diver, 8, 2, 24, Math.PI); const s0 = makeLabel('Taucher Tim'); s0.scale.set(4, 1, 1); l.deco(s0, 8, 5, 24);
     l.abilityItem(5, 3, 22, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch.');
-    l.trigger(8, 2, 24, 6, () => g.toast(g.has('tauchen') ? 'Tim: „Im Hafenbecken liegt ein alter Anker – und was Goldenes daneben!“' : 'Tim: „Nimm meine Ersatzbrille, dann kannst du tauchen!“', 4500), false);
+    l.trigger(8, 2, 24, 6, () => g.talk(g.has('tauchen') ? 'tim.tauchen' : 'tim', { mesh: diver }), false);
     l.warp(-6, 2, 24, 'Holzkai', bollard());
     // ---- Fähigkeit dieser Welt: Gleiten. Vom Ausguck übers Wasser zum Möwennest, ein Aufwind hilft
-    l.teacher(-11, 25, 'gleiten', { say: 'Opa Bruno: „Klettere auf den Ausguck und gleite rüber zum Möwennest. Der Wind über dem Wasser trägt dich!“' });
+    l.teacher(-11, 25, 'gleiten');
     [[16, 22, 3.6], [18.5, 22, 5.2], [18.5, 24.5, 6.8], [16, 24.5, 8.4], [13.5, 24.5, 10]].forEach(([x, z, top]) => l.box(x, 2, z, 2.5, top - 2, 2.5, 0x8d6e4a));
     l.label('Ausguck', 13.5, 12, 24.5);
     l.box(13.5, BED, 45, 4, 8 - BED, 4, 0x7f8c8d); l.deco(cyl(1.6, 1.2, 0.6, 0xc49a6c, 0, 0.3, 0, 10), 13.5, 8, 45); // Pfahl mit Möwennest
@@ -87,7 +87,7 @@ export const HAFEN = {
     l.goldbone('markt', mx + 16, 10.6, -2);
     [[-16, -12], [16, -12], [-6, 12], [8, 12], [16, 0]].forEach(([x, z]) => l.pickup(mx + x, 0.3, z, 'crumb'));
     const seller = makeNpcDog(0xf5f0e1, 0x2980b9); l.deco(seller, mx - 4, 0, 10, Math.PI);
-    l.trigger(mx - 4, 0, 10, 4, () => g.toast('Fischhändler Fritz: „Da oben auf dem Balken liegt was – aber ich bin zu alt zum Klettern!“', 4000), false);
+    l.trigger(mx - 4, 0, 10, 4, () => g.talk('fritz', { mesh: seller }), false);
     l.door(mx, 0, 14.4, { x: -74, y: 2.3, z: -15, yaw: -Math.PI / 2 }, { label: 'Ausgang', ry: Math.PI });
 
     // ---- Süden: Mole mit Leuchtturm, Bojen-Parcours im Becken
