@@ -2,7 +2,7 @@
 // Meeresgrund bei y = -12, Wasser bei y = 0, das Land sind große Hügel. Fähigkeit dieser Welt: Tauchen (Taucherbrille am Eingang).
 import * as THREE from 'three';
 import { Crab, BeachCrab, Jelly } from '../bosses.js';
-import { box, cyl, cone, sphere, makeLabel, makeClam, makeNpcDog, animateDog } from '../models.js';
+import { box, cyl, cone, sphere, makeSign, makeClam, makeNpcDog, animateDog } from '../models.js';
 import { FX, toonGradient } from '../fx.js';
 
 const SAND = 0xf2dca2, WET = 0xd9c084, ROCK = 0x9a9183;
@@ -50,12 +50,11 @@ export const STRAND = {
     // ---- Promenade: Kiosk, Rettungsschwimmer mit Taucherbrille, Schilder
     l.zone(0, -128, 60, () => {
       l.box(-30, 6, -134, 9, 4, 6, 0xffffff); l.box(-30, 10, -134, 10, 0.4, 7, 0xe74c3c);
-      l.deco(box(9.2, 0.5, 0.4, 0xffd34d), -30, 9, -130.9); const sign = makeLabel('POMMES · EIS'); sign.scale.set(5, 1.2, 1); l.deco(sign, -30, 11.6, -131);
+      l.deco(box(9.2, 0.5, 0.4, 0xffd34d), -30, 9, -130.9); l.deco(makeSign('POMMES · EIS', { w: 5, post: 0.2 }), -30, 10.4, -131.2);
       [[-24, 6, -129], [-22, 7.3, -131], [-24.5, 8.6, -133]].forEach(([x, y, z]) => l.box(x, y, z, 1.6, 1.3, 1.6, 0xc0905a)); // Kistenstapel aufs Kioskdach
       l.pickup(-30, 10.7, -134, 'fries', { goal: true });
       for (let x = -110; x <= 110; x += 10) { l.deco(cyl(0.12, 0.12, 3.2, 0x2d3436, 0, 0, 0, 6), x, 7.6, -122); l.deco(sphere(0.35, 0xfff3a0, 0, 0, 0, 8), x, 9.3, -122); } // Laternen
       const lg = makeNpcDog(0xd9a441, 0xe74c3c); l.deco(lg, 7, 6, -121, Math.PI); l.lifeguard = lg;
-      const s1 = makeLabel('Rettungsschwimmer Rex'); s1.scale.set(5, 1.2, 1); l.deco(s1, 7, 9, -121);
       l.abilityItem(4, 7, -118, 'tauchen', 'TAUCHERBRILLE! Im Wasser NASE halten = tauchen, SPRUNG = hoch. Achte auf die Luft!');
       l.trigger(4, 6, -120, 7, () => g.talk(g.has('tauchen') ? 'rex.tauchen' : 'rex', { mesh: lg }), false);
       l.warp(14, 6, -128, 'Promenade', strandkorb());
@@ -72,7 +71,6 @@ export const STRAND = {
       l.box(bx - 5, by, bz, 2, 0.8, 2, 0xe8cf91); // Treppenstufe
       l.pickup(bx, by + 4.8, bz, 'fries', { goal: true });
       const bauer = makeNpcDog(0xf5f0e1, 0x1dd1a1); l.deco(bauer, bx - 7, by, bz + 3, Math.PI / 2);
-      const s2 = makeLabel('Burg-Bauer Bello'); s2.scale.set(5, 1.2, 1); l.deco(s2, bx - 7, by + 3, bz + 3);
       l.shellsHave = 0;
       l.interactable(bx - 7, by, bz + 3, 1.8, it => {
         if (l.game.hasBone('strand', 'sandburg')) { g.talk('bello.fertig', { mesh: bauer }); it.used = false; return; }
@@ -82,7 +80,7 @@ export const STRAND = {
       // Muscheln: Strand, Dünen, unter dem Pier, Riff, Insel
       [[-55, -60], [-120, -128], [62, -40], [70, 65], [106, 12]].forEach(([x, z]) => l.pickup(x, H(x, z) + 0.3, z, 'shell', { special: true, onTake: () => { l.shellsHave++; g.toast(`Muschel ${l.shellsHave}/5 – bring sie zu Bello`); }, onRestore: () => l.shellsHave++ }));
       [[-30, -70], [0, -66], [45, -72], [-65, -65], [80, -75]].forEach(([x, z]) => l.addEnemy(new BeachCrab(g, x, z)));
-      l.warp(-80, 2, -70, 'Weststrand', strandkorb());
+      l.warp(-74, H(-74, -76), -76, 'Weststrand', strandkorb()); // auf dem Sand, nicht über dem Wasser
     });
 
     // ---- Dünen: Geheim-Knochen und versteckte Pommes

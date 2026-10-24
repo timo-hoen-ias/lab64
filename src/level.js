@@ -1,7 +1,7 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
 import { BONES } from './levels.js';
-import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
+import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam } from './fx.js';
 
@@ -118,17 +118,59 @@ export class Level {
   airAt(p) { return (this.bubbles || []).some(b => Math.hypot(b.x - p.x, b.z - p.z) < 1.4 && p.y > b.y0 - 1 && p.y < b.y0 + b.h + 1); }
   // Auslöser: fn(), sobald Moll in den Radius kommt (once = nur einmal)
   trigger(x, y, z, r, fn, once = true) { (this.triggers ||= []).push({ x, y, z, r, fn, once, done: false, inside: false }); }
-  // Schnellreise-Punkte (Strandkörbe, Hundehütten): Berühren schaltet frei, BISS daneben reist zum nächsten freigeschalteten
+  // Schnellreise-Punkte (Strandkörbe, Hundehütten): daneben ein Teleporter-Feld mit Wegweiser. Betreten schaltet frei,
+  // BISS darauf reist (mit Animation) zum nächsten freigeschalteten Punkt
   warp(x, y, z, name, mesh) {
     const w = { x, y, z, name, on: (this.game.worldState(this.key).warps || []).includes(name) }; (this.warps ||= []).push(w);
     if (mesh) this.deco(mesh, x, y, z);
-    const lab = makeLabel(`⇄ ${name}`); lab.scale.set(4, 1, 1); lab.position.set(x, y + 3, z); this.group.add(lab); w.label = lab;
-    this.interactable(x, y, z, 1.6, it => {
-      it.used = false; const on = this.warps.filter(v => v.on); if (on.length < 2) { this.game.toast('Finde weitere Schnellreise-Punkte!'); return; }
-      const next = on[(on.indexOf(w) + 1) % on.length]; this.teleport({ x: next.x + 1.8, y: next.y + 0.5, z: next.z }); this.game.toast(`Schnellreise: ${next.name}`);
+    // Feld neben die Bank/den Korb auf festen Boden (nicht ins Wasser oder in eine Senke)
+    const side = [[1.8, 0], [-1.8, 0], [0, 1.8], [0, -1.8]].find(([dx, dz]) => { const g = this.groundAt(x + dx, z + dz, y + 1.5); return g > y - 0.6 && g > (this.seaY ?? -Infinity) - 0.2; }) || [1.8, 0];
+    const px = x + side[0], pz = z + side[1], gy = this.groundAt(px, pz, y + 1.5), py = gy > -Infinity ? gy : y; w.pad = { x: px, y: py, z: pz };
+    const pad = new THREE.Group(); pad.position.set(px, py, pz); this.group.add(pad);
+    pad.add(cyl(1.15, 1.25, 0.14, 0xb8b0a0, 0, 0.07, 0, 16)); // Steinsockel
+    this.solids.push({ min: { x: px - 1.05, y: py, z: pz - 1.05 }, max: { x: px + 1.05, y: py + 0.14, z: pz + 1.05 }, active: true });
+    const disk = makePortalDisk(0x5ad8ff, 0.95); disk.rotation.x = -Math.PI / 2; disk.position.y = 0.16; pad.add(disk); w.disk = disk;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.07, 6, 28), new THREE.MeshToonMaterial({ color: 0x5ad8ff, emissive: 0x1a6a8a, gradientMap: toonGradient() })); rim.rotation.x = -Math.PI / 2; rim.position.y = 0.16; pad.add(rim); w.rim = rim;
+    const sign = makeSign(`⇄ ${name}`, { w: 2.4, post: 1.3 }); sign.position.set(px + side[0] * 0.25 + side[1] * 0.9, py, pz + side[1] * 0.25 - side[0] * 0.9); sign.rotation.y = Math.atan2(-side[1], side[0]); pad.parent.add(sign); w.sign = sign; // seitlich am Feld, quer zur Bank
+    this.interactable(px, py, pz, 1.6, it => {
+      it.used = false; if (this._warping) return;
+      const on = this.warps.filter(v => v.on); if (on.length < 2) { this.game.toast('Finde weitere Schnellreise-Punkte!'); return; }
+      this._startWarp(w, on[(on.indexOf(w) + 1) % on.length]);
     }, 'BISS = Schnellreise');
-    this.trigger(x, y, z, 2, () => { if (w.on) return; w.on = true; const st = this.game.worldState(this.key); (st.warps ||= []).push(name); this.game.persist(); this.game.toast(`Schnellreise-Punkt „${name}“ gefunden!`); this.game.audio.sfx('collect'); });
+    this.trigger(px, py, pz, 2.4, () => { if (w.on) return; w.on = true; const st = this.game.worldState(this.key); (st.warps ||= []).push(name); this.game.persist(); this.game.toast(`Schnellreise-Punkt „${name}“ gefunden!`); this.game.audio.sfx('collect'); FX.gold(this.game.fx, { x: px, y: py + 0.4, z: pz }); });
     return w;
+  }
+  // Schnellreise-Animation: Moll wird in einen Lichtwirbel gesaugt (dreht sich, schrumpft), Blende, und plumpst am Ziel heraus
+  _startWarp(from, to) {
+    const pl = this.game.player; pl.frozen = true; pl.vel.set(0, 0, 0);
+    if (!this._warpBeam) {
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 5, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0x8ae6ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      beam.geometry.translate(0, 2.5, 0); this.group.add(beam); this._warpBeam = beam;
+    }
+    this._warping = { t: 0, from, to, arrived: false, start: pl.pos.clone() };
+    this.game.audio.sfx('warp'); this.game.toast(`Schnellreise: ${to.name}`);
+  }
+  _updateWarp(dt) {
+    const W = this._warping, pl = this.game.player, m = pl.mesh, beam = this._warpBeam, fx = this.game.fx;
+    W.t += dt; pl.frozen = true; pl.vel.set(0, 0, 0);
+    const IN = 0.9, OUT = 0.75;
+    if (!W.arrived) {
+      const k = Math.min(1, W.t / IN), e = k * k;
+      pl.pos.x += (W.from.pad.x - pl.pos.x) * Math.min(1, dt * 8); pl.pos.z += (W.from.pad.z - pl.pos.z) * Math.min(1, dt * 8); // zur Mitte des Felds gezogen
+      m.position.copy(pl.pos); m.position.y += e * 1.6; m.rotation.y = pl.yaw + e * 18; m.scale.setScalar(Math.max(0.02, 1 - e * 0.98)); m.scale.y *= 1 + k * 0.6;
+      beam.position.set(W.from.pad.x, W.from.pad.y + 0.15, W.from.pad.z); beam.scale.set(1 - k * 0.5, 0.3 + k, 1 - k * 0.5); beam.rotation.y += dt * 8; beam.material.opacity = 0.15 + k * 0.4;
+      if (Math.random() < dt * 40) { const a = Math.random() * Math.PI * 2, r = 1.2; fx.burst({ x: W.from.pad.x + Math.cos(a) * r, y: W.from.pad.y + 0.3 + Math.random() * 2, z: W.from.pad.z + Math.sin(a) * r }, { n: 1, color: [0x8ae6ff, 0xffffff, 0xfff3a0], speed: 0.3, up: 3, life: 0.5, size: 0.13, gravity: 2 }); }
+      if (k >= 1) {
+        FX.gold(fx, { x: W.from.pad.x, y: W.from.pad.y + 1.6, z: W.from.pad.z });
+        this.teleport({ x: W.to.pad.x, y: W.to.pad.y + 0.5, z: W.to.pad.z }); W.arrived = true; W.t = 0;
+      }
+      return;
+    }
+    const k = Math.min(1, W.t / OUT), back = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2); // Überschwinger beim Auftauchen
+    m.position.copy(pl.pos); m.position.y += (1 - k) * 1.4; m.rotation.y = pl.yaw - (1 - k) * (1 - k) * 14; m.scale.setScalar(Math.max(0.02, back));
+    beam.position.set(W.to.pad.x, W.to.pad.y + 0.15, W.to.pad.z); beam.scale.set(0.5 + k * 0.8, 1.3 * (1 - k) + 0.01, 0.5 + k * 0.8); beam.rotation.y += dt * 6; beam.material.opacity = 0.5 * (1 - k);
+    if (W.t < dt * 1.5) { fx.burst({ x: W.to.pad.x, y: W.to.pad.y + 0.6, z: W.to.pad.z }, { n: 26, color: [0x8ae6ff, 0xffffff, 0xfff3a0], speed: 6, up: 4, life: 0.8, size: 0.18, gravity: -6 }); fx.rings?.spawn({ x: W.to.pad.x, y: W.to.pad.y + 0.2, z: W.to.pad.z }, 0x8ae6ff, 3.5, 0.6); }
+    if (k >= 1) { m.scale.setScalar(1); beam.material.opacity = 0; pl.frozen = false; this._warping = null; FX.land(fx, pl.pos, 1); this.game.audio.sfx('land'); }
   }
   // Ring-Parcours: alle Ringe in Reihenfolge innerhalb von time Sekunden → Goldknochen
   ringCourse(points, boneId, time = 25, color = 0xffd32a) {
@@ -231,7 +273,7 @@ export class Level {
   door(x, y, z, to, o = {}) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry || 0;
     g.add(box(2.4, 3.2, 0.3, o.frame ?? 0x7a4a1f, 0, 1.6, -0.05)); g.add(box(1.8, 2.7, 0.32, 0x1d1208, 0, 1.35, 0));
-    if (o.label) { const l = makeLabel(o.label); l.scale.set(4, 1, 1); l.position.set(0, 3.8, 0); g.add(l); }
+    if (o.label) { const l = makeSign(o.label, { w: 2.2 }); l.position.set(0, 3.25, -0.05); g.add(l); }
     this.group.add(g); this.doors.push({ x, y, z, to, group: g });
   }
   areaAt(x, z) { return this.areas.find(a => x >= a.min.x - 0.5 && x <= a.max.x + 0.5 && z >= a.min.z - 0.5 && z <= a.max.z + 0.5) || this.mainArea; }
@@ -331,7 +373,8 @@ export class Level {
     const w = size - gate / 2, c = gate / 2 + w / 2;
     [-c, c].forEach(o => { this.box(o, 0, -size, w, h, 1, color); this.box(o, 0, size, w, h, 1, color); this.box(-size, 0, o, 1, h, w, color); this.box(size, 0, o, 1, h, w, color); });
   }
-  label(text, x, y, z) { if (text.length > 18) { this.intro = text; return null; } const l = makeLabel(text); l.position.set(x, y, z); this.group.add(l); return l; }
+  // Früher schwebende Beschriftungen (durch Wände sichtbar): lange Texte werden zur Einleitung, kurze entfallen
+  label(text) { if (text.length > 18) this.intro = text; return null; }
 
   // Sammelobjekt. goal=true zählt für das Levelziel. hidden=true: nur per Schnüffeln auffindbar (unsichtbar bis nah).
   pickup(x, y, z, kind = 'crumb', opts = {}) {
@@ -375,8 +418,9 @@ export class Level {
     [...po.gems, ...po.orbs].forEach(m => { m.material.color.copy(c); m.material.emissive.copy(c).multiplyScalar(locked ? 0.1 : 0.5); });
     po.beam.visible = !locked; po.lock.visible = locked;
     const prog = this.game.levelProgress(po.target);
-    if (po.label) po.group.remove(po.label);
-    po.label = makeLabel(locked ? `${po.text} 🔒${po.need}` : `${po.text} ${prog.have}/${prog.total}`); po.label.scale.set(6, 1.5, 1); po.label.position.set(0, 5.8, 0); po.group.add(po.label);
+    const txt = locked ? `${po.text} 🔒${po.need}` : `${po.text} ${prog.have}/${prog.total}`;
+    if (po.label) po.label.userData.setText(txt); else { po.label = makeSign(txt, { w: 3.8 }); po.label.position.set(0, 4.5, 0); po.group.add(po.label); }
+    po.crown.position.y = 5.9; // Krone über dem Schild
   }
 
   // Interaktion in Reichweite (Schublade etc.)
@@ -421,6 +465,8 @@ export class Level {
       if (Math.hypot(it.x - pp.x, it.z - pp.z) < 1.3 && Math.abs(it.y - pp.y) < 2) { it.taken = true; it.mesh.visible = false; FX.gold(this.game.fx, it); this.game.unlock(it.ability, it.text); }
     }
     // Türen
+    if (this._warping) this._updateWarp(dt);
+    for (const w of this.warps || []) { w.disk.userData.update(dt, !w.on); w.rim.material.emissive.setHex(w.on ? 0x1a6a8a : 0x222222); w.rim.material.color.setHex(w.on ? 0x5ad8ff : 0x9a9a9a); }
     if (this._doorCd > 0) this._doorCd -= dt;
     else for (const d of this.doors) if (Math.hypot(d.x - pp.x, d.z - pp.z) < 1.1 && Math.abs(d.y - pp.y) < 2) { this.teleport(d.to); break; }
     // Sammeln

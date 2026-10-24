@@ -2,7 +2,7 @@
 // Wald mit Baumkronenpfad, Spielplatz mit Parcours, Aussichtsturm auf dem Hügel und ein Dachsbau unter der Erde.
 import * as THREE from 'three';
 import { FatMan, Pigeon } from '../bosses.js';
-import { box, cyl, cone, sphere, makeLabel, makeNpcDog, makeRoundTree, makeFlowers } from '../models.js';
+import { box, cyl, cone, sphere, makeSign, makeNpcDog, makeRoundTree, makeFlowers } from '../models.js';
 import { toonGradient } from '../fx.js';
 
 const WOOD = 0x9c6b3f, PATH = 0xc9b58c;
@@ -44,7 +44,7 @@ export const PARK = {
       for (let i = 0; i < 16; i++) { const a = i * Math.PI / 4, r = 4.4; l.box(tx + Math.cos(a) * r, ty + 1 + i * 1.3, tz + Math.sin(a) * r, 2.4, 0.35, 2.4, 0xc49a6c); }
       l.box(tx, ty + 21.8, tz, 8, 0.4, 8, 0xc49a6c); l.deco(cone(6, 3, 0xc0392b, 0, 0, 0, 4), tx, ty + 24.5, tz, Math.PI / 4);
       l.goldbone('turm', tx, ty + 22.8, tz);
-      const sign = makeLabel('Aussichtsturm'); sign.scale.set(5, 1.2, 1); l.deco(sign, tx, ty + 3.5, tz + 8);
+      l.deco(makeSign('Aussichtsturm', { w: 2.6, post: 1.3 }), tx, ty, tz + 8);
       l.warp(8, T(8, -76), -76, 'Hügel', bench());
       // Eingang zum Dachsbau im Hang
       l.box(18, 0, -74, 6, 4, 4, 0x8a6b3f); l.door(18, 0, -71.9, { x: 2000, y: 0.2, z: 16, yaw: Math.PI }, { label: 'Dachsbau', frame: 0x5a3715 });
@@ -119,7 +119,6 @@ export const PARK = {
       l.ringCourse([[84, 3.2, 4], [88, 5.6, 16], [95, 6.2, 1], [95, 3, 10], [112, 2.2, 8]], 'parcours', 16, 0x00cec9);
       l.hill(115, 95, 30, 12, { flat: 0.2, color: 0x6cbf55 }); // Rodelhügel
       l.warp(70, 0, 6, 'Spielplatz', bench());
-      const s = makeLabel('Spielplatz'); s.scale.set(5, 1.2, 1); l.deco(s, 70, 3.5, 12);
     });
 
     [[60, 60], [-60, 60], [60, -60], [-60, -60]].forEach(([x, z]) => l.deco(makeFlowers(6, 3, 18), x, 0, z));

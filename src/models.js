@@ -349,15 +349,30 @@ export function makeFatMan() {
   g.userData = { legs, arms, head, belly, eyes, t: 0 };
   return compact(g);
 }
-export function makeLabel(text, color = '#fff8e7', bg = 'rgba(59,36,18,.75)', size = 44) {
+// Holzschild mit Schrift: echtes 3D-Objekt (wird von Wänden verdeckt), von beiden Seiten lesbar.
+// o.w = Breite, o.post = Pfostenhöhe (0 = ohne Pfosten), o.ink = Schriftfarbe. setText() schreibt das Schild neu.
+export function makeSign(text, o = {}) {
+  const w = o.w ?? 2.6, h = w / 4, post = o.post ?? 0, dark = 0x5a3715;
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
-  const x = c.getContext('2d');
-  x.fillStyle = bg; x.beginPath(); x.roundRect(10, 20, 492, 88, 30); x.fill();
-  x.font = `900 ${size}px Trebuchet MS, sans-serif`; while (x.measureText(text).width > 460 && size > 16) { size -= 2; x.font = `900 ${size}px Trebuchet MS, sans-serif`; } x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = color;
-  x.fillText(text, 256, 66);
-  const tex = new THREE.CanvasTexture(c);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  sp.scale.set(4, 1, 1); return sp;
+  const x = c.getContext('2d'), tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const draw = t => {
+    x.fillStyle = '#c8955a'; x.fillRect(0, 0, 512, 128);
+    x.strokeStyle = 'rgba(90,55,21,.3)'; x.lineWidth = 3; // Maserung
+    for (let i = 0; i < 6; i++) { const y = 14 + i * 21; x.beginPath(); x.moveTo(0, y); for (let k = 1; k <= 8; k++) x.lineTo(k * 64, y + Math.sin(k * 1.7 + i * 2.3) * 4); x.stroke(); }
+    let size = 64; x.font = `900 ${size}px Trebuchet MS, sans-serif`;
+    while (x.measureText(t).width > 460 && size > 16) { size -= 2; x.font = `900 ${size}px Trebuchet MS, sans-serif`; }
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = 'rgba(255,236,200,.55)'; x.fillText(t, 257, 68); // eingeschnitzt: helle Kante unten
+    x.fillStyle = o.ink ?? '#3b2412'; x.fillText(t, 256, 65);
+    tex.needsUpdate = true;
+  };
+  draw(text);
+  const g = new THREE.Group(), board = new THREE.Group(); board.position.y = post + h / 2; g.add(board);
+  board.add(box(w + 0.14, h + 0.14, 0.12, dark));
+  const face = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradient(), polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  [1, -1].forEach(s => { const f = new THREE.Mesh(new THREE.PlaneGeometry(w, h), face); f.position.z = s * 0.064; if (s < 0) f.rotation.y = Math.PI; f.receiveShadow = true; board.add(f); });
+  if (post) [-1, 1].forEach(s => g.add(box(0.16, post + h + 0.12, 0.16, dark, s * (w / 2 + 0.15), (post + h + 0.12) / 2, 0)));
+  g.userData.setText = draw; return g;
 }
 
 // Sammelobjekte: aus Grundkörpern gebaut, dann zu EINEM Mesh mit Vertexfarben gebacken (ein Zeichenaufruf je Objekt,

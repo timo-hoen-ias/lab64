@@ -2,7 +2,7 @@
 // Klärbecken im Westen, Gully-Schacht nach oben im Süden und das Rattennest (eigener Raum).
 import * as THREE from 'three';
 import { RatBoss } from '../bosses.js';
-import { box, cyl, sphere, makeLabel, makeNpcDog } from '../models.js';
+import { box, cyl, sphere, makeSign, makeNpcDog } from '../models.js';
 import { FX } from '../fx.js';
 
 const WALL = 0x57606f, WALK = 0x747d8c, PIPE = 0x8395a7, RUST = 0xb87333, H = 12;
@@ -58,7 +58,6 @@ export const KANAL = {
       l.lever(-10, 9.4, -56, 0);
       l.door(-40, 0, -59.4, { x: 2000, y: 0.2, z: 9, yaw: Math.PI }, { label: 'Rattennest', frame: 0x3d2b1f });
       lamp(-10, 8, -34); lamp(10, 8, -34);
-      const s = makeLabel('Pumpwerk'); s.scale.set(4, 1, 1); l.deco(s, -11, 5, -27);
     });
 
     // ---- Osten: Rohr-Labyrinth auf drei Höhen
@@ -71,7 +70,6 @@ export const KANAL = {
       l.lever(44, 0.2, 50, 1);
       lamp(40, 8, -10); lamp(40, 8, 30); lamp(55, 8, -40);
       [[44, -2], [36, 20], [50, 34]].forEach(([x, z]) => l.pickup(x, 0.3, z, 'crumb'));
-      const s = makeLabel('Rohre'); s.scale.set(3, 1, 1); l.deco(s, 30, 5, 0);
     });
 
     // ---- Westen: Klärbecken mit Fässern und Ventilturm
@@ -85,7 +83,6 @@ export const KANAL = {
       const worker = makeNpcDog(0xf39c12, 0xf1c40f); l.deco(worker, -32, 0, -10, -Math.PI / 2);
       l.trigger(-32, 0, -10, 5, () => g.talk('karl', { mesh: worker }), false);
       lamp(-30, 8, 20); lamp(-56, 8, -20); lamp(-56, 8, 20);
-      const s = makeLabel('Klärbecken'); s.scale.set(4, 1, 1); l.deco(s, -30, 5, 0);
     });
 
     // ---- Süden: Gully-Schacht nach oben ans Tageslicht
@@ -99,7 +96,7 @@ export const KANAL = {
       l.lever(-1.5, 20.2, 49, 3);
       [[-20, 34], [20, 34], [-20, 54], [20, 54], [-8, 44], [8, 44]].forEach(([x, z]) => l.pickup(x, 0.3, z, 'crumb'));
       [[-16, 50], [12, 48]].forEach(([x, z]) => l.box(x, 0, z, 4, 1.4, 4, 0x6d4c41));
-      const s = makeLabel('Gully ↑'); s.scale.set(3, 1, 1); l.deco(s, 4, 4, 52);
+      l.deco(makeSign('Gully ↑', { w: 2.2, post: 1.2 }), 4, 0, 52);
     });
 
     // ---- Rattennest (Raum): Käseberg
