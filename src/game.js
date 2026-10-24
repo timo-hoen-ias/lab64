@@ -139,6 +139,11 @@ export class Game {
   _musicMix() {
     const L = this.level; if (!L) return;
     this.audio.setMix(L.isRunner ? 'normal' : L._uw || this.player.diving ? 'water' : L.boss && !L.boss.dead ? 'boss' : L.bounds?.room ? 'inside' : 'normal');
+    // Bereichs-Variante: jede Zone der Welt färbt die Melodie mit einem anderen Instrument (nur alle ~30 Bilder prüfen)
+    if (!L.isRunner && (this._areaF = (this._areaF || 0) + 1) % 30 === 0) {
+      const p = this.player.pos; let a = 0; (L.zones || []).forEach((z, k) => { if (Math.hypot(z.x - p.x, z.z - p.z) < z.r) a = k + 1; });
+      this.audio.setArea(a);
+    }
   }
   worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; w[key].special ||= []; return w[key]; }
   applyQuality() {
