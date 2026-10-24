@@ -141,7 +141,7 @@ export class Player {
     if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); if (this._lastVy < -12) FX.land(this.game.fx, this.pos, Math.min(2, -this._lastVy / 14)); }
     this._lastVy = this.vel.y;
     // Laufstaub
-    if (this.onGround && !wet && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
+    if (this.onGround && !wet && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); if (level.grass && Math.random() < 0.35) FX.petals(this.game.fx, this.pos); } }
     if (this.pos.y < (level.killY ?? -25)) { this.hurt(1); this.respawn(); }
     // Pfotenabdrücke (Welten mit def.prints, nur auf Gelände über Wasser): abwechselnd links/rechts
     if (level.def.prints && this.onGround && !wet && level.heightAt(this.pos.x, this.pos.z) >= this.pos.y - 0.05 && (level.seaY === undefined || this.pos.y > level.seaY + 0.1)) {

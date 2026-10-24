@@ -1,6 +1,20 @@
 // Grafik-Effekte: Toon-Shading, Himmel mit Verlauf, Wolken, Wasser, Partikel, Blob-Schatten.
 import * as THREE from 'three';
 
+// Farbstimmung: Filmischer Tonwert (ACES) plus „Vibrance“ – blasse Farben werden kräftiger, schon bunte bleiben wie sie sind.
+// Wirkt als eigener Tone-Mapper in jedem Material (kein zusätzlicher Bildschirm-Durchgang, kostet aufs Handy nichts).
+THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }', `vec3 CustomToneMapping( vec3 color ) {
+  vec3 c = ACESFilmicToneMapping( color * 1.05 );
+  float l = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) ), sat = max( c.r, max( c.g, c.b ) ) - min( c.r, min( c.g, c.b ) );
+  return saturate( mix( vec3( l ), c, 1.06 + 0.28 * ( 1.0 - sat ) ) );
+}`);
+
+// Höhennebel: tief liegender Boden in der Ferne verschwimmt früher im Dunst als Hohes (mehr Tiefe, Täler wirken dunstig)
+THREE.ShaderChunk.fog_pars_vertex = '#ifdef USE_FOG\n\tvarying float vFogDepth;\n\tvarying float vFogY;\n#endif';
+THREE.ShaderChunk.fog_vertex = '#ifdef USE_FOG\n\tvFogDepth = - mvPosition.z;\n\tvFogY = cameraPosition.y + ( transpose( mat3( viewMatrix ) ) * mvPosition.xyz ).y;\n#endif';
+THREE.ShaderChunk.fog_pars_fragment = THREE.ShaderChunk.fog_pars_fragment.replace('varying float vFogDepth;', 'varying float vFogDepth;\n\tvarying float vFogY;');
+THREE.ShaderChunk.fog_fragment = THREE.ShaderChunk.fog_fragment.replace('float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );', 'float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );\n\t\tfogFactor = max( fogFactor, ( 1.0 - smoothstep( -1.0, 12.0, vFogY ) ) * smoothstep( fogNear * 0.4, fogFar, vFogDepth ) * 0.55 );');
+
 // 3-stufiger Verlauf für MeshToonMaterial → Comic-Look wie bei Banjo-Kazooie
 let _grad;
 export function toonGradient() {
@@ -29,16 +43,17 @@ export function makeSky(color, dark = false, time = null) {
   const sunDir = new THREE.Vector3(...(T ? T.sunOff : [18, 34, 12])).normalize();
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: top }, horizon: { value: horizon }, sunDir: { value: sunDir }, glow: { value: new THREE.Color(T ? T.glow : 0xffffff) }, sunOn: { value: T ? 1 : 0 } },
+    uniforms: { top: { value: top }, horizon: { value: horizon }, sunDir: { value: sunDir }, glow: { value: new THREE.Color(T ? T.glow : 0xffffff) }, sunOn: { value: T ? 1 : 0 }, dim: { value: 0 } },
     vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 glow; uniform float sunOn; varying vec3 vP;
+    fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 glow; uniform float sunOn; uniform float dim; varying vec3 vP;
       void main(){
         float h = clamp(vP.y * 1.6, 0.0, 1.0);
         vec3 c = mix(horizon, top, pow(h, 0.8));
         c = mix(c, horizon * 1.04, smoothstep(0.12, 0.0, abs(vP.y)) * 0.5 * sunOn); // Dunstband am Horizont
         float d = max(dot(normalize(vP), sunDir), 0.0);
         c += glow * (pow(d, 8.0) * 0.35 + pow(d, 64.0) * 0.6) * sunOn; // Schein
-        c = mix(c, vec3(1.0, 0.98, 0.9), smoothstep(0.9975, 0.999, d) * sunOn); // Scheibe
+        c = mix(c, vec3(3.2, 3.0, 2.6), smoothstep(0.9975, 0.999, d) * sunOn); c += glow * pow(d, 400.0) * 1.5 * sunOn; // Scheibe, HDR-hell für Bloom und Strahlen
+        c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))) * vec3(0.72, 0.76, 0.84), dim); // Regenwetter: grau
         gl_FragColor = vec4(c, 1.0);
       }`,
   });
@@ -48,9 +63,11 @@ export function makeSky(color, dark = false, time = null) {
 }
 
 // Gras und Blumen als Instanzen; wiegen sich im Wind (Vertex-Shader). points = [[x,y,z], ...]
+// Halme biegen sich von Moll weg (GRASS.uPlayer setzt das Level jedes Bild)
+export const GRASS = { uPlayer: { value: new THREE.Vector3(0, -999, 0) } };
 export function makeGrass(points, colors = [0x7ccf5a, 0x8fdc66, 0x69bd4c], flowers = 0.07) {
   const g = new THREE.Group(), uni = { uTime: { value: 0 } };
-  const wind = mat => { mat.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 wp = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);\n transformed.x += sin(uTime * 2.0 + wp.x * 0.3 + wp.z * 0.2) * 0.12 * position.y;\n transformed.z += cos(uTime * 1.6 + wp.x * 0.2) * 0.06 * position.y;'); }; return mat; };
+  const wind = mat => { mat.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = GRASS.uPlayer; sh.vertexShader = 'uniform float uTime;\nuniform vec3 uPlayer;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 wp = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);\n transformed.x += sin(uTime * 2.0 + wp.x * 0.3 + wp.z * 0.2) * 0.12 * position.y;\n transformed.z += cos(uTime * 1.6 + wp.x * 0.2) * 0.06 * position.y;\n vec2 gd = wp.xz - uPlayer.xz; float gk = (1.0 - smoothstep(0.4, 1.5, length(gd))) * step(abs(wp.y - uPlayer.y), 1.2);\n vec3 push = vec3(normalize(gd + 0.0001).x, 0.0, normalize(gd + 0.0001).y) * gk * 0.45 * position.y;\n transformed += (inverse(mat3(instanceMatrix)) * push); transformed.y *= 1.0 - gk * 0.45;'); }; return mat; };
   // Büschel: drei schmale gekreuzte Blätter
   const pos = []; for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI, c = Math.cos(a) * 0.14, s2 = Math.sin(a) * 0.14, lean = (i - 1) * 0.08; pos.push(-c * 0.7, 0, -s2 * 0.7, c * 0.7, 0, s2 * 0.7, lean, 0.34, 0); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
@@ -214,10 +231,12 @@ export const FX = {
   food: (pt, pos) => { pt.burst(pos, { n: 22, color: [0xffd93d, 0xff6b6b, 0xffffff, 0x6bcbff], speed: 5, up: 6, life: 0.9, size: 0.22 }); pt.rings?.spawn(pos, 0xfff0a0, 3, 0.5); },
   crumbRing: (pt, pos) => pt.rings?.spawn(pos, 0xfff6d0, 1.3, 0.3),
   land: (pt, pos, k) => pt.rings?.spawn({ x: pos.x, y: pos.y + 0.06, z: pos.z }, 0xfff3dc, 1.4 + k, 0.35),
-  gold: (pt, pos) => { pt.burst(pos, { n: 40, color: [0xffcc33, 0xfff3a0, 0xffd700], speed: 7, up: 8, life: 1.4, size: 0.18, gravity: -6 }); pt.burst(pos, { n: 16, color: 0xffffff, speed: 10, up: 1, life: 0.5, size: 0.1, gravity: 0, flat: true }); pt.rings?.spawn(pos, 0xffd84a, 4.5, 0.7); pt.rings?.spawn(pos, 0xffffff, 2.5, 0.45); },
+  gold: (pt, pos) => { pt.burst(pos, { n: 40, color: [0xffcc33, 0xfff3a0, 0xffd700], speed: 7, up: 8, life: 1.4, size: 0.18, gravity: -6 }); pt.burst(pos, { n: 16, color: 0xffffff, speed: 10, up: 1, life: 0.5, size: 0.1, gravity: 0, flat: true }); pt.rings?.spawn(pos, 0xffd84a, 4.5, 0.7); pt.rings?.spawn(pos, 0xffffff, 2.5, 0.45); FX.confetti(pt, pos); },
   hit: (pt, pos) => { pt.burst(pos, { n: 18, color: [0xffffff, 0xffe066, 0xff6b6b], speed: 8, up: 3, life: 0.45, size: 0.22, gravity: -4 }); pt.rings?.spawn(pos, 0xffe066, 3.2, 0.35); },
   bite: (pt, pos) => pt.burst(pos, { n: 5, color: 0xffffff, speed: 3, up: 1, life: 0.25, size: 0.14, gravity: 0 }),
   splash: (pt, pos) => pt.burst(pos, { n: 20, color: [0x9ad7ff, 0xffffff, 0x4fa3ff], speed: 3, up: 7, life: 0.8, size: 0.22, gravity: -18 }),
+  confetti: (pt, pos) => pt.burst(pos, { n: 45, color: [0xff6b6b, 0xfeca57, 0x48dbfb, 0x1dd1a1, 0xff9ff3, 0xa29bfe, 0xffffff], speed: 7, up: 9, life: 2.2, size: 0.2, gravity: -5, drag: 2.5 }),
+  petals: (pt, pos) => pt.burst(pos, { n: 2, color: [0xff9ff3, 0xffffff, 0xfeca57, 0x9ccc65], speed: 1.5, up: 2.2, life: 1.0, size: 0.12, gravity: -3, drag: 2.5 }),
   sparkle: (pt, pos) => pt.burst(pos, { n: 1, color: [0xfff3a0, 0xffffff], speed: 0.6, up: 1.2, life: 0.8, size: 0.14, gravity: 0, spread: 0.6 }),
 };
 
@@ -425,6 +444,7 @@ const AMBIENT = {
   fireflies: { colors: [0xfff27a, 0xd8ff6a], size: 0.1, add: true, fall: 0, wob: 0.8, blink: true },
   dust: { colors: [0xfff8e6, 0xffffff], size: 0.045, add: true, fall: -0.03, wob: 0.25 },
   drips: { colors: [0xbfe9ff, 0x9fd8ff], size: 0.06, add: false, fall: -9, wob: 0, streak: true },
+  rain: { colors: [0xcfe6ff, 0xe8f2ff], size: 0.05, add: false, fall: -22, wob: 0.3, streak: true },
   plankton: { colors: [0xe9fbff, 0xbff0ff], size: 0.06, add: true, fall: 0.1, wob: 0.4 },
 };
 export function makeAmbient(kind, n, radius = 14, height = 8) {
@@ -500,4 +520,66 @@ export class Rings {
       const e = 1 - (1 - k) ** 3; r.m.scale.setScalar(0.2 + e * r.size); r.m.material.opacity = (1 - k) * 0.8;
     }
   }
+}
+
+
+// ---- Weicher Lichtschein (additives Sprite) für Goldknochen, Portale, Laternen
+let _glowTex;
+export function glowTex() {
+  if (_glowTex) return _glowTex;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64); return (_glowTex = new THREE.CanvasTexture(c));
+}
+export function makeGlow(color, size = 2, opacity = 0.6) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending, fog: true }));
+  sp.scale.setScalar(size); sp.userData.base = opacity; return sp;
+}
+
+// ---- Wolkenschatten: große, langsam ziehende dunklere Flecken auf allem Boden (Außenwelten)
+export const CLOUDS = { uCloudT: { value: 0 }, uCloudK: { value: 0 } };
+export function addCloudShadow(mat) {
+  if (mat.userData.cloud || mat.transparent) return mat; mat.userData.cloud = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r); Object.assign(sh.uniforms, CLOUDS);
+    sh.vertexShader = 'varying vec2 vClW;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+ vec4 clP = vec4(transformed, 1.0);
+ #ifdef USE_INSTANCING
+ clP = instanceMatrix * clP;
+ #endif
+ vClW = (modelMatrix * clP).xz;`);
+    sh.fragmentShader = 'uniform float uCloudT, uCloudK;\nvarying vec2 vClW;\n' + sh.fragmentShader.replace('#include <fog_fragment>', `vec2 clq = vClW * 0.018 + vec2(uCloudT * 0.035, uCloudT * 0.012);
+ float cl = sin(clq.x * 3.1) * sin(clq.y * 2.7 + 1.3) + sin(clq.x * 1.3 - clq.y * 1.9) * 0.6;
+ gl_FragColor.rgb *= 1.0 - smoothstep(0.35, 0.8, cl) * uCloudK;
+ #include <fog_fragment>`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : '') + '|cloud';
+  return mat;
+}
+
+// ---- Regenbogen: großer Bogen weit weg, gegenüber der Sonne, blendet ein und aus
+export function makeRainbow() {
+  const geo = new THREE.TorusGeometry(160, 9, 2, 48, Math.PI), pos = geo.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) { const r = Math.hypot(pos.getX(i), pos.getY(i)), k = THREE.MathUtils.clamp((r - 151) / 18, 0, 1); c.setHSL(0.78 * k, 1.0, 0.5); col.set([c.r, c.g, c.b], i * 3); }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false, fog: false, side: THREE.DoubleSide, toneMapped: false }));
+  m.frustumCulled = false; m.renderOrder = -0.5; return m;
+}
+
+// ---- Sternschnuppe: heller Strich, der über den Abendhimmel zischt
+export function makeShootingStar() {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(14, 0.35), new THREE.MeshBasicMaterial({ color: 0xfffbe0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide }));
+  m.frustumCulled = false; m.renderOrder = -0.5; m.userData.k = 1; return m;
+}
+
+// ---- Rauch aus dem Schornstein: ein paar Wölkchen, die aufsteigen, wachsen und verblassen
+export function makeSmoke(n = 7) {
+  const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: 0xf2f2f2, transparent: true, opacity: 0.7, depthWrite: false, flatShading: true });
+  for (let i = 0; i < n; i++) { const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 0), mat.clone()); p.userData.k = i / n; g.add(p); }
+  g.userData.update = dt => g.children.forEach((p, i) => {
+    const u = p.userData; u.k = (u.k + dt * 0.18) % 1; const k = u.k;
+    p.position.set(Math.sin(k * 5 + i) * 0.4 + k * 1.5, k * 6, Math.cos(k * 4 + i) * 0.3); p.scale.setScalar(0.4 + k * 1.6); p.rotation.set(k * 3, k * 2, 0); p.material.opacity = Math.sin(k * Math.PI) * 0.65;
+  });
+  return g;
 }
