@@ -23,14 +23,14 @@ export const HAFEN = {
     Q(0, 10, 50, 36); Q(-26, -14, 14, 20); Q(20, -16, 20, 16); Q(0, -20, 6, 30);
     const crates = [[-10, 2, 4], [-7, 2, 4], [-8.5, 4.5, 4], [12, 2, 12], [15, 2, 12], [12, 2, 15], [13.5, 4.5, 13.5], [-20, 2, -10], [-20, 4.5, -10], [-20, 7, -10], [24, 2, -18], [20, 2, -22]];
     crates.forEach(([x, y, z]) => l.box(x, y, z, 2.5, 2.5, 2.5, 0xc0905a));
-    l.box(28, 2, 0, 2, 14, 2, 0xf1c40f); l.box(24, 14, -4, 12, 1, 1.4, 0xf1c40f);
+    Q(27.5, -1, 5, 10); l.box(28, 2, 0, 2, 14, 2, 0xf1c40f); // Mast steht auf einem Kai-Ausleger (schwebte vorher über dem Wasser) l.box(24, 14, -4, 12, 1, 1.4, 0xf1c40f);
     [[22, -12, 4, 0xe74c3c], [24.6, -12, 6, 0x3498db], [24.6, -9.4, 8, 0x27ae60], [22, -9.4, 10, 0xe67e22], [19.4, -9.4, 12, 0x9b59b6], [19.4, -6.8, 13.6, 0xe74c3c]].forEach(([x, z, top, c]) => l.box(x, 2, z, 2.4, top - 2, 2.4, c));
     l.goldbone('kletter', 28, 16.6, 0);
     l.goldbone('geheim', -31, 2.6, -5, { hidden: true });
     l.box(-20, 2, 20, 8, 1.6, 8, 0x2d3436);
     [[-16, 0], [-16, 20], [16, 0], [16, 20]].forEach(([x, z]) => l.deco(bollard(), x, 2, z));
     l.box(0, 1.2, -36, 8, 1.5, 5, 0xd63031); l.box(0, 2.7, -36, 1, 6, 1, 0xffffff); l.deco(box(5, 0.2, 5, 0xffffff), 0, 6, -36);
-    [[-8.5, 7.2, 4], [13.5, 7.2, 13.5], [-20, 9.7, -10], [22, 2.3, -22], [19, 15.3, -4], [-20, 3.8, 20], [0, 2.9, -36], [-30, 2.3, -22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'fish', { goal: true, hidden: true }));
+    [[-8.5, 7.2, 4], [13.5, 7.2, 13.5], [-20, 9.7, -10], [22, 2.3, -22], [19, 15.3, -4], [-20, 3.8, 20], [2.5, 2.9, -36], [-30, 2.3, -22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'fish', { goal: true, hidden: true }));
     // Leitern aus dem Wasser an jeder Kaikante
     [[0, 28.6], [-25, 28.6], [25, 28.6], [-33.6, -14], [30.6, -16], [0, -35.6]].forEach(([x, z]) => l.box(x, SEA - 0.6, z, 1.4, 0.5, 1.2, 0x636e72));
     // Taucher Tim: gibt die Taucherbrille, falls man den Strand noch nicht kennt
@@ -51,7 +51,7 @@ export const HAFEN = {
     // ---- Osten: Containerterminal mit Riesenkran
     l.zone(90, -10, 60, () => {
       Q(88, -10, 84, 100, 2, CONCRETE);
-      l.box(40, 2, 0, 8, 0.3, 4, WOOD); // Steg vom Holzkai rüber
+      l.box(35.5, 2, 4, 21, 0.3, 4, WOOD); for (let x = 28; x <= 44; x += 4) [-1.7, 1.7].forEach(dz => l.prop(cyl(0.22, 0.22, 12, 0x5d4037, 0, 0, 0, 6), x, -4, 4 + dz)); // Steg vom Holzkai bis zum Terminal, auf Pfählen
       // Container-Reihen (Dekor + Krümelverstecke) und eine Treppe hoch zum Kran
       let k = 0;
       for (let x = 58; x <= 112; x += 9) for (let z = -52; z <= 30; z += 7) { if (Math.abs(z + 20) < 6 && x > 95) continue; const n = 1 + ((x * 7 + z * 3) % 3 + 3) % 3; for (let i = 0; i < n; i++) l.box(x, 2 + i * 2.6, z, 6, 2.6, 2.6, CONT[k++ % CONT.length]); }
@@ -60,7 +60,7 @@ export const HAFEN = {
       l.box(112, 2, -20, 4, 26, 4, 0xf1c40f);
       for (let i = 0; i < 6; i++) l.box(110.6 + (i % 2) * 2.8, 15 + i * 2.2, -17.6, 1.6, 0.3, 1.2, 0xf39c12);
       l.box(112, 28, -20, 6, 0.6, 6, 0xf1c40f); l.box(100, 28.6, -20, 20, 1, 1.6, 0xf1c40f);
-      l.deco(box(2.5, 2, 2.5, 0x2d3436), 112, 30.2, -20);
+      l.deco(box(2.5, 2, 2.5, 0x2d3436), 112, 29.6, -20); // Kranführerhaus sitzt auf der Plattform
       l.goldbone('kran', 92, 30.4, -20);
       for (let i = 0; i < 4; i++) l.addEnemy(new BeachCrab(g, 70 + i * 10, 36));
       l.warp(60, 2, 38, 'Terminal', bollard());
@@ -69,7 +69,7 @@ export const HAFEN = {
     // ---- Westen: Fischmarkthalle (innen eigener Raum)
     l.zone(-90, -15, 50, () => {
       Q(-88, -15, 84, 90, 2, CONCRETE);
-      l.box(-40, 2, -6, 6, 0.3, 4, WOOD);
+      l.box(-39.5, 2, -6, 13, 0.3, 4, WOOD); for (let x = -44; x <= -36; x += 4) [-1.7, 1.7].forEach(dz => l.prop(cyl(0.22, 0.22, 12, 0x5d4037, 0, 0, 0, 6), x, -4, -6 + dz)); // Steg zum Fischmarkt, auf Pfählen
       const hx = -92, hz = -15;
       l.box(hx, 2, hz - 12, 32, 10, 1, 0x95a5a6); l.box(hx, 2, hz + 12, 32, 10, 1, 0x95a5a6); l.box(hx - 16, 2, hz, 1, 10, 24, 0x95a5a6);
       l.box(hx + 16, 2, hz - 7, 1, 10, 10, 0x95a5a6); l.box(hx + 16, 2, hz + 7, 1, 10, 10, 0x95a5a6); l.box(hx + 16, 7, hz, 1, 5, 4, 0x95a5a6);
@@ -82,9 +82,9 @@ export const HAFEN = {
     const mx = 3000; l.room(mx, 0, 40, 30);
     l.box(mx, -1, 0, 40, 1, 30, 0x7f8c8d); l.box(mx, 12, 0, 40, 1, 30, 0x34495e); // Decke hoch genug, dass Moll (1,15) auf dem Dachbalken stehen kann
     l.box(mx, 0, -15, 40, 12, 1, 0xbdc3c7); l.box(mx, 0, 15, 40, 12, 1, 0xbdc3c7); l.box(mx - 20, 0, 0, 1, 12, 30, 0xbdc3c7); l.box(mx + 20, 0, 0, 1, 12, 30, 0xbdc3c7);
-    [[-12, -6], [-12, 4], [0, -6], [0, 4], [12, -6], [12, 4]].forEach(([x, z], i) => { l.box(mx + x, 0, z, 6, 1.1, 2.4, 0xecf0f1); l.deco(box(6.2, 0.15, 2.8, [0xe74c3c, 0x3498db, 0x27ae60][i % 3]), mx + x, 2.6, z); for (let f = 0; f < 4; f++) l.deco(box(0.7, 0.2, 0.3, 0x7fb6d8), mx + x - 2 + f * 1.3, 1.25, z); });
-    [[-16, 1.2, 10], [-12, 2.6, 10], [-8, 4, 10], [-4, 5.4, 8], [0, 6.8, 6], [4, 8.2, 4]].forEach(([x, y, z]) => l.box(mx + x, y, z, 2, 0.4, 2, 0xf39c12)); // Lampen/Kisten-Treppe
-    l.box(mx + 4, 9.4, -2, 30, 0.5, 1.2, 0x5d4037); // Dachbalken
+    [[-12, -6], [-12, 4], [0, -6], [0, 4], [12, -6], [12, 4]].forEach(([x, z], i) => { l.box(mx + x, 0, z, 6, 1.1, 2.4, 0xecf0f1); l.prop(box(6.2, 0.15, 2.8, [0xe74c3c, 0x3498db, 0x27ae60][i % 3]), mx + x, 2.6, z); [[-2.9, -1.2], [2.9, -1.2], [-2.9, 1.2], [2.9, 1.2]].forEach(([dx, dz]) => l.prop(box(0.12, 1.45, 0.12, 0xbdc3c7), mx + x + dx, 1.82, z + dz)); for (let f = 0; f < 4; f++) l.prop(box(0.7, 0.2, 0.3, 0x7fb6d8), mx + x - 2 + f * 1.3, 1.25, z); }); // Stände mit Markisen auf Stangen
+    [[-16, 1.2, 10], [-12, 2.6, 10], [-8, 4, 10], [-4, 5.4, 8], [0, 6.8, 6], [4, 8.2, 4]].forEach(([x, y, z]) => { l.box(mx + x, y, z, 2, 0.4, 2, 0xf39c12); l.prop(box(0.08, 12 - y - 0.4, 0.08, 0x2d3436), mx + x, (12 + y + 0.4) / 2, z); }); // Lampen-Treppe, an Seilen von der Decke
+    l.box(mx + 4, 9.4, -2, 30, 0.5, 1.2, 0x5d4037); [-10, 3, 18].forEach(x => l.prop(box(0.3, 2.1, 0.3, 0x5d4037), mx + x, 10.95, -2)); // Dachbalken an Hängern
     l.goldbone('markt', mx + 16, 10.6, -2);
     [[-16, -12], [16, -12], [-6, 12], [8, 12], [16, 0]].forEach(([x, z]) => l.pickup(mx + x, 0.3, z, 'crumb'));
     const seller = makeNpcDog(0xf5f0e1, 0x2980b9); l.deco(seller, mx - 4, 0, 10, Math.PI);
@@ -94,10 +94,10 @@ export const HAFEN = {
     // ---- Süden: Mole mit Leuchtturm, Bojen-Parcours im Becken
     l.zone(-20, 90, 55, () => {
       l.box(-20, BED, 86, 6, 12.5, 116, 0x7f8c8d); // Mole von z 28 bis 144
-      for (let z = 34; z < 144; z += 5) [-4, 4].forEach(dx => l.deco(sphere(1.2, 0x95a5a6, 0, 0, 0, 5), -20 + dx, 1.4, z + (dx > 0 ? 2 : 0)));
+      for (let z = 34; z < 144; z += 5) [-4, 4].forEach(dx => l.prop(sphere(1.2, 0x95a5a6, 0, 0, 0, 5), -20 + dx, 1.4, z + (dx > 0 ? 2 : 0)));
       const ly = 2.5; l.box(-20, ly, 140, 4, 16, 4, 0xffffff);
-      for (let i = 0; i < 5; i++) l.deco(cyl(2.15, 2.15, 1.4, 0xe74c3c, 0, 0, 0, 12), -20, ly + 1.5 + i * 3, 140);
-      for (let i = 0; i < 11; i++) { const a = i * 0.6 + Math.PI, r = 3.6; l.box(-20 + Math.cos(a) * r, ly + 1 + i * 1.4, 140 + Math.sin(a) * r, 1.9, 0.4, 1.9, 0x95a5a6); }
+      for (let i = 0; i < 5; i++) l.prop(cyl(2.15, 2.15, 1.4, 0xe74c3c, 0, 0, 0, 12), -20, ly + 1.5 + i * 3, 140);
+      for (let i = 0; i < 11; i++) { const a = i * 0.6 + Math.PI, r = 3.6; l.box(-20 + Math.cos(a) * r, ly + 1 + i * 1.4, 140 + Math.sin(a) * r, 1.9, 0.4, 1.9, 0x95a5a6); l.prop(box(1.1, 0.3, 0.5, 0x7f8c8d), -20 + Math.cos(a) * 2.4, ly + 0.85 + i * 1.4, 140 + Math.sin(a) * 2.4, -a); } // Wendeltreppe mit Trägern
       l.box(-20, ly + 16, 140, 6, 0.4, 6, 0x95a5a6); l.deco(sphere(1, 0xfff3a0, 0, 0, 0, 10), -20, ly + 17.6, 140);
       l.goldbone('mole', -18, ly + 17, 142);
       l.warp(-20, 2.5, 60, 'Mole', bollard());
@@ -109,7 +109,7 @@ export const HAFEN = {
 
     // ---- Südosten: Frachtschiff mit Laderaum, Hafenbecken mit Anker
     l.zone(60, 90, 50, () => {
-      l.box(60, BED + 2, 92, 44, 14, 20, 0x2c3e50); l.deco(box(44.2, 1.2, 20.2, 0xc0392b), 60, BED + 2.6, 92); // Rumpf
+      l.box(60, BED + 2, 92, 44, 14, 20, 0x2c3e50); l.deco(box(44.2, 1.2, 20.2, 0xc0392b), 60, BED + 2.65, 92); // Rumpf (Streifen endet knapp über dem Kiel, kein Flackern von unten)
       l.box(60, 6, 92, 42, 0.4, 18, 0x95a5a6, { surface: 'metal' }); // Deck (Oberkante 6.4)
       l.box(76, 6.4, 92, 8, 8, 10, 0xecf0f1); l.box(76, 14.4, 92, 9, 0.5, 11, 0x34495e); // Brücke
       l.deco(cyl(0.8, 0.8, 6, 0xe67e22, 0, 3, 0, 10), 70, 6.4, 92);
@@ -133,7 +133,7 @@ export const HAFEN = {
     [[-14, 6, 2], [-14, 0, 1], [-8, -6, 3], [-2, 4, 2], [4, -4, 2], [8, 6, 1], [12, -8, 3], [16, 2, 2], [-6, -10, 1], [2, 10, 1]].forEach(([x, z, n], i) => { for (let k = 0; k < n; k++) l.box(sx + x, k * 2.4, z, 4, 2.4, 2.4, k % 2 ? 0xc0905a : 0xa47148); });
     l.goldbone('laderaum', sx + 12, 7.8, -8);
     [[-17, -10], [17, 10], [0, 0], [-10, 10], [10, -2]].forEach(([x, z]) => l.pickup(sx + x, 0.3, z, 'crumb'));
-    for (let i = 0; i < 5; i++) l.deco(sphere(0.3, 0xfff3a0, 0, 0, 0, 6), sx - 16 + i * 8, 8.5, 0);
+    for (let i = 0; i < 5; i++) { l.deco(sphere(0.3, 0xfff3a0, 0, 0, 0, 6), sx - 16 + i * 8, 8.5, 0); l.prop(box(0.06, 0.5, 0.06, 0x2d3436), sx - 16 + i * 8, 8.75, 0); }
     l.door(sx, 0, 12.4, { x: 47, y: 6.8, z: 92, yaw: Math.PI / 2 }, { label: 'An Deck', ry: Math.PI });
 
     l.scatter(50);

@@ -434,7 +434,7 @@ export const CAUSTIC = { uCaT: { value: 0 }, uSeaY: { value: -1e9 } };
 const CAUSTIC_GLSL = `
  float caW(vec2 p, float t) { vec2 q = p + vec2(sin(p.y * 0.9 + t), cos(p.x * 0.8 - t * 0.8)) * 0.8; return abs(sin(q.x * 1.3 + t * 0.6) + sin(q.y * 1.5 - t * 0.5)); }
  vec3 caustic(vec3 wp, float t) { float c = 1.0 - smoothstep(0.0, 0.35, caW(wp.xz * 0.9, t)) * 0.7 - smoothstep(0.0, 0.3, caW(wp.zx * 1.3 + 4.0, t * 1.2)) * 0.5; return vec3(0.65, 0.9, 1.0) * max(0.0, 0.6 - c) * 0.9; }`;
-// Für Materialien mit eigener Weltposition: mode 'sea' = nur unter uSeaY, 'all' = immer (Teichgrund)
+// Für Materialien mit eigener Weltposition: mode 'sea' = nur unter uSeaY und nicht in Innenräumen (die liegen bei x ≥ 2000), 'all' = immer (Teichgrund)
 export function addCaustics(mat, mode = 'sea') {
   if (mat.userData.caustic) return mat; mat.userData.caustic = true;
   const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
@@ -447,7 +447,7 @@ export function addCaustics(mat, mode = 'sea') {
  #endif
  vCaW = (modelMatrix * caP).xyz;`);
     sh.fragmentShader = 'uniform float uCaT, uSeaY;\nvarying vec3 vCaW;\n' + CAUSTIC_GLSL + '\n' + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
- ${mode === 'all' ? 'float caK = 1.0;' : 'float caK = smoothstep(uSeaY - 0.15, uSeaY - 0.6, vCaW.y) * (1.0 - smoothstep(10.0, 22.0, uSeaY - vCaW.y));'}
+ ${mode === 'all' ? 'float caK = 1.0;' : 'float caK = smoothstep(uSeaY - 0.15, uSeaY - 0.6, vCaW.y) * (1.0 - smoothstep(10.0, 22.0, uSeaY - vCaW.y)) * step(abs(vCaW.x), 1500.0);'}
  #ifdef USE_FOG
  caK *= 1.0 - fogFactor;
  #endif
