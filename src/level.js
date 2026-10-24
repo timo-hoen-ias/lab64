@@ -7,6 +7,7 @@ import { collectPatches, surfaceAt } from './surface.js';
 import { installDetails } from './details.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
+import { placeFoes } from './enemies.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -55,6 +56,7 @@ export class Level {
     this._initDetails(); // Spielereien (details.js): vor dem Zusammenbacken, damit Bäume und Deko noch einzeln da sind
     this._placeScatter();
     this.patches = (this.patches || []).concat(collectPatches(this, [this.group, ...this.zones.map(z => z.group)]));
+    placeFoes(this, seeded((key || 'x') + ':gegner'));
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
     CAUSTIC.uSeaY.value = this.seaY ?? -1e9;

@@ -68,8 +68,25 @@ Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, a
 | Dorf | Marktplatz, Windmühle, Burgruine, Bauernhof mit Hühnern, Dorfteich, Bäckerei |
 | Kanalsystem | Haupthalle, Pumpwerk, Rohr-Labyrinth, Klärbecken, Gully-Schacht, Rattennest |
 
+### Gegner
+Wie bei Banjo-Kazooie wimmelt jede Welt von kleinen Gegnern in Gruppen (rund 270 im ganzen Spiel), passend zur Welt:
+
+| Welt | Gegner |
+|---|---|
+| Garten | Schnecken, Wespen, Frösche (alle mit BISS zu schaffen) |
+| Erdgeschoss | Wollmäuse, Kakerlaken, Stubenfliegen |
+| Einkaufsstraße | Ratten, Gullyratten, Wespen |
+| Hochhaus | Putzroboter, Tacker, Drohnen (auf allen Etagen) |
+| Grillpark | Wespen, Maulwürfe, Frösche, Mistkäfer |
+| Badebucht | Einsiedlerkrebse, Bremsen, Möwen |
+| Hafen | Ratten, Hafenkrebse, Möwen |
+| Dorf | Hühner, Gänse, Bienen, Kröten |
+| Kanalsystem | Ratten, Kakerlaken, Fledermäuse |
+
+Läufer stürmen nach kurzem Ducken los, Frösche und Tacker hüpfen heran, Flieger kreisen und stoßen herab (unten sind sie beißbar), Maulwürfe und Gullyratten schießen aus dem Boden. **BISS** oder **TRILLERN** besiegt sie; Gepanzerte (Kakerlake, Käfer, Krebse) erst mit Trillern umdrehen, dann beißen. **BELLEN** macht Gegner benommen, der **Bauchklatscher** erledigt alles ringsum. Jeder besiegte Gegner gibt einen Krümel fürs Portemonnaie, ist Moll verletzt, springt oft ein Leckerli heraus, das ein Herz heilt. Die Pause zeigt, wie viele Gegner der Welt besiegt sind; alle besiegt = +25 Krümel.
+
 Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 100/100 läuft ein Abspann.
 
-Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs, `node tests/ball.mjs` den rollenden Ball und den Ball im Maul, `node tests/dialog.mjs` Gespräche, Stimmen und Schreibmaschinen-Text. `node tests/previews.mjs` rendert die Portal-Vorschaubilder (previews/*.jpg) neu, wenn sich der Startpunkt einer Welt ändert.
+Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten, `node tests/kopf.mjs` das Kopf-Tracking zwischen Moll und NPCs, `node tests/ball.mjs` den rollenden Ball und den Ball im Maul, `node tests/dialog.mjs` Gespräche, Stimmen und Schreibmaschinen-Text, `node tests/gegner.mjs` die Gegner (Biss, Trillern, Panzer, Bellen, Flieger, Maulwurf, Leckerli). `node tests/previews.mjs` rendert die Portal-Vorschaubilder (previews/*.jpg) neu, wenn sich der Startpunkt einer Welt ändert.
 
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).
