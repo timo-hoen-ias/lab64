@@ -48,7 +48,7 @@ export const STRASSE = {
     l.ringCourse([[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]], 'daecher', 30, 0x74b9ff);
     [[-12, 0], [12, 12], [0, -14]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-6, 0, 26, 'Hauptstraße', bench());
-    [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, roof[0] + 0.2, -20, 'bread'], [4, roof[1] + 0.2, 12, 'sausage'], [15.5, 3.3, -8, 'sausage'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
+    [[-15.5, 3.3, -24, 'sausage'], [-15.5, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, roof[0] + 0.2, -20, 'bread'], [4, roof[1] + 0.2, 12, 'sausage'], [15.5, 3.3, -8, 'sausage'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
     // Straßen in die Viertel
     [[0, -66, 12, 60], [0, 66, 12, 60], [66, 0, 60, 12], [-66, 0, 60, 12]].forEach(([x, z, w, d]) => l.group.add(box(w, 0.04, d, ROAD, x, 0.02, z))); // etwas flacher als die Plätze, sonst flackert die Überlappung
 

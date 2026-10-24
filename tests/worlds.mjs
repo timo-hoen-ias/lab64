@@ -1,6 +1,7 @@
 // Welten-Test: holt in jeder großen Welt alle Goldknochen in einem Besuch (Teleport + Interaktionen), Screenshots.
 // Aufruf: node tests/worlds.mjs <ordner> [welt,welt,...]   Server auf Port 8077.
 import { chromium } from 'playwright';
+import { frames } from './frames.mjs';
 const out = process.argv[2] || '.', only = (process.argv[3] || 'park').split(',');
 const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
@@ -8,13 +9,16 @@ const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
+const { W, kb, draw } = await frames(p); // feste Bilder zu 1/30 s statt Echtzeit: Ergebnis unabhängig von der Last
 await p.evaluate(() => { window.game.foesOff = true; }); // Gegner ruhig stellen (Kämpfe prüft tests/gegner.mjs)
-const W = ms => p.waitForTimeout(ms), ev = (f, a) => p.evaluate(f, a);
+const ev = (f, a) => p.evaluate(f, a);
 const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const pl = window.game.player, l = window.game.level; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.coyote = 0.3; pl.hp = 3; pl.air = 15; if (yaw !== undefined && yaw !== null) pl.yaw = yaw; l.bounds = l.areaAt(x, z); const wy = l.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; window.game.snapCam = true; }, [x, y, z, yaw]);
-const bite = async () => { await p.keyboard.down('KeyE'); await W(150); await p.keyboard.up('KeyE'); await W(350); };
-const shot = async (name, yaw, pitch = 0.3) => { await ev(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(800); await p.screenshot({ path: `${out}/${name}.png` }); };
-const grabBone = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], q[1] - 0.5, q[2]); await W(600); } return !!q; };
-const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pass++) for (const q of await ev(f => window.game.level.pickups.filter(q => !q.taken && new Function('q', 'return ' + f)(q)).map(q => [q.x, q.y, q.z]), filter)) { await tp(q[0] + (pass ? 0 : 0), q[1] - 0.3, q[2]); await W(pass ? wait + 200 : wait); } };
+const bite = async () => { await kb.down('KeyE'); await W(150); await kb.up('KeyE'); await W(350); };
+const shot = async (name, yaw, pitch = 0.3) => { await ev(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(800); await draw(); await p.screenshot({ path: `${out}/${name}.png` }); };
+// Standhöhe unter einem Sammelobjekt: auf der Oberseite darunter abstellen statt halb in der Kiste (sonst schiebt die Kollision Moll seitlich weg)
+const feet = (q, dy) => ev(([x, y, z, dy]) => { const f = window.game.level.groundAt(x, z, y); return y - f < 1.6 ? f + 0.02 : y - dy; }, [...q, dy]);
+const grabBone = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], await feet(q, 0.5), q[2]); await W(600); } return !!q; };
+const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pass++) for (const q of await ev(f => window.game.level.pickups.filter(q => !q.taken && new Function('q', 'return ' + f)(q)).map(q => [q.x, q.y, q.z]), filter)) { await tp(q[0], await feet(q, 0.3), q[2]); await W(pass ? wait + 200 : wait); } };
 // Fähigkeit der Welt bei Opa Bruno lernen und das Rätsel dazu direkt auslösen (die Steuerung selbst prüft tests/abilities.mjs)
 const bruno = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await W(600); console.log(`  Opa Bruno: ${br[3]}`, await ev(a => window.game.has(a), br[3])); };
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
@@ -33,7 +37,7 @@ const STEPS = {
     await tp(2000, 0.2, 8.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
     await grabAll('q.special'); console.log('  Zwerge:', await ev(() => window.game.level.zwerge)); await W(600); await grabBone('zwerge');
     await grabBone('teich');
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 2, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 2, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await kb.up('KeyF');
     await grabAll("!q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     console.log('  Kompass:', await ev(() => document.getElementById('compass').textContent));
   },
@@ -49,7 +53,7 @@ const STEPS = {
     await tp(-40, 0.2, -58.6); await W(900); console.log('  im Rattennest:', await ev(() => window.game.player.pos.x > 1900));
     await shot('kanal_nest', null, 0.3); await grabBone('nest'); await grabAll("q.x > 1900 && q.kind !== 'goldbone'");
     await tp(2000, 0.2, 9.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await kb.up('KeyF');
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await grabAll('q.goal'); console.log('  Käse:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
     await W(2500); await tp(-12, 1.2, 10); await W(800); await shot('kanal_boss', 0, 0.3);
@@ -72,7 +76,7 @@ const STEPS = {
     await tp(2000, 0.2, 9.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
     await grabAll('q.special'); console.log('  Tassen:', await ev(() => window.game.level.tassen));
     await tp(12, 24.2, 19.4, 0); await W(200); await bite(); await bite(); await W(600); await grabBone('tassen');
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] - 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] - 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await kb.up('KeyF');
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await W(2500); await tp(0, 0.2, 14); await W(800); await shot('buero_boss', 0, 0.3);
     for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
@@ -90,7 +94,7 @@ const STEPS = {
     await shot('kueche_keller', null, 0.3); await grabBone('keller'); await grabAll("q.x > 1900 && q.kind !== 'goldbone'");
     await tp(2006, 0.2, 7.9, Math.PI); await W(200); await bite(); await bite(); await W(600); await grabBone('socken'); console.log('  Socken:', await ev(() => window.game.level.socken));
     await tp(2000, 0.2, 12.9); await W(900); console.log('  wieder oben:', await ev(() => window.game.player.pos.x < 500));
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0], gq[1] - 0.5, gq[2] + 3); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0], gq[1] - 0.5, gq[2] + 3); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await kb.up('KeyF');
     await grabAll('q.goal'); console.log('  Schinken:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await W(2500); await tp(0, 0.2, 12); await W(800); await shot('kueche_boss', 0, 0.3);
@@ -114,7 +118,7 @@ const STEPS = {
     await grabAll('q.special'); console.log('  Eiskugeln:', await ev(() => window.game.level.kugeln));
     await tp(-116, 0.2, 15.9, Math.PI); await W(200); await bite(); await bite(); await W(600); await grabBone('eisdiele');
     // Geheim mit Nase
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await kb.up('KeyF');
     await grabAll('q.goal'); console.log('  Essen:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await W(2500); await tp(0, 0.2, 14); await W(800); await shot('strasse_boss', 0, 0.3);
@@ -141,9 +145,9 @@ const STEPS = {
     await grabAll("q.kind === 'crumb' && q.x > 2200");
     await tp(2300, 0.2, 8.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
     // Geheim + Brote mit Nase
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
-    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], q[1] - 0.3, q[2]); await W(450); }
-    await p.keyboard.up('KeyF'); console.log('  Brote:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
+    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], await feet(q, 0.3), q[2]); await W(450); }
+    await kb.up('KeyF'); console.log('  Brote:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await W(2500); await tp(0, 0.2, 14); await W(800); await shot('dorf_boss', 0, 0.3);
     for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
@@ -169,10 +173,10 @@ const STEPS = {
     for (const [x, z] of [[-5, 45], [10, 60], [25, 72], [15, 88], [-2, 100]]) { await tp(x, 0.6, z); await W(400); }
     await W(500); await grabBone('bojen');
     // Geheim
-    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
+    await kb.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500);
     // Fische (versteckt) mit Nase
-    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], q[1] - 0.3, q[2]); await W(450); }
-    await p.keyboard.up('KeyF'); console.log('  Fische:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    for (const q of await ev(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], await feet(q, 0.3), q[2]); await W(450); }
+    await kb.up('KeyF'); console.log('  Fische:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     await W(2500); await tp(0, 2.2, 10); await W(800); await shot('hafen_boss', 0, 0.3);
     for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
@@ -194,7 +198,7 @@ const STEPS = {
     // Picknick
     await grabAll('q.special'); console.log('  Picknick:', await ev(() => window.game.level.picnic), await ev(() => window.game.level.pickups.filter(q => q.special && !q.taken).map(q => [q.x.toFixed(0), q.y.toFixed(1), q.z.toFixed(0)]))); await talk(40, 60, Math.PI); await W(500); await grabBone('picknick');
     // Geheim
-    await p.keyboard.down('KeyF'); const g = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(g[0] + 3, g[1] - 0.5, g[2]); await W(300); await tp(g[0], g[1] - 0.5, g[2]); await W(500); await p.keyboard.up('KeyF');
+    await kb.down('KeyF'); const g = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(g[0] + 3, g[1] - 0.5, g[2]); await W(300); await tp(g[0], g[1] - 0.5, g[2]); await W(500); await kb.up('KeyF');
     // Krümel
     await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
     // Würstchen-Ziel erzwingen (Schleichen wird im Playtest nicht nachgespielt)
@@ -205,7 +209,7 @@ const STEPS = {
 for (const key of only) {
   await ev(k => window.game.enterLevel(k), key); await W(1500);
   console.log(key + ':'); await STEPS[key]();
-  for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], q[1] - 0.5, q[2]); await W(700); } // Nachlese
+  for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], await feet(q, 0.5), q[2]); await W(700); } // Nachlese
   const res = await ev(k => window.game.levelProgress(k), key);
   console.log(`  Knochen ${res.have}/${res.total}`, await ev(k => Object.keys(window.game.save.bones).filter(b => b.startsWith(k + ':')).map(b => b.split(':')[1]).join(' '), key));
 }
