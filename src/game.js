@@ -22,16 +22,20 @@ const QUALITY = {
   niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500, outlines: false, ambient: 0.3 },
 };
 
-// Strahl gegen Kiste (Slab-Test): Abstand oder Infinity
-function rayBox(o, d, s) {
+// Strahl gegen Kiste (Slab-Test): Abstand oder Infinity. r > 0 vergrößert die Kiste rundum (dicker Strahl);
+// steht der Startpunkt schon in diesem Rand, wird r auf den Abstand zur Kiste verkleinert.
+function rayBox(o, d, s, r = 0) {
+  if (r > 0) { const dx = Math.max(s.min.x - o.x, 0, o.x - s.max.x), dy = Math.max(s.min.y - o.y, 0, o.y - s.max.y), dz = Math.max(s.min.z - o.z, 0, o.z - s.max.z); r = Math.max(0, Math.min(r, Math.hypot(dx, dy, dz) - 0.05)); }
   let t0 = 0, t1 = Infinity;
   for (const a of ['x', 'y', 'z']) {
-    if (Math.abs(d[a]) < 1e-6) { if (o[a] < s.min[a] || o[a] > s.max[a]) return Infinity; continue; }
-    let ta = (s.min[a] - o[a]) / d[a], tb = (s.max[a] - o[a]) / d[a]; if (ta > tb) [ta, tb] = [tb, ta];
+    const lo = s.min[a] - r, hi = s.max[a] + r;
+    if (Math.abs(d[a]) < 1e-6) { if (o[a] < lo || o[a] > hi) return Infinity; continue; }
+    let ta = (lo - o[a]) / d[a], tb = (hi - o[a]) / d[a]; if (ta > tb) [ta, tb] = [tb, ta];
     t0 = Math.max(t0, ta); t1 = Math.min(t1, tb); if (t0 > t1) return Infinity;
   }
   return t0;
 }
+const CAM_R = 0.5; // Kamera als Kugel: deckt die Ecken der Near-Plane (0.3) ab, auch im Hochformat mit 80° Blickwinkel
 
 export class Game {
   constructor() {
@@ -297,17 +301,27 @@ export class Game {
     const p = this.player.pos; const target = new THREE.Vector3(p.x, p.y + 1.2, p.z);
     const off = new THREE.Vector3(Math.sin(this.camYaw) * Math.cos(this.camPitch), Math.sin(this.camPitch), Math.cos(this.camYaw) * Math.cos(this.camPitch)).multiplyScalar(this.camDist);
     // Kamera-Kollision: hohe Kisten, Decken über dem Hund und Hügel zwischen Hund und Kamera verkürzen den Abstand
-    const L = this.level, dir = off.clone().normalize(); let hit = this.camDist;
-    for (const s of L.solids) if (s.active && (s.cam || s.ceil && s.min.y > target.y)) { const d = rayBox(target, dir, s); if (d < hit) hit = d; }
-    if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z, y) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
-    const blocked = hit < this.camDist; if (blocked) off.setLength(Math.max(1.5, hit - 0.4));
+    const L = this.level, dir = off.clone().normalize(), hit = this._camHit(target, dir, this.camDist);
+    const blocked = hit < this.camDist; if (blocked) off.setLength(hit);
     const want = target.clone().add(off);
     // Kamera nicht unter den Boden; beim Schwimmen an der Oberfläche bleibt sie über dem Wasser
     want.y = Math.max(want.y, this.player.diving ? -Infinity : L.camFloor ?? 1.2, L.heightAt(want.x, want.z, want.y) + 0.8);
     if (this.player.diving) want.y = Math.max(want.y, L.groundAt(want.x, want.z, want.y + 2) + 0.6);
     else if (this.player.swimming) { const wy = L.waterAt(p.x, p.z); if (wy !== null) want.y = Math.max(want.y, wy + 0.6); }
-    this.camera.position.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false; this.camera.lookAt(target);
+    const cam = this.camera.position; cam.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false;
+    // Nachziehen schneidet beim Drehen Ecken ab: die geglättete Position noch einmal prüfen, nie hinter eine Wand
+    const back = cam.clone().sub(target), bl = back.length();
+    if (bl > 0.01) { const h2 = this._camHit(target, back.divideScalar(bl), bl); if (h2 < bl) cam.copy(target).addScaledVector(back, h2); }
+    this.camera.lookAt(target);
     SEE_THROUGH.uCutA.value.copy(this.camera.position); SEE_THROUGH.uCutB.value.set(p.x, p.y + 0.7, p.z); SEE_THROUGH.uCutFeet.value = p.y + 0.25; SEE_THROUGH.uCutR.value = 1.5;
+  }
+
+  // Wie weit die Kamera-Kugel von from in Richtung dir (normiert) bis max kommt
+  _camHit(from, dir, max) {
+    const L = this.level; let hit = max;
+    for (const s of L.solids) if (s.active && (s.cam || s.ceil && s.min.y > from.y)) { const d = rayBox(from, dir, s, CAM_R); if (d < hit) hit = d; }
+    if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = from.x + dir.x * d, y = from.y + dir.y * d, z = from.z + dir.z * d; if (L.heightAt(x, z, y) > y - 0.3 - CAM_R) { hit = Math.max(0, d - hit / 10); break; } }
+    return Math.max(0.2, hit);
   }
 
   loop() {
