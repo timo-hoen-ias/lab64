@@ -5,7 +5,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 640, height: 360 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart'); await p.waitForTimeout(300);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(300);
 
 // Läuft Moll in festen Schritten (ohne Echtzeit) von a nach b; liefert, wie weit sie gekommen ist.
 await p.evaluate(() => {

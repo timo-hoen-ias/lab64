@@ -3,7 +3,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 480, height: 270 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart');
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
 const W = ms => p.waitForTimeout(ms);
 const tp = (x, y, z) => p.evaluate(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.hp = 3; }, [x, y, z]);

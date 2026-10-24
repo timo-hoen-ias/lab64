@@ -6,7 +6,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart');
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
 const W = ms => p.waitForTimeout(ms), ev = (f, a) => p.evaluate(f, a);
 const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const pl = window.game.player, l = window.game.level; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.coyote = 0.3; pl.hp = 3; pl.air = 15; if (yaw !== undefined && yaw !== null) pl.yaw = yaw; l.bounds = l.areaAt(x, z); const wy = l.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; window.game.snapCam = true; }, [x, y, z, yaw]);

@@ -83,8 +83,8 @@ export class AudioEngine {
       // Hing der Hauptthread (Ruckler beim Einblenden eines Bereichs, Hintergrund-Tab), lägen die nächsten Noten in der Vergangenheit
       // und blieben stumm → Takt neu ansetzen, damit die Musik sofort weiterläuft statt abzubrechen.
       if (song.start + song.step * step < now + 0.02) song.start = now + 0.05 - song.step * step;
-      while (song.start + song.step * step < now + 1.0) { this._playStep(song, song.step); song.step++; }
-      song.timer = setTimeout(schedule, 100);
+      while (song.start + song.step * step < now + 1.0 && !(def.once && song.step >= S.len)) { this._playStep(song, song.step); song.step++; }
+      if (!(def.once && song.step >= S.len)) song.timer = setTimeout(schedule, 100); // once: Stück (Intro) läuft nur einmal
     };
     schedule();
   }
@@ -106,25 +106,28 @@ export class AudioEngine {
     const { bar, len, mel, chord } = S, i = n % len, b = i % bar, pass = Math.floor(n / len), ch = chord[i], m = mel[i];
     const t = song.start + n * step + (n % 2 ? def.swing || 0 : 0), I = def.inst, f = midi => 440 * Math.pow(2, (midi - 69) / 12);
     const tone = (o, base) => base + ((ch.root + o) % 12 + 12) % 12; // Akkordton oberhalb von base
+    // stops: Takte mit Stop-Time – Begleitung schweigt (null) oder spielt nur einen gehaltenen Schlag auf dieser Achtel
+    const stop = def.stops?.[Math.floor(i / bar)], acc = stop === undefined || stop === b, hold = stop === b ? bar - b : 0;
     // Melodie in drei Klangfarben: draußen, drinnen, unter Wasser
     if (m) {
       if (on('lead')) this._inst(I.lead, f(m.midi), t, m.len * step, layers.lead);
       if (on('soft')) this._inst(I.soft || 'clarinet', f(m.midi), t, m.len * step, layers.soft);
       if (on('water')) this._inst(I.water || 'vibes', f(m.midi), t, m.len * step, layers.water);
       // Zweitstimme: nächster Akkordton mindestens eine kleine Terz darunter, ab dem zweiten Durchlauf (im Bosskampf immer)
-      if (on('harm') && b % 2 === 0 && (pass % 2 === 1 || this.mix === 'boss')) {
+      if (on('harm') && b % 2 === 0 && (pass % 2 === 1 || this.mix === 'boss' || def.harmony)) {
         let h = -1; for (const o of ch.iv) for (let oc = 48; oc <= 84; oc += 12) { const x = tone(o, oc); if (x <= m.midi - 3 && x > h) h = x; }
         if (h > 0) this._inst(I.harm || 'xylo', f(h), t, Math.min(m.len, 2) * step, layers.harm, 0.7);
       }
     }
     // Begleitakkorde (Offbeats, Stabs)
-    if (on('comp') && def.comp.includes(b)) ch.iv.forEach(o => this._inst(I.comp, f(tone(o, 60)), t, (def.compLen || 0.6) * step, layers.comp, 0.32));
+    if (on('comp') && acc && (hold || def.comp.includes(b))) ch.iv.forEach(o => this._inst(I.comp, f(tone(o, 60)), t, (hold || def.compLen || 0.6) * step, layers.comp, 0.32));
+    if (on('comp') && hold) ch.iv.forEach(o => this._inst('brass', f(tone(o, 55)), t, hold * step, layers.comp, 0.6)); // Schlussakkord mit Blech
     // Bass: Grundton zwischen G2 und F#3, 'A' = Halbton unter dem nächsten Grundton
     const bp = def.bass[b];
-    if (on('bass') && bp !== null && bp !== undefined) {
+    if (on('bass') && acc && (hold || (bp !== null && bp !== undefined))) {
       const root = ((ch.root - 7) % 12 + 12) % 12 + 43, next = chord[(i + 1) % len];
-      const midi = bp === 'A' ? ((next.root - 7) % 12 + 12) % 12 + 42 : root + bp;
-      this._inst(I.bass, f(midi), t, (def.bassLen || 0.8) * step, layers.bass);
+      const midi = hold ? root : bp === 'A' ? ((next.root - 7) % 12 + 12) % 12 + 42 : root + bp;
+      this._inst(I.bass, f(midi), t, (hold || def.bassLen || 0.8) * step, layers.bass);
     }
     if (on('bass') && def.drone && i % (bar * 2) === 0) this._tone(f(((ch.root - 7) % 12 + 12) % 12 + 31), t, step * bar * 2, 'sawtooth', 0.04, layers.bass);
     // Unter-Wasser-Ebenen: perlende Harfe und Flächenklang
@@ -135,8 +138,9 @@ export class AudioEngine {
     }
     // Schlagzeug
     const dr = def.drums, L = layers.drums;
-    if (on('drums')) {
-      if (dr.kick?.includes(b)) this._tone(85, t, 0.14, 'sine', 0.3, L, -60);
+    if (on('drums') && acc) {
+      if (dr.kick?.includes(b) || hold) this._tone(85, t, 0.14, 'sine', 0.3, L, -60);
+      if (hold) this._drumNoise(t, 1.2, 0.07, L); // Becken
       if (dr.snare?.includes(b)) this._drumNoise(t, 0.09, 0.12, L);
       if (dr.hat?.includes(b)) this._drumNoise(t, 0.025, 0.035, L);
       if (dr.brush?.includes(b)) this._drumNoise(t, 0.16, 0.05, L);
@@ -298,6 +302,12 @@ export class AudioEngine {
       case 'break': this._noise(t, 0.3, 0.35); this._tone(240, t, 0.15, 'square', 0.12, null, -180); break;
       case 'click': this._click(t, 0.8); this._tone(660, t, 0.08, 'square', 0.12); break;
       case 'honk': this._tone(392, t, 0.25, 'square', 0.16); this._tone(494, t, 0.25, 'square', 0.12); this._tone(392, t + 0.3, 0.3, 'square', 0.16); this._tone(494, t + 0.3, 0.3, 'square', 0.12); break;
+      // Intro: das Y löst sich (Lotsenpfeife abwärts) und schlägt irgendwo unten auf
+      case 'slidewhistle': { const o = this.ctx.createOscillator(), g = this.ctx.createGain(), lfo = this.ctx.createOscillator(), lg = this.ctx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(260, t + 0.85); lfo.frequency.value = 7; lg.gain.value = 18;
+        lfo.connect(lg); lg.connect(o.frequency); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16, t + 0.04); g.gain.setValueAtTime(0.16, t + 0.7); g.gain.linearRampToValueAtTime(0, t + 0.9);
+        o.connect(g); g.connect(this.sfxGain); o.start(t); lfo.start(t); o.stop(t + 0.95); lfo.stop(t + 0.95); break; }
+      case 'plonk': this._tone(110, t, 0.4, 'sine', 0.45, null, -60); this._noise(t, 0.18, 0.3); this._click(t + 0.02, 0.6); this._tone(520, t + 0.12, 0.12, 'triangle', 0.1, null, -200); break;
       case 'bell': [0, 12, 7].forEach((s, i) => this._tone(this._note(s, 523), t + i * 0.02, 1.2, 'sine', 0.18)); break;
     }
   }

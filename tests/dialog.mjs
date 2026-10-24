@@ -30,7 +30,7 @@ check('alle Gespräche vorhanden', !info.missing.length, `${info.n} Gespräche, 
 check('jeder Sprecher hat eine Stimme', !info.mute.length, info.mute.join(', '));
 
 // ---- Im Spiel: Opa Bruno im Garten
-await p.click('#btnStart'); await W(300);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await W(300);
 await ev(() => { const a = window.game.audio; a.init(); window.blubs = []; const o = a.blub.bind(a); a.blub = (v, vo, st, l, t) => { window.blubs.push([v.base, vo, st]); o(v, vo, st, l, t); }; });
 const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z]; });
 await ev(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x + 2.5, y + 0.2, z); pl.vel.set(0, 0, 0); }, br); await W(800);

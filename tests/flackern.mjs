@@ -7,7 +7,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 400, height: 225 } });
 p.on('pageerror', e => console.log('ERR', e.message));
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart'); await p.waitForTimeout(300);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(300);
 for (const key of ['hub','kueche','strasse','buero','park','strand','hafen','dorf','kanal']) {
   await p.evaluate(k => window.game.enterLevel(k, true), key); await p.waitForTimeout(300);
   const res = await p.evaluate(GAP => {

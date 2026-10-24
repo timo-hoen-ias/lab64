@@ -129,6 +129,32 @@
   #dogIcon{font-size:64px;line-height:1;filter:drop-shadow(0 4px 0 var(--ink));display:inline-block;animation:hop 1.1s ease-in-out infinite;transform-origin:50% 100%}
   @keyframes hop{0%,100%{transform:translateY(0) scale(1.08,.92)}15%{transform:translateY(0) scale(.95,1.06)}45%{transform:translateY(-16px) rotate(-6deg)}75%{transform:translateY(0) scale(1.06,.94)}}
   @keyframes cardIn{from{transform:translateY(30px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+  /* Intro: erst „Tippen“ (wait), dann hüpft „MOLLY“ herein und das Y fällt herunter (intro.js) */
+  #tapHint{display:none;flex-direction:column;align-items:center;gap:8px;color:var(--ink);font-weight:900;font-size:clamp(18px,3vw,26px);text-shadow:0 2px 0 rgba(255,248,231,.6);text-align:center}
+  #tapHint .paw{font-size:64px;line-height:1;animation:hop 1.1s ease-in-out infinite;transform-origin:50% 100%}
+  #tapHint b{animation:blink 1.6s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.4}}
+  #menu.wait #tapHint{display:flex}
+  #menu.wait .card{display:none}
+  #menu.wait,#menu.intro{cursor:pointer}
+  #menu.intro .card{background:transparent;border-color:transparent;box-shadow:none;grid-template-columns:1fr;overflow:visible}
+  #menu.intro #vMain,#menu.intro #menuText,#menu.intro h1 small{display:none}
+  #menu.intro h1{font-size:clamp(60px,14vw,140px);letter-spacing:0}
+  #menu.intro h1,.fallY{text-shadow:0 .05em 0 var(--ui),0 .09em 0 #a0561b}
+  #menu h1 .l{display:inline-block}
+  #menu.intro h1 .l{opacity:0}
+  #menu.intro h1 .l.in{opacity:1;animation:drop .45s cubic-bezier(.34,1.56,.64,1)}
+  #menu.intro #dogIcon{opacity:0;transition:transform .2s}
+  #menu.intro #dogIcon.in{opacity:1;animation:drop .45s cubic-bezier(.34,1.56,.64,1),hop 1.1s ease-in-out .45s infinite}
+  #menu.intro #dogIcon.look{animation:none;transform:scaleX(-1) rotate(30deg) translateY(4px)}
+  @keyframes drop{0%{transform:translateY(-140%) scale(.8,1.25);opacity:0}60%{transform:translateY(6%) scale(1.15,.85);opacity:1}100%{transform:none}}
+  #titleY{transform-origin:15% 92%}
+  #menu.intro h1 #titleY.wobble{animation:wobble 1.3s ease-in-out forwards}
+  @keyframes wobble{0%{transform:none}15%{transform:rotate(6deg)}30%{transform:rotate(-3deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-5deg)}75%{transform:rotate(16deg) translateY(3%)}90%{transform:rotate(-6deg)}100%{transform:rotate(22deg) translateY(7%)}}
+  #titleY.gone{visibility:hidden;width:0!important;transition:width .35s ease}
+  .fallY{position:fixed;z-index:5;color:var(--ink);pointer-events:none;will-change:transform}
+  #menu .card.shake{animation:shake .35s ease-out}
+  @keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,4px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(2px,-1px)}}
   /* Optionen */
   #vOptions{grid-column:1/-1;text-align:left}
   #vOptions .cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
@@ -203,9 +229,10 @@
 <div id="dialog"><div class="box"><div class="who"><span class="face"></span><span class="name"></span></div><p class="text"><span class="shown"></span><span class="rest"></span></p><span class="more">▼</span></div></div>
 <div id="shop"><div class="card"><h3>🦴 Opas Leckerli-Laden</h3><div class="wallet"></div><div class="list"></div><button class="close">Fertig</button></div></div>
 
-<div id="menu">
+<div id="menu" class="wait">
   <span class="deco" style="left:6%;animation-delay:-1s">🦴</span><span class="deco" style="left:22%;animation-delay:-6s;font-size:24px">🍖</span>
   <span class="deco" style="left:78%;animation-delay:-3s">🦴</span><span class="deco" style="left:92%;animation-delay:-7.5s;font-size:26px">🐾</span>
+  <div id="tapHint"><div class="paw">🐾</div><b>Tippen oder Taste drücken</b></div>
   <div class="card">
     <div class="title">
       <div id="dogIcon">🐕</div>
