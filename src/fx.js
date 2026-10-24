@@ -264,25 +264,32 @@ export function makePond(rx, rz, depth = 1.8) {
 }
 
 // Portal-Scheibe: Spiralstrudel in der Weltfarbe (Shader)
-export function makePortalDisk(color, r = 1.45) {
+// Portal-Scheibe: Strudel in der Weltfarbe; mit preview (Bild-URL) sieht man in der Mitte die Zielwelt, leicht verwirbelt
+export function makePortalDisk(color, r = 1.45, preview = null) {
   const mat = new THREE.ShaderMaterial({
     transparent: true, side: THREE.DoubleSide, depthWrite: false,
-    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uLocked: { value: 0 } },
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uLocked: { value: 0 }, uTex: { value: null }, uMix: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform float uTime; uniform vec3 uColor; uniform float uLocked; varying vec2 vUv;
+    fragmentShader: `uniform float uTime; uniform vec3 uColor; uniform float uLocked; uniform sampler2D uTex; uniform float uMix; varying vec2 vUv;
       void main(){
         vec2 p = vUv * 2.0 - 1.0; float r = length(p); if (r > 1.0) discard;
         float a = atan(p.y, p.x);
         float sp = sin(a * 3.0 + r * 10.0 - uTime * 3.0) * 0.5 + 0.5;
         float sp2 = sin(a * 5.0 - r * 14.0 + uTime * 2.0) * 0.5 + 0.5;
         vec3 c = mix(uColor * 0.6, mix(uColor, vec3(1.0), 0.6), sp * 0.7 + sp2 * 0.3);
-        c += vec3(1.0) * pow(1.0 - r, 3.0) * 0.8;
-        vec3 grey = vec3(dot(c, vec3(0.3, 0.59, 0.11))) * 0.45;
+        // Vorschau der Zielwelt: zum Rand hin immer stärker in den Strudel gedreht
+        float tw = r * r * 0.9 + sin(uTime * 0.8) * 0.05 * r; vec2 q = mat2(cos(tw), -sin(tw), sin(tw), cos(tw)) * p;
+        q += vec2(sin(r * 13.0 - uTime * 2.2), cos(a * 4.0 + uTime * 1.3)) * 0.012;
+        vec3 img = texture2D(uTex, q * 0.5 + 0.5).rgb;
+        c = mix(c, img, uMix * (1.0 - smoothstep(0.5, 0.95, r)));
+        c += vec3(1.0) * pow(1.0 - r, 3.0) * mix(0.8, 0.12, uMix);
+        vec3 grey = vec3(dot(c, vec3(0.3, 0.59, 0.11))) * mix(0.45, 0.7, uMix);
         c = mix(c, grey, uLocked);
-        float alpha = mix(0.92, 0.6, uLocked) * smoothstep(1.0, 0.85, r);
+        float alpha = mix(0.92, 0.6, uLocked * (1.0 - uMix * 0.6)) * smoothstep(1.0, 0.85, r);
         gl_FragColor = vec4(c, alpha);
       }`,
   });
+  if (preview) new THREE.TextureLoader().load(preview, t => { mat.uniforms.uTex.value = t; mat.uniforms.uMix.value = 1; });
   const m = new THREE.Mesh(new THREE.CircleGeometry(r, 40), mat);
   m.userData.update = (dt, locked) => { mat.uniforms.uTime.value += dt * (locked ? 0.25 : 1); mat.uniforms.uLocked.value = locked ? 1 : 0; };
   return m;

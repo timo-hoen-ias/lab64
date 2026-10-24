@@ -48,6 +48,9 @@ export class Level {
     this.ground(def.ground || 0x6bbf59, def.size || 40);
     this.group = new THREE.Group(); this.scene.add(this.group);
     def.build(this);
+    // Zurück aus einer Welt: Moll steht vor dem Portal, aus dem sie kommt (wie in Banjo-Kazooie)
+    const from = game.fromKey && this.portals.find(po => po.target === game.fromKey);
+    if (from) { const ry = from.group.rotation.y; this.spawn.set(from.x + Math.sin(ry) * 4, from.y + 1, from.z + Math.cos(ry) * 4); this.spawnYaw = ry; this.spawnCam = ry - Math.PI + 1.1; } // Rücken zum Portal, Kamera schräg daneben (nicht hinter dem Portal)
     this._placeScatter();
     this.patches = (this.patches || []).concat(collectPatches(this, [this.group, ...this.zones.map(z => z.group)]));
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
@@ -287,7 +290,7 @@ export class Level {
   // Tür: Berühren bringt Moll zum Ziel (to = {x,y,z,yaw?}). o.label = Schild über der Tür, o.color
   door(x, y, z, to, o = {}) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry || 0;
-    g.add(box(2.4, 3.2, 0.3, o.frame ?? 0x7a4a1f, 0, 1.6, -0.05)); g.add(box(1.8, 2.7, 0.32, 0x1d1208, 0, 1.35, 0));
+    if (!o.noFrame) { g.add(box(2.4, 3.2, 0.3, o.frame ?? 0x7a4a1f, 0, 1.6, -0.05)); g.add(box(1.8, 2.7, 0.32, 0x1d1208, 0, 1.35, 0)); } // noFrame: eigener Eingang (Höhle, Tunnel)
     if (o.label) { const l = makeSign(o.label, { w: 2.2 }); l.position.set(0, 3.25, -0.05); g.add(l); }
     this.group.add(g); this.doors.push({ x, y, z, to, group: g });
   }
@@ -468,8 +471,9 @@ export class Level {
   }
 
   // Portal: Steinsockel, zwei Säulen, Runenring mit Strudel; verschlossen = grau mit Vorhängeschloss
-  portal(x, z, text, target, color = 0xffcc33, need = 0) {
-    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = Math.atan2(-x, -z); // schaut zur Gartenmitte
+  // o.y = Höhe des Sockels (Portal auf Plateau/Turm), o.ry = Blickrichtung (sonst zur Gartenmitte)
+  portal(x, z, text, target, color = 0xffcc33, need = 0, o = {}) {
+    const y = o.y || 0, g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry ?? Math.atan2(-x, -z); // schaut zur Gartenmitte
     g.add(cyl(2.3, 2.5, 0.3, 0xb8b0a0, 0, 0.15, 0, 10)); g.add(cyl(1.9, 2.1, 0.15, 0xd6cfc0, 0, 0.37, 0, 10));
     const orbs = [];
     [-1, 1].forEach(sx => {
@@ -483,7 +487,7 @@ export class Level {
       const a = i / 12 * Math.PI * 2, gm = box(0.26, 0.26, 0.5, color, Math.cos(a) * 1.6, Math.sin(a) * 1.6, 0); gm.rotation.z = a + Math.PI / 4; gm.castShadow = false;
       gm.material.emissive = new THREE.Color(color).multiplyScalar(0.5); ring.add(gm); gems.push(gm);
     }
-    const disk = makePortalDisk(color); ring.add(disk);
+    const disk = makePortalDisk(color, 1.45, `previews/${target}.jpg`); ring.add(disk);
     const glow = makeGlow(color, 6, 0.35); ring.add(glow); orbs.forEach(o => o.add(makeGlow(color, 2.2, 0.7)));
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 2.0, 7, 20, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
     beam.position.y = 3.5; g.add(beam);
@@ -493,7 +497,7 @@ export class Level {
     const prog = this.game.levelProgress(target);
     const crown = sphere(0.35, 0xffcc33, 0, 5.0, 0, 4); crown.material.emissive = new THREE.Color(0x8a5a00); crown.visible = prog.total > 0 && prog.have === prog.total; g.add(crown); // alles gesammelt
     this.group.add(g);
-    const po = { x, z, target, text, group: g, disk, need, ring, gems, orbs, beam, lock, crown, glow, color: new THREE.Color(color), locked: null };
+    const po = { x, y, z, target, text, group: g, disk, need, ring, gems, orbs, beam, lock, crown, glow, full: crown.visible, near: 0, color: new THREE.Color(color), locked: null };
     this.portals.push(po); this._portalState(po);
   }
   _portalState(po) {
@@ -584,9 +588,13 @@ export class Level {
       po.gems.forEach((gm, i) => gm.scale.setScalar(locked ? 1 : 1 + Math.max(0, Math.sin(this.t * 4 - i * 0.52)) * 0.35)); // Lauflicht
       po.orbs.forEach((o, i) => { o.position.y = 4.25 + Math.sin(this.t * 2 + i) * 0.08; });
       po.lock.rotation.z = Math.sin(this.t * 2) * 0.12; po.crown.rotation.y += dt * 2;
+      // Name und Knochen-Stand erst aus der Nähe: Schild und Krone ploppen auf, wenn Moll herankommt
+      const near = Math.hypot(po.x - pp.x, po.z - pp.z) < 8 && Math.abs(pp.y - po.y) < 5;
+      po.near = Math.max(0, Math.min(1, po.near + (near ? dt * 4 : -dt * 4))); const k = po.near * po.near * (3 - 2 * po.near);
+      po.label.visible = po.crown.visible = k > 0.01; po.crown.visible &&= po.full; po.label.scale.setScalar(Math.max(k, 0.001)); po.crown.scale.setScalar(Math.max(k, 0.001));
       po.beam.material.opacity = 0.1 + Math.sin(this.t * 2.5) * 0.04;
-      if (!locked && Math.random() < dt * 8) this.game.fx.burst({ x: po.x + (Math.random() - 0.5) * 3, y: 0.5, z: po.z + (Math.random() - 0.5) * 3 }, { n: 1, color: [po.color.getHex(), 0xffffff], speed: 0.2, up: 2.2, life: 1.4, size: 0.12, gravity: 0, drag: 0 });
-      if (Math.hypot(po.x - pp.x, po.z - pp.z) < 1.3 && pp.y < 3) {
+      if (!locked && Math.random() < dt * 8) this.game.fx.burst({ x: po.x + (Math.random() - 0.5) * 3, y: po.y + 0.5, z: po.z + (Math.random() - 0.5) * 3 }, { n: 1, color: [po.color.getHex(), 0xffffff], speed: 0.2, up: 2.2, life: 1.4, size: 0.12, gravity: 0, drag: 0 });
+      if (Math.hypot(po.x - pp.x, po.z - pp.z) < 1.3 && pp.y > po.y - 1 && pp.y < po.y + 3) {
         if (locked) { this.game.toast(`Verschlossen – ${po.need} Goldknochen nötig`); const dx = pp.x - po.x, dz = pp.z - po.z, l = Math.hypot(dx, dz) || 1; pl.vel.x += dx / l * 9; pl.vel.z += dz / l * 9; }
         else this.game.enterLevel(po.target);
       }
