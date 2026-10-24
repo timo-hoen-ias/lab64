@@ -53,6 +53,7 @@ export function makeDog() {
   const tailMesh = box(0.18, 0.18, 0.7, brown, 0, 0.15, -0.3); tailMesh.rotation.x = -0.6; tail.add(tailMesh);
   rig.add(tail);
   g.userData = { rig, head, legs, tail, body, earL, earR, tongue, eyes, t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
+  g.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); // Moll ist immer im Bild; verhindert, dass Kopf oder Schwanz auf manchen Handys weggeschnitten werden
   return g;
 }
 
