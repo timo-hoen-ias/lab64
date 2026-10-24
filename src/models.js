@@ -427,6 +427,7 @@ export function makeFood(kind) {
 }
 
 // ---- Pflanzen. static = reine Deko: das Level backt sie mit den Kisten zu wenigen großen Meshes zusammen
+// tree/bush/flowers: Maße für die Spielereien in details.js (Durchschütteln, Fallobst, Niesen)
 const leafMat = (c, amp = 0.07) => addSway(mat(c), amp); // Ikosaeder ohne Index → von sich aus flach schattiert
 const blob = (r, c, x, y, z, amp) => { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafMat(c, amp)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; };
 export function makeTree(scale = 1) {
@@ -435,14 +436,14 @@ export function makeTree(scale = 1) {
   [[1.5, 1.6, 1.9, 0x3f9a46], [1.2, 1.5, 2.8, 0x4caa4c], [0.9, 1.3, 3.6, 0x5fc25f], [0.55, 1.0, 4.3, 0x6fd06a]].forEach(([r, h, y, c], i) => {
     const k = new THREE.Mesh(new THREE.ConeGeometry(r * s, h * s, 7), leafMat(c, 0.04)); k.position.y = y * s; k.rotation.y = i * 0.45; k.castShadow = true; g.add(k);
   });
-  g.userData.static = true; return g;
+  g.userData.static = true; g.userData.tree = { r: 1.5 * s, top: 4.6 * s, fir: true }; return g;
 }
 export function makeBush(w = 2) {
   const g = new THREE.Group(), cols = [0x3d9a3d, 0x4fb24f, 0x46a646, 0x5cbf55];
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + Math.random(), r = w * (0.3 + Math.random() * 0.12); g.add(blob(r, cols[i % 4], Math.cos(a) * w * 0.28, 0.45 + Math.random() * 0.3, Math.sin(a) * w * 0.28, 0.05)); }
   g.add(blob(w * 0.42, 0x58b84f, 0, 0.75, 0, 0.05));
   for (let i = 0; i < 5; i++) { const a = Math.random() * 7; g.add(sphere(0.09, i % 2 ? 0xffffff : 0xff9ff3, Math.cos(a) * w * 0.45, 0.6 + Math.random() * 0.5, Math.sin(a) * w * 0.45, 4)); } // Blüten
-  g.userData.static = true; return g;
+  g.userData.static = true; g.userData.bush = w; return g;
 }
 
 // Laubbaum mit runder Krone (optional mit Äpfeln): Wurzeln, Äste, Krone aus mehreren Laubballen
@@ -454,7 +455,7 @@ export function makeRoundTree(scale = 1, apples = false) {
   const leaf = [0x3d9a3d, 0x4caa4c, 0x5fc25f, 0x6ccf62];
   [[0, 3.1, 0, 1.6, 1], [0.95, 2.7, 0.35, 1.1, 0], [-0.85, 2.75, -0.4, 1.2, 0], [0.25, 3.95, -0.3, 1.1, 2], [-0.45, 2.55, 0.95, 1.0, 0], [0.65, 3.45, -0.95, 0.95, 1], [-0.6, 3.7, 0.5, 0.9, 3]].forEach(([x, y, z, r, c]) => g.add(blob(r * s, leaf[c], x * s, y * s, z * s, 0.06)));
   if (apples) for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; g.add(sphere(0.16 * s, 0xe53935, Math.cos(a) * 1.45 * s, (2.6 + (i % 3) * 0.5) * s, Math.sin(a) * 1.45 * s, 6)); }
-  g.userData.static = true; return g;
+  g.userData.static = true; g.userData.tree = { r: 1.7 * s, top: 4.5 * s, apples }; return g;
 }
 
 // Blumenbeet: Holzrahmen, Erde, Blüten mit Blättern auf Stielen
@@ -469,7 +470,7 @@ export function makeFlowers(w = 3, d = 1, n = 12) {
     const c = cols[Math.floor(Math.random() * cols.length)], f = cyl(0.17, 0.12, 0.06, c, x, 0.3 + h, z, 5); f.rotation.y = Math.random(); g.add(f);
     g.add(sphere(0.06, 0xffd93d, x, 0.35 + h, z, 4));
   }
-  g.userData.static = true; return g;
+  g.userData.static = true; g.userData.flowers = Math.max(w, d) / 2; return g;
 }
 
 // Schmetterling: zwei Flügel an Gelenken

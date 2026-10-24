@@ -4,6 +4,7 @@ import { BONES } from './levels.js';
 import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
 import { collectPatches, surfaceAt } from './surface.js';
+import { installDetails } from './details.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
 
@@ -51,6 +52,7 @@ export class Level {
     // Zurück aus einer Welt: Moll steht vor dem Portal, aus dem sie kommt (wie in Banjo-Kazooie)
     const from = game.fromKey && this.portals.find(po => po.target === game.fromKey);
     if (from) { const ry = from.group.rotation.y; this.spawn.set(from.x + Math.sin(ry) * 4, from.y + 1, from.z + Math.cos(ry) * 4); this.spawnYaw = ry; this.spawnCam = ry - Math.PI + 1.1; } // Rücken zum Portal, Kamera schräg daneben (nicht hinter dem Portal)
+    this._initDetails(); // Spielereien (details.js): vor dem Zusammenbacken, damit Bäume und Deko noch einzeln da sind
     this._placeScatter();
     this.patches = (this.patches || []).concat(collectPatches(this, [this.group, ...this.zones.map(z => z.group)]));
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
@@ -565,7 +567,7 @@ export class Level {
     for (const b of this.bubbles || []) b.mesh.userData.update(dt, this.t);
     for (const tr of this.triggers || []) { if (tr.done) continue; const ins = Math.hypot(tr.x - pp.x, tr.z - pp.z) < tr.r && Math.abs(tr.y - pp.y) < tr.r + 1.5; if (ins && !tr.inside) { tr.fn(tr); if (tr.once) tr.done = true; } tr.inside = ins; }
     this._updateCourses(dt, pp);
-    this.updateGadgets(dt);
+    this.updateGadgets(dt); this.updateDetails(dt);
     for (const it of this.abilityItems || []) {
       if (it.taken) continue; it.mesh.rotation.y += dt * 2; it.mesh.position.y = it.y + Math.sin(this.t * 3) * 0.15;
       if (Math.random() < dt * 10) FX.sparkle(this.game.fx, { x: it.x, y: it.y + 0.3, z: it.z });
@@ -703,3 +705,4 @@ export class Level {
   }
 }
 installGadgets(Level);
+installDetails(Level);
