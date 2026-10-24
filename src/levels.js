@@ -28,7 +28,7 @@ export const BONES = {
   dorf: ['boss', 'kruemel', 'geheim', 'kletter', 'muehle', 'scheune', 'huehner', 'burg', 'teich', 'baecker', 'wand'],
   kanal: ['boss', 'kruemel', 'geheim', 'kletter', 'pumpe', 'rohre', 'becken', 'gully', 'nest', 'lampen', 'tornado'],
 };
-// Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (bzw. die Supernase aus Opas Laden).
+// Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (bzw. die Supernase aus Heriberts Laden).
 // Beim ersten Besuch bleiben sie liegen – mit der neuen Fähigkeit lohnt sich ein zweiter Besuch.
 export const BACKTRACK = {
   hub: { r_trillern: 'trillern', r_gleiten: 'gleiten' },

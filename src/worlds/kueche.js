@@ -34,7 +34,7 @@ export const KUECHE = {
     l.deco(cyl(1.2, 1.0, 0.6, 0xd63031, 6, 1.8, -14, 14), 6, 1.8, -14);
     l.box(-6, 3.5, -16.5, 4, 0.3, 2, 0xf5f5f5); l.box(2, 5.5, -16.5, 4, 0.3, 2, 0xf5f5f5);
     l.goldbone('kletter', 2, 6.3, -16.5);
-    // ---- Fähigkeit dieser Welt: Trillern. Opa Bruno am Eingang, Übungskreisel neben ihm
+    // ---- Fähigkeit dieser Welt: Trillern. Heribert am Eingang, Übungskreisel neben ihm
     l.teacher(-8, 13, 'trillern');
     l.spinTarget(-10.5, 0.7, 15, () => g.talk('bruno.kreisel', { mesh: l.bruno.mesh }));
     // Rückkehr-Knochen (später mit Bellen bzw. Wandsprung wiederkommen)

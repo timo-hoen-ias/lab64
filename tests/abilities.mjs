@@ -1,4 +1,4 @@
-// Fähigkeiten-Test: lernt jede Fähigkeit bei Opa Bruno und spielt sie Bild für Bild durch (feste 1/30 s, unabhängig von der
+// Fähigkeiten-Test: lernt jede Fähigkeit bei Heribert und spielt sie Bild für Bild durch (feste 1/30 s, unabhängig von der
 // Rechnergeschwindigkeit): Apportieren, Laden, Trillern, Bellen, Bauchklatscher, Buddeln, Zoomies, Gleiten, Wandsprung, Tornado.
 // Jede Probe läuft einmal MIT und – wo es geht – einmal OHNE die Fähigkeit, damit klar ist, dass die Stelle sie wirklich braucht.
 // Aufruf: node tests/abilities.mjs [screenshot-ordner]   Server auf Port 8077.
@@ -27,7 +27,7 @@ const pos = () => ev(() => { const q = window.game.player.pos; return [q.x, q.y,
 const shot = async name => { if (!out) return; await ev(() => { const g = window.game; document.getElementById('toast').classList.remove('show'); document.getElementById('learn').classList.remove('show'); g.renderer.render(g.level.scene, g.camera); }); await p.screenshot({ path: `${out}/${name}.png` }); };
 const enter = async k => { await ev(k => window.game.enterLevel(k), k); await sim(10); };
 const setAb = (a, on) => ev(([a, on]) => { window.game.save.abilities[a] = on; }, [a, on]);
-const learnAt = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await sim(6); const ok = await ev(a => window.game.has(a), br[3]); console.log(`  Opa Bruno bringt ${br[3]} bei:`, ok, '| Karte:', await ev(() => document.getElementById('learn').classList.contains('show'))); return ok; };
+const learnAt = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await sim(6); const ok = await ev(a => window.game.has(a), br[3]); console.log(`  Heribert bringt ${br[3]} bei:`, ok, '| Karte:', await ev(() => document.getElementById('learn').classList.contains('show'))); return ok; };
 const boneHere = id => ev(id => window.game.hasBone(window.game.level.key, id), id);
 const grab = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken && !q.buried); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], q[1] - 0.5, q[2]); await sim(8); } return boneHere(id); };
 const exists = id => ev(id => window.game.level.pickups.some(q => q.boneId === id && !q.buried), id);

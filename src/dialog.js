@@ -7,7 +7,7 @@
 // range = wie weit die Silben in Halbtönen springen, speed = Lesetempo, dur = Silbenlänge, vib = Zittern (alte Stimmen)
 export const VOICES = {
   Moll: { base: 330, wave: 'square', formant: 1.15, range: 5, speed: 1.15, dur: 0.07, slide: 0.2, vol: 0.56, face: '🐶', color: '#a0561b' },
-  'Opa Bruno': { base: 118, wave: 'sawtooth', formant: 0.85, range: 4, speed: 0.85, dur: 0.12, vib: 0.03, vibRate: 7, slide: 0.1, vol: 1.26, face: '👴', color: '#2e7d32' },
+  Heribert: { base: 118, wave: 'sawtooth', formant: 0.85, range: 4, speed: 0.85, dur: 0.12, vib: 0.03, vibRate: 7, slide: 0.1, vol: 1.26, face: '🐕', color: '#d35400' },
   Zwergenkönig: { base: 560, wave: 'triangle', formant: 1.45, range: 6, speed: 1.25, dur: 0.06, slide: 0.25, vol: 0.87, face: '👑', color: '#c0392b' },
   'Amtsleiter Bruno': { base: 140, wave: 'sawtooth', formant: 0.95, range: 3, speed: 1.2, dur: 0.08, slide: -0.08, vol: 1.26, face: '💼', color: '#2d3436' },
   Kaffeemaschine: { base: 200, wave: 'square', formant: 1, range: 0, speed: 0.95, dur: 0.09, slide: 0, dry: 0.4, vol: 1.04, face: '☕', color: '#6d4c41' },
@@ -45,22 +45,22 @@ export function voiceOf(name) {
   return { base: 120 + h % 300, wave: ['square', 'triangle', 'sawtooth'][h % 3], formant: 0.9 + (h >> 4) % 5 * 0.1, range: 4, speed: 1, dur: 0.09, face: '💬', color: '#a0561b' };
 }
 
-const B = 'Opa Bruno', M = 'Moll';
+const B = 'Heribert', M = 'Moll';
 export const TALKS = {
-  // ---------------------------------------------------------------- Opa Bruno lehrt je Welt eine Fähigkeit
+  // ---------------------------------------------------------------- Heribert (alter Welsh Corgi Pembroke) lehrt je Welt eine Fähigkeit
   'bruno.apportieren': {
     first: [
-      [B, 'Na sieh mal einer an, wer da aus dem Körbchen kriecht! Moll, mein Mädchen! Gut geschlafen?'],
-      [M, 'Opa Bruno! Ich hab geträumt, ich wär ein Würstchen. Und dann hab ich mich selbst gejagt.'],
-      [B, 'Hähä! Das hab ich früher auch geträumt. Heute träum ich nur noch von neuen Kniegelenken.'],
+      [B, 'Na sieh mal einer an, wer da aus dem Körbchen kriecht! Moll, Mädchen! Gut geschlafen?'],
+      [M, 'Heribert! Ich hab geträumt, ich wär ein Würstchen. Und dann hab ich mich selbst gejagt.'],
+      [B, 'Hähä! Ich träum immer, meine Beine wären lang. Dann wach ich auf, und – na ja. Immer noch Corgi.'],
       [B, 'Hör zu: Da draußen liegen Goldknochen herum. Hundert Stück! Wer die alle findet, wird eine Legende.'],
       [M, 'Hundert?! Ich kann nur bis drei zählen. Danach kommt gleich „Leckerli“.'],
-      [B, 'Dann lernst du unterwegs zählen. Und ich bring dir in jeder Welt einen neuen Trick bei. Heute: Apportieren!'],
+      [B, 'Dann lernst du unterwegs zählen. Ich hab früher Schafe gehütet, ich weiß, wie man Leute auf Trab bringt. In jeder Welt zeig ich dir einen neuen Trick. Heute: Apportieren!'],
       [B, 'Dort drüben liegt ein Ball. Schnapp ihn mit BISS und bring ihn zu deiner Hütte. Brav sein lohnt sich!'],
-      [M, 'Bällchen holen? Opa, das ist kein Trick. Das ist mein Lebenssinn!'],
+      [M, 'Bällchen holen? Heribert, das ist kein Trick. Das ist mein Lebenssinn!'],
     ],
     again: [
-      [B, 'Mein Rücken knackt wie ein Lagerfeuer. Gemütlich, aber laut.'],
+      [B, 'Kurze Beine, großes Herz. Und ein noch größerer Hintern. Ein Corgi ist eben gut gebaut.'],
       [B, 'Früher hatten wir keine Goldknochen. Wir hatten Stöckchen. Und wir waren dankbar!'],
       [B, 'Moll, du hast da was im Fell … ach nee, das bist du.'],
       [B, 'Krümel kannst du bei mir gegen feine Sachen tauschen. Kein Umtausch, kein Sabbern auf die Ware!'],
@@ -70,47 +70,47 @@ export const TALKS = {
     first: [
       [B, 'Brav, Moll! So apportiert man! Und schau mal, was da in deiner Hütte lag … glänzt ja wie mein Napf am Sonntag!'],
       [M, 'Ein GOLDKNOCHEN! Darf ich den essen?'],
-      [B, 'Um Himmels willen, nein! Sammeln, Kind. SAMMELN. Davon hat man länger was.'],
+      [B, 'Um Himmels willen, nein! Sammeln, Mädchen. SAMMELN. Davon hat man länger was.'],
     ],
   },
   'bruno.laden': {
     again: [
-      [B, 'Willkommen im Leckerli-Laden! Heute im Angebot: alles, was du dir leisten kannst.'],
+      [B, 'Willkommen in Heriberts Leckerli-Laden! Heute im Angebot: alles, was du dir leisten kannst.'],
       [B, 'Krümel her, Wunder hin – so läuft das Geschäft!'],
-      [B, 'Nur gucken ist erlaubt. Nur schnuppern auch. Nur abschlecken nicht.'],
+      [B, 'Die oberen Regale räumst du bitte selbst ein. Ich komm da nicht ran.'],
     ],
   },
   'bruno.gekauft': {
     again: [
-      [B, 'Gute Wahl! Das hätte ich in deinem Alter auch genommen. Wenn ich es mir hätte leisten können.'],
+      [B, 'Gute Wahl! Das hätte ich in deinem Alter auch genommen. Wenn ich an die Theke gekommen wäre.'],
       [B, 'Verkauft! An die junge Dame mit der feuchten Nase!'],
       [M, 'Shoppen macht hungrig. Hast du zufällig auch Würstchen im Angebot?'],
     ],
   },
   'bruno.pleite': {
     again: [
-      [B, 'Da fehlen noch {n} Krümel, Schätzchen. Anschreiben gibt’s nicht – ich vergesse sonst, wem ich was geliehen hab.'],
+      [B, 'Da fehlen noch {n} Krümel, Mädchen. Anschreiben gibt’s nicht – ich vergesse sonst, wem ich was geliehen hab.'],
       [B, 'Noch {n} Krümel! Geh sammeln. Und nicht alles unterwegs aufessen!'],
     ],
   },
   'bruno.trillern': {
     first: [
-      [B, 'Psst! Moll! Hier unten. Ich hab mich hinter dem Schirmständer versteckt.'],
-      [M, 'Wovor versteckst du dich denn, Opa?'],
-      [B, 'Vor dem Staubsauger! Das Ding hat mir letzte Woche fast den Schwanz eingesaugt. Seitdem wedle ich nur noch vorsichtig.'],
+      [B, 'Psst! Moll! Hier unten. Nein, noch weiter unten. Ich bin’s, Heribert, unterm Schirmständer.'],
+      [M, 'Wovor versteckst du dich denn?'],
+      [B, 'Vor dem Staubsauger! Der hat mich letzte Woche glatt für einen Wollmops gehalten. Mit meinen Beinen kommt man da nicht schnell genug weg.'],
       [B, 'Damit dir das nicht passiert, lernst du jetzt Trillern: Dreh dich so schnell, dass dir die Ohren flattern!'],
       [M, 'Wie ein Kreisel? Mir wird schon beim Zuhören schwindelig. Herrlich!'],
       [B, 'Am Herd sind drei Drehknöpfe. Trillere sie alle auf – mal sehen, was im Topf hochkocht!'],
     ],
     again: [
-      [B, 'Ameisen mögen kein Trillern. Ich mag keine Ameisen. Passt doch!'],
+      [B, 'Ameisen mögen kein Trillern. Ich mag keine Ameisen. Die kommen mir immer so nah, auf meiner Höhe.'],
       [B, 'Wenn du den Staubsauger siehst: renn! Oder triller. Oder beides, du bist ja jung.'],
     ],
   },
   'bruno.kreisel': {
     again: [
       [B, 'Genau so! Du drehst dich ja wie die Waschmaschine im Schleudergang!'],
-      [B, 'Nicht schlecht! Und jetzt das Ganze ohne Torkeln.'],
+      [B, 'Nicht schlecht! Ich hab das auch mal versucht. Bin umgekippt. Corgis sind zum Rollen gebaut, nicht zum Drehen.'],
       [M, 'Die Welt dreht sich … oder bin das ich?'],
     ],
   },
@@ -118,28 +118,28 @@ export const TALKS = {
     first: [
       [B, 'Moll! Hierher! In der Stadt ist es laut. Da muss man noch lauter sein.'],
       [M, 'Ich kann laut! Pass auf: … wuff.'],
-      [B, 'Das war ein Schluckauf mit Fell. Ein echtes Bellen kommt aus dem Bauch, nicht aus der Nase!'],
+      [B, 'Das war ein Schluckauf mit Fell. Hör dir mal einen Corgi an: klein, aber Stimme wie ein Nebelhorn!'],
       [B, 'Tief Luft holen … Brust raus … und: WUFF! Siehst du, wie die Tauben fliegen?'],
-      [M, 'Die fliegen nicht wegen dem Bellen, Opa. Die fliegen wegen deinem Atem.'],
+      [M, 'Die fliegen nicht wegen dem Bellen, Heribert. Die fliegen wegen deinem Atem.'],
       [B, 'Freches Gör! Drei Autos hier haben Alarmanlagen. Bell sie alle an – mal sehen, was passiert!'],
     ],
     again: [
-      [B, 'In meinem Alter bellt man nur noch, wenn der Postbote kommt. Aus Tradition.'],
+      [B, 'Ein Corgi bellt nicht, um gehört zu werden. Ein Corgi bellt, weil er recht hat.'],
       [B, 'Tauben verstehen nur eine Sprache: WUFF.'],
     ],
   },
   'bruno.bauchklatscher': {
     first: [
       [B, 'Puh … ich warte hier schon seit Dienstag. Meine Nummer ist 4711, aufgerufen wird gerade die 12.'],
-      [M, 'Opa, was machst du denn auf einem Amt?'],
-      [B, 'Ich beantrage einen Antrag. Damit ich nächste Woche den richtigen Antrag beantragen darf. So läuft das hier.'],
+      [M, 'Heribert, was machst du denn auf einem Amt?'],
+      [B, 'Ich beantrage einen Antrag. Damit ich nächste Woche den richtigen Antrag beantragen darf. Und der Schalter ist so hoch, dass mich keiner sieht.'],
       [B, 'Und weil das dauert, bring ich dir solange was bei. Das Warten muss sich ja lohnen!'],
       [B, 'Heute lernst du den Bauchklatscher. Spring hoch, drück in der Luft BISS – und dann PLUMPS, mit vollem Gewicht nach unten!'],
       [M, 'Mit vollem Gewicht? Ich bin doch federleicht!'],
-      [B, 'Nach all den Krümeln? Glaub mir, Kind, das kracht. Die drei Riesenstempel am Boden kriegst du nur so runter – und ohne drei Stempel genehmigt hier keiner was!'],
+      [B, 'Nach all den Krümeln? Glaub mir, Mädchen, das kracht. Bei mir kracht’s schon vom Sofa runter. Die drei Riesenstempel am Boden kriegst du nur so runter – und ohne drei Stempel genehmigt hier keiner was!'],
     ],
     again: [
-      [B, 'Bürostühle sind was Feines. Man dreht sich, bis man vergisst, warum man reingekommen ist.'],
+      [B, 'Bürostühle sind was Feines. Man dreht sich, bis man vergisst, warum man reingekommen ist. Wenn man hochkommt.'],
       [B, 'Wenn der Dosenöffner kommt: Bauchklatscher drauf! So erledigt man Papierkram.'],
       [B, 'Hast du schon eine Nummer gezogen? Nein? Dann bist du offiziell gar nicht hier.'],
     ],
@@ -148,7 +148,7 @@ export const TALKS = {
     first: [
       [B, 'Riechst du das, Moll? Bratwurst, Holzkohle und frisch gemähter Rasen. So riecht der Himmel!'],
       [M, 'Bei mir riecht der Himmel nach Leberwurst. Und nach Pfützen.'],
-      [B, 'Auch gut. Heute zeig ich dir die schönste Kunst der Welt – gleich nach dem Schlafen: das Buddeln!'],
+      [B, 'Auch gut. Heute zeig ich dir die schönste Kunst der Welt – gleich nach dem Schlafen: das Buddeln! Und da sind kurze Beine endlich mal ein Vorteil.'],
       [B, 'Vorderpfoten rein, Erde nach hinten schleudern, bloß nicht auf den Gärtner. BISS an einem Erdhügel genügt.'],
       [M, 'Und wenn ich bis ans andere Ende der Welt buddle?'],
       [B, 'Dann winkst du mal. Fünf Erdhügel gibt es hier im Park. In einem riecht es nach Gold!'],
@@ -162,25 +162,25 @@ export const TALKS = {
     first: [
       [B, 'Ahoi, Matrosin! Riechst du die Seeluft? Salz, Fisch und ein Hauch Diesel.'],
       [M, 'Und Möwen. Die riechen nach Ärger.'],
-      [B, 'Die Möwen haben’s gut, die können fliegen. Aber wir haben was Besseres: OHREN!'],
-      [M, 'Opa … du willst mir nicht im Ernst erzählen, dass ich mit den Ohren fliegen soll.'],
+      [B, 'Die Möwen haben’s gut, die können fliegen. Aber wir haben was Besseres: OHREN! Schau dir meine an – das sind keine Ohren, das sind Segel!'],
+      [M, 'Heribert … du willst mir nicht im Ernst erzählen, dass ich mit den Ohren fliegen soll.'],
       [B, 'Gleiten! Spring hoch, halt die TRILLER-Taste und lass die Ohren kreisen wie ein Hubschrauber. Helikopter-Ohren!'],
       [M, 'Das ist das Dümmste und Großartigste, was ich je gehört habe!'],
       [B, 'Klettere auf den Ausguck und gleite rüber zum Möwennest. Der Wind über dem Wasser trägt dich!'],
     ],
     again: [
       [B, 'Seemannsregel Nummer eins: Nie gegen den Wind sabbern.'],
-      [B, 'Ich war mal Schiffshund. Drei Tage lang. Dann wurde ich seekrank. Und der Kapitän auch – wegen mir.'],
+      [B, 'Bei starkem Wind muss ich die Ohren anlegen. Sonst heb ich ab und lande in Holland.'],
     ],
   },
   'bruno.wandsprung': {
     first: [
-      [B, 'Ach, das Dorf! Hier bin ich aufgewachsen. Da drüben hab ich meinen ersten Schuh zerkaut. Ein Prachtstück!'],
-      [M, 'Wem gehörte der Schuh?'],
-      [B, 'Dem Bürgermeister. Er hatte ihn noch an.'],
+      [B, 'Ach, das Dorf! Hier hab ich früher die Schafe gehütet. Die haben mich nie ernst genommen. Bis ich sie in die Fersen gezwickt hab.'],
+      [M, 'Und heute?'],
+      [B, 'Heute hüte ich dich. Ist anstrengender. Die Schafe haben wenigstens zugehört.'],
       [B, 'Heute: Wandsprung! Spring gegen eine Backsteinwand und stoß dich mit SPRUNG wieder ab. Hin und her, wie ein Flummi mit Fell!'],
-      [M, 'Pfoten an die Wand, Wand an die Pfoten … verstanden!'],
-      [B, 'Siehst du den alten Schornstein? Spring zwischen den Wänden hin und her bis ganz nach oben!'],
+      [M, 'Pfoten an die Wand, Wand an die Pfoten … verstanden! Kannst du das auch?'],
+      [B, 'Mit diesen Beinen? Ich spring höchstens gegen die Fußleiste. Siehst du den alten Schornstein? Spring zwischen den Wänden hin und her bis ganz nach oben!'],
     ],
     again: [
       [B, 'Im Dorf grüßt man sich. Also grüß die Hühner. Aber jag sie nicht – jedenfalls nicht, wenn Bauer Bernd hinschaut.'],
@@ -190,11 +190,11 @@ export const TALKS = {
   'bruno.tornado': {
     first: [
       [B, 'Moll … nicht erschrecken, ich bin’s. Hier unten riecht’s, als hätte jemand Socken gekocht.'],
-      [M, 'Opa, du riechst aber auch nicht gerade nach Rosen.'],
-      [B, 'Das ist Parfüm! „Eau de Pfütze“. Sehr teuer.'],
+      [M, 'Heribert, du riechst aber auch nicht gerade nach Rosen. Und dein Bauch schleift durchs Abwasser.'],
+      [B, 'Das ist Parfüm! „Eau de Pfütze“. Sehr teuer. Und der Bauch ist wasserdicht.'],
       [B, 'Jetzt kommt mein bester Trick: Tornado-Trillern! Halt am Boden TRILLER gedrückt, bis es funkelt … und dann lass los!'],
       [M, 'Ein Wirbelsturm aus Hund! Die Kanalratte wird Augen machen.'],
-      [B, 'Die Kanalratte ist kein Spaß, Kind. Über dir hängt ein Lüftungsschacht – lad das Trillern auf und schieß als Tornado hoch!'],
+      [B, 'Die Kanalratte ist kein Spaß, Mädchen. Die ist größer als ich – und das will was heißen. Na gut, es heißt nicht viel. Über dir hängt ein Lüftungsschacht – lad das Trillern auf und schieß als Tornado hoch!'],
     ],
     again: [
       [B, 'Pass auf die Ratte auf. Die hat mir mal das Pausenbrot geklaut. Mitsamt der Dose.'],
@@ -203,9 +203,9 @@ export const TALKS = {
   },
   'bruno.zoomies': {
     first: [
-      [B, 'Moll! Ich hab vom Gartenzaun aus alles gesehen! Du bist gerannt wie ein geölter Blitz!'],
+      [B, 'Moll! Ich hab vom Gartenzaun aus alles gesehen! Durch ein Astloch, ganz unten. Du bist gerannt wie ein geölter Blitz!'],
       [M, 'Ich weiß gar nicht, was passiert ist. Meine Beine haben einfach … ZOOOOM gemacht!'],
-      [B, 'Das sind die Zoomies! Die kriegt jeder anständige Hund. Meistens nach dem Baden. Oder um drei Uhr nachts.'],
+      [B, 'Das sind die Zoomies! Die kriegt jeder anständige Hund. Bei mir sieht das aus wie ein Brötchen auf Rollschuhen, aber das Gefühl ist dasselbe.'],
       [B, 'Lauf mit vollem Tempo geradeaus, dann rast du los und springst viel weiter. Nur nicht durch Omas Blumenbeet!'],
     ],
     again: [[B, 'Zoomies sind wie Schluckauf: Man kann sie nicht steuern, aber sie machen Spaß.']],
@@ -238,7 +238,7 @@ export const TALKS = {
   chef: {
     first: [
       ['Amtsleiter Bruno', 'Termin? Haben Sie einen Termin? Ohne Termin kein Termin! Und ohne Termin auch keinen Termin für einen Termin!'],
-      [M, 'Bist du mit Opa Bruno verwandt?'],
+      [M, 'Bist du mit Bäcker Bruno verwandt?'],
       ['Amtsleiter Bruno', 'Dafür bin ich nicht zuständig. Verwandtschaftsfragen: Zimmer 0815, Kellergeschoss. Das Amt hat kein Kellergeschoss.'],
       ['Amtsleiter Bruno', 'Mein goldener Beamter-des-Monats-Knochen steht ganz oben im Pokalschrank. 47 Monate in Folge!'],
       [M, 'Wie viele Beamte gibt es hier denn?'],

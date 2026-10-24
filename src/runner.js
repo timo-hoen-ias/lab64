@@ -126,7 +126,7 @@ export class RunnerLevel {
           if (dream) this.game.awardBone('kanal', 'boss', false);
           else { this.game.awardBone('rattenrennen', 'sieg', false); if (this.score >= 30) this.game.later(1200, () => this.game.awardBone('rattenrennen', 'gierig', false)); else this.game.toast('Tipp: Mit 30+ Würstchen gibt es einen zweiten Goldknochen.', 3000); }
         });
-        this.game.later(4200, () => { this.game.enterLevel(dream ? 'kanal' : 'hub'); if (!dream && !this.game.has('zoomies')) setTimeout(() => this.game.learn('zoomies', true), 1500); }); // nach dem Albtraum zurück in den Kanal (Ein-Besuch-Regel); Opa Bruno ist stolz: Zoomies
+        this.game.later(4200, () => { this.game.enterLevel(dream ? 'kanal' : 'hub'); if (!dream && !this.game.has('zoomies')) setTimeout(() => this.game.learn('zoomies', true), 1500); }); // nach dem Albtraum zurück in den Kanal (Ein-Besuch-Regel); Heribert ist stolz: Zoomies
       } else { this.game.audio.sfx('lose'); this.game.toast(dream ? 'Die Ratte lacht. Der Traum beginnt von vorn …' : 'Die Ratte war gieriger. Nochmal!'); this.game.later(2500, () => this.game.enterLevel(this.mode)); }
     }
   }

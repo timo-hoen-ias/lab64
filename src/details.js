@@ -321,7 +321,7 @@ const WORLDS = {
     l.fun(-4.5, 0.45, -21.2, { r: 1.2, stomp: () => { g.audio.sfx('boing'); l.once('korb', 'Boing! Das Körbchen federt herrlich.'); } });
     // Briefkasten: Bellen klappt die Fahne hoch und ein Brief fliegt raus
     const flag = new THREE.Group(); flag.add(box(0.04, 0.4, 0.04, 0x636e72, 0, 0.2, 0)); flag.add(box(0.04, 0.16, 0.2, 0xe74c3c, 0, 0.34, 0.1)); l.put(flag, 4.28, 1.15, 4.1); flag.rotation.x = Math.PI / 2;
-    const letters = ['Post für Moll: Werbung für Katzenfutter. Pfui!', 'Eine Postkarte von Opa Bruno: „Grüße vom Strand!“', 'Ein Brief vom Tierarzt … schnell wieder rein damit!', 'Ein Liebesbrief vom Pudel von nebenan. Hihi.', 'Ein Gutschein: „Einmal Bauchkraulen gratis“.'];
+    const letters = ['Post für Moll: Werbung für Katzenfutter. Pfui!', 'Eine Postkarte von Heribert: „Grüße vom Strand!“', 'Ein Brief vom Tierarzt … schnell wieder rein damit!', 'Ein Liebesbrief vom Pudel von nebenan. Hihi.', 'Ein Gutschein: „Einmal Bauchkraulen gratis“.'];
     let li = 0;
     l.fun(4, 1.3, 4, { bark: () => {
       g.audio.sfx('drawer'); l.tween(0.3, k => { flag.rotation.x = Math.PI / 2 * (1 - k); });

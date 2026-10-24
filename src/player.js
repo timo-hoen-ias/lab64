@@ -215,7 +215,7 @@ export class Player {
     if (spinP && has('trillern') && this.spinCd <= 0 && !dive && !this.carry) { // Trillern (in der Luft zusammen mit dem Gleiten)
       this.whirlT = 0.6; this.spinCd = has('trillernPlus') ? 0.6 : 1.2; this.whirlHit = new Set(); this.game.audio.sfx('whirl'); FX.dust(fx, this.pos, 10);
     }
-    else if (spinP && !['trillern', 'gleiten', 'tornado'].some(has) && !this._noSpinHint) { this._noSpinHint = true; this.game.toast('Das kann Moll noch nicht – Opa Bruno bringt es ihr bei!'); }
+    else if (spinP && !['trillern', 'gleiten', 'tornado'].some(has) && !this._noSpinHint) { this._noSpinHint = true; this.game.toast('Das kann Moll noch nicht – Heribert bringt es ihr bei!'); }
     if (this.gliding && (!spinH || this.glideFuel <= 0 || this.onGround || wet)) this.gliding = false;
     if (this.gliding) {
       const up = level.updraftAt && level.updraftAt(this.pos);

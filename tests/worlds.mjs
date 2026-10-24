@@ -19,8 +19,8 @@ const shot = async (name, yaw, pitch = 0.3) => { await ev(([y, pi]) => { if (y !
 const feet = (q, dy) => ev(([x, y, z, dy]) => { const f = window.game.level.groundAt(x, z, y); return y - f < 1.6 ? f + 0.02 : y - dy; }, [...q, dy]);
 const grabBone = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], await feet(q, 0.5), q[2]); await W(600); } return !!q; };
 const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pass++) for (const q of await ev(f => window.game.level.pickups.filter(q => !q.taken && new Function('q', 'return ' + f)(q)).map(q => [q.x, q.y, q.z]), filter)) { await tp(q[0], await feet(q, 0.3), q[2]); await W(pass ? wait + 200 : wait); } };
-// Fähigkeit der Welt bei Opa Bruno lernen und das Rätsel dazu direkt auslösen (die Steuerung selbst prüft tests/abilities.mjs)
-const bruno = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await W(600); console.log(`  Opa Bruno: ${br[3]}`, await ev(a => window.game.has(a), br[3])); };
+// Fähigkeit der Welt bei Heribert lernen und das Rätsel dazu direkt auslösen (die Steuerung selbst prüft tests/abilities.mjs)
+const bruno = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await W(600); console.log(`  Heribert: ${br[3]}`, await ev(a => window.game.has(a), br[3])); };
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {

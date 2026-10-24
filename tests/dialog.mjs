@@ -1,5 +1,5 @@
 // Dialog-Test: Gibt es jedes Gespräch, das der Code aufruft, und hat jeder Sprecher eine Stimme?
-// Dann im Spiel: Opa Bruno im Garten anquatschen – Spiel hält an, Text tippt sich, die Stimme blubbert, SPRUNG blättert weiter,
+// Dann im Spiel: Heribert im Garten anquatschen – Spiel hält an, Text tippt sich, die Stimme blubbert, SPRUNG blättert weiter,
 // am Ende kommt die Fähigkeitskarte. Beim zweiten Mal nur ein kurzer Spruch nebenbei. Platzhalter {n} werden ersetzt.
 // Aufruf: node tests/dialog.mjs [screenshot-ordner]   Server auf Port 8077.
 import { readFileSync, readdirSync } from 'fs';
@@ -31,7 +31,7 @@ const info = await ev(async ids => {
 check('alle Gespräche vorhanden', !info.missing.length, `${info.n} Gespräche, ${info.lines} Zeilen, ${info.speakers} Sprecher ${info.missing.join(' ')}`);
 check('jeder Sprecher hat eine Stimme', !info.mute.length, info.mute.join(', '));
 
-// ---- Im Spiel: Opa Bruno im Garten
+// ---- Im Spiel: Heribert im Garten
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await W(300);
 await ev(() => { const a = window.game.audio; a.init(); window.blubs = []; const o = a.blub.bind(a); a.blub = (v, vo, st, l, t) => { window.blubs.push([v.base, vo, st]); o(v, vo, st, l, t); }; });
 const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z]; });
@@ -39,7 +39,7 @@ await ev(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x + 2.5, y +
 await until(() => window.game.dialog.open, 8000);
 const st = () => ev(() => { const d = window.game.dialog, el = document.getElementById('dialog'); return { open: d.open, cls: el.className, name: el.querySelector('.name').textContent, shown: el.querySelector('.shown').textContent, full: d.line?.text || '', i: d.i, q: d.queue.length }; });
 let s = await st();
-check('Gespräch mit Opa Bruno startet', s.open && s.name === 'Opa Bruno', s.cls);
+check('Gespräch mit Heribert startet', s.open && s.name === 'Heribert', s.cls);
 const p0 = await ev(() => window.game.player.pos.toArray().map(v => +v.toFixed(2)).join());
 await p.keyboard.down('KeyW'); await W(600); await p.keyboard.up('KeyW');
 check('Spiel steht während des Gesprächs', p0 === await ev(() => window.game.player.pos.toArray().map(v => +v.toFixed(2)).join()));
@@ -50,7 +50,7 @@ if (out) await p.screenshot({ path: `${out}/dialog_bruno.png` });
 await key('Space'); s = await st(); check('SPRUNG zeigt den ganzen Satz', s.shown === s.full);
 await key('Space'); s = await st(); check('nächste Zeile: Moll antwortet', s.name === 'Moll', s.shown);
 await W(1500); if (out) await p.screenshot({ path: `${out}/dialog_moll.png` });
-const voices = await ev(() => new Set(window.blubs.map(b => b[0])).size); check('Moll hat eine andere Stimme als Opa', voices >= 2);
+const voices = await ev(() => new Set(window.blubs.map(b => b[0])).size); check('Moll hat eine andere Stimme als Heribert', voices >= 2);
 for (let k = 0; k < 30 && (await st()).open; k++) { await key('Space'); }
 s = await st(); check('Gespräch zu Ende', !s.open);
 check('danach Fähigkeitskarte + Fähigkeit', await ev(() => document.getElementById('learn').classList.contains('show') && window.game.has('apportieren')));

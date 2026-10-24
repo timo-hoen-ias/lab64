@@ -75,8 +75,8 @@ export class Game {
     if (this.has(ability)) return; this.save.abilities[ability] = true; this.persist(); this.updateAbilityButtons();
     this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); this.toast(text || `Neue Fähigkeit: ${ability}!`, 6000);
   }
-  // Neue Fähigkeit von Opa Bruno: große Karte mit Name und Steuerung
-  // Von Opa Bruno: erst das Gespräch (beim ersten Mal ganz, danach ein kurzer Spruch), dann die Karte.
+  // Neue Fähigkeit von Heribert: große Karte mit Name und Steuerung
+  // Von Heribert: erst das Gespräch (beim ersten Mal ganz, danach ein kurzer Spruch), dann die Karte.
   learn(ability, fromBruno, mesh) {
     const a = ABILITIES[ability]; if (!a) return; const fresh = !this.has(ability);
     if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); }
@@ -85,7 +85,7 @@ export class Game {
   }
   _learnCard(a, fresh, fromBruno) {
     const el = document.getElementById('learn'); if (!el) return;
-    el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Opa Bruno' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
+    el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Heribert' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
     el.classList.add('show'); clearTimeout(this._lt); this._lt = setTimeout(() => el.classList.remove('show'), 6500);
   }
   // Nach neuer Fähigkeit: in welchen schon besuchten Welten jetzt Rückkehr-Knochen erreichbar sind
@@ -96,7 +96,7 @@ export class Game {
   updateAbilityButtons() {
     const b = document.body.classList; b.toggle('can-spin', ['trillern', 'gleiten', 'tornado'].some(a => this.has(a))); b.toggle('can-bark', this.has('bellen'));
   }
-  // ---- Krümel-Laden (Opa Bruno im Garten)
+  // ---- Krümel-Laden (Heribert im Garten)
   _setupShop() {
     const el = document.getElementById('shop'); if (!el) return;
     el.querySelector('.close').addEventListener('click', () => this.closeShop());
@@ -263,7 +263,7 @@ export class Game {
     this.hud.levelName.textContent = this.level.def.name; this.banner();
     this.updateHearts(); this.updateCounter(); if (!this.level.isRunner) this.counters.show(5000);
     if (!silent) { this.audio.sfx('portal'); this.audio.playTheme(this.level.def.music); }
-    const br = this.level.bruno; if (br && br.ability && !this.has(br.ability)) this.later(5200, () => { if (!this.has(br.ability)) this.toast('🐕 Opa Bruno wartet hier in der Nähe – er bringt dir etwas Neues bei!', 4000); });
+    const br = this.level.bruno; if (br && br.ability && !this.has(br.ability)) this.later(5200, () => { if (!this.has(br.ability)) this.toast('🐕 Heribert wartet hier in der Nähe – er bringt dir etwas Neues bei!', 4000); });
     if (!this.level.isRunner) { const intro = this.level.intro; if (key !== 'hub') this.toast(this.level.def.name + (intro ? ' – ' + intro : ''), 4500); else if (intro) this.toast(intro, 3500); }
   }
 
