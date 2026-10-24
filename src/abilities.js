@@ -130,7 +130,7 @@ export function installGadgets(Level) {
     climbWall(x, y, z, w, h, d, color = BRICK) {
       const s = this.box(x, y, z, w, h, d, color, { climb: true });
       const along = w >= d; // Mörtelfugen als dünne helle Streifen
-      for (let k = 0.8; k < h; k += 0.8) this.deco(box(along ? w + 0.04 : w + 0.04, 0.08, along ? d + 0.04 : d + 0.04, MORTAR), x, y + k, z);
+      for (let k = 0.8; k < h; k += 0.8) this.prop(box(along ? w + 0.04 : w + 0.04, 0.08, along ? d + 0.04 : d + 0.04, MORTAR), x, y + k, z);
       return s;
     },
     // ---- Aufwind (Windsäule): beim Gleiten geht es darin nach oben
