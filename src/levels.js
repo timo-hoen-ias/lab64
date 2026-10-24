@@ -6,6 +6,7 @@ import { FX } from './fx.js';
 import { STRAND } from './worlds/strand.js';
 import { PARK } from './worlds/park.js';
 import { HAFEN } from './worlds/hafen.js';
+import { DORF } from './worlds/dorf.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -19,7 +20,7 @@ export const BONES = {
   rattenrennen: ['sieg', 'gierig'],
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
   hafen: ['boss', 'kruemel', 'geheim', 'kletter', 'kran', 'markt', 'mole', 'laderaum', 'anker', 'bojen'],
-  dorf: ['boss', 'kruemel', 'geheim', 'kletter'],
+  dorf: ['boss', 'kruemel', 'geheim', 'kletter', 'muehle', 'scheune', 'huehner', 'burg', 'teich', 'baecker'],
   kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
@@ -219,34 +220,7 @@ export const LEVELS = {
   hafen: HAFEN,
 
   // ----------------------------------------------------------------- DORF
-  dorf: {
-    name: 'Das Dorf', time: 'abend', backdrop: 'berge', grass: true, sky: 0x9fc8f0, ground: 0x9ccc65, size: 36, need: 8, goalKind: 'bread', music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09, style: 'village' },
-    build(l) {
-      l.spawn.set(0, 1, 28); l.wallRing(36, 5, 0xa1887f);
-      // Marktplatz
-      l.group.add(box(24, 0.05, 24, 0xbcaaa4, 0, 0.03, 0)); l.deco(cyl(2.5, 2.8, 1.2, 0x90a4ae, 0, 0.6, 0, 12), 0, 0.6, 0); l.deco(cyl(0.4, 0.4, 3, 0x90a4ae, 0, 2.5, 0, 8), 0, 2.5, 0); // Brunnen
-      // Häuser mit Dächern (begehbar über Fässer/Karren)
-      const houses = [[-24, -20, 0xffccbc], [-24, 0, 0xc5e1a5], [-24, 20, 0xb3e5fc], [24, -20, 0xfff59d], [24, 0, 0xd1c4e9], [24, 20, 0xffab91], [-8, -28, 0xf8bbd0], [10, -28, 0xb2dfdb]];
-      houses.forEach(([x, z, c]) => { l.box(x, 0, z, 10, 5, 10, c); l.box(x, 5, z, 10.5, 0.4, 10.5, 0x8d6e63); l.deco(cone(7.5, 3.5, 0xb71c1c, 0, 0, 0, 4), x, 7.1, z, Math.PI / 4); });
-      // Aufstiege: Fässer + Karren
-      // Fass-Treppen: [niedrig x, hoch x, z] – das hohe Fass steht direkt am Haus
-      [[-15.6, -17.8, -20], [15.6, 17.8, 0], [15.6, 17.8, -20], [-16.4, -14.2, -28]].forEach(([lx, hx, z]) => { l.box(lx, 0, z, 2, 1.6, 2, 0x795548); l.box(hx, 0, z, 2, 3.4, 2, 0x795548); });
-      l.box(30, 0, -30, 4, 8, 4, 0xbcaaa4); l.deco(cone(3, 4, 0x5d4037, 0, 0, 0, 4), 30, 10, -30, Math.PI / 4); // Kirchturm
-      l.box(28.5, 8, -30, 1, 0.3, 4, 0xbcaaa4);
-      l.goldbone('kletter', 30, 8.8, -30);
-      l.goldbone('geheim', -33, 0.6, 33, { hidden: true });
-      l.box(16, 0, 20, 4, 1.5, 3, 0x6d4c41); l.box(16, 1.5, 21, 4, 1.5, 1, 0x6d4c41); // Karren
-      // Marktstände
-      [[-8, 8], [8, 8], [-8, -8], [8, -8]].forEach(([x, z]) => { l.box(x, 0, z, 4, 1.2, 2, 0x8d6e63); l.box(x, 3.2, z, 4.6, 0.2, 3, (x + z) % 16 ? 0xef5350 : 0x42a5f5); });
-      // Versteckte Brote (Tauben-Verstecke): auf Dächern, unter Ständen, im Brunnen
-      [[-24, 5.6, -20, 'bread'], [24, 5.6, 0, 'bread'], [-8, 5.6, -28, 'bread'], [-8, 1.5, 8, 'bread'], [8, 1.5, -8, 'bread'], [0, 1.5, 0, 'bread'], [16, 3.3, 20, 'bread'], [30, 0.3, 30, 'bread']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true, hidden: true }));
-      // Taubenschwärme
-      [[-12, 0], [12, 12], [0, -14], [14, -10]].forEach(([x, z]) => l.addEnemy(new Pigeon(l.game, x, z)));
-      l.scatter(30);
-      l.label('Die Tauben haben 8 Brote versteckt. NASE benutzen, Tauben beißen!', 0, 5, 24);
-    },
-    onGoal(l) { l.game.toast('Von der Kirchturmspitze: GURR! Die Obertaube!'); l.game.later(1000, () => { const b = new BirdBoss(l.game, 'pigeon', 0, 0, 'Die Obertaube'); b.mesh.scale.setScalar(2.2); b.radius = 1.8; l.setBoss(b); }); }
-  },
+  dorf: DORF,
 
   // ---------------------------------------------------------------- KANAL
   kanal: {
