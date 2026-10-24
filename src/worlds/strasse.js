@@ -22,9 +22,9 @@ export const STRASSE = {
     l.box(-18, 0, 0, 20, 0.5, 72, WALK); l.box(18, 0, 0, 20, 0.5, 72, WALK);
     const shops = [[-24, -24, 'Metzger', 0xe17055], [-24, -8, 'Bäcker', 0xfdcb6e], [-24, 10, 'Fischladen', 0x74b9ff], [24, -24, 'Café', 0xa29bfe], [24, -8, 'Döner', 0x55efc4], [24, 10, 'Imbiss', 0xff7675]];
     shops.forEach(([x, z, n, c]) => { l.box(x, 0.5, z, 12, 6, 12, c); l.box(x + (x < 0 ? 6.2 : -6.2), 0.5, z, 0.4, 3, 8, 0x3b2412); l.label(n, x, 7.5, z); });
-    [[-15.5, 2.8, -24], [-15.5, 2.8, -8], [15.5, 2.8, -8]].forEach(([x, y, z]) => l.box(x, y, z, 5, 0.3, 8, 0xffffff));
+    [[-15.5, 2.8, -24], [-15.5, 2.8, -8], [15.5, 2.8, -8]].forEach(([x, y, z]) => { l.box(x - Math.sign(x) * 0.2, y, z, 4.6, 0.3, 8, 0xffffff); [-3.6, 3.6].forEach(dz => l.prop(box(0.12, 2.3, 0.12, 0x2d3436, 0, 1.65, 0), x - Math.sign(x) * 2.3, 0.5, z + dz)); }); // Markisen enden vor der Ladentür, vorne auf Stangen
     [[-12, 20], [12, 20], [-12, -30], [12, -30]].forEach(([x, z]) => { l.box(x, 0.5, z, 3, 0.6, 1, WOOD); l.box(x, 1.1, z + 0.4, 3, 0.5, 0.2, WOOD); });
-    l.box(15.5, 0.5, -14, 2, 1.5, 2, WOOD); l.box(15.5, 4.6, -8, 3, 0.3, 3, 0xffeaa7);
+    l.box(15.5, 0.5, -14, 2, 1.5, 2, WOOD); l.box(15.5, 4.6, -8, 3, 0.3, 3, 0xffeaa7); l.prop(box(0.15, 1.5, 0.15, 0x2d3436, 0, 0.75, 0), 15.5, 3.1, -8); // Kiste auf einem Pfosten über der Markise
     l.goldbone('kletter', 24, 7.2, -8);
     l.goldbone('geheim', -33, 0.6, 1, { hidden: true });
     [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
@@ -46,7 +46,7 @@ export const STRASSE = {
     // Dächer-Parcours: Bretter zwischen den Läden, Lichterketten-Brücke über die Straße, Ringe
     [-24, 24].forEach(x => { l.box(x, 6.25, -16, 3, 0.3, 4.4, WOOD); l.box(x, 6.25, 1, 3, 0.3, 6.4, WOOD); }); // Bretter 5 cm über den Dächern, nicht bündig (Flackern)
     l.box(0, 6.25, 10, 36.4, 0.3, 1.8, 0xffeaa7);
-    for (let x = -11; x <= 11; x += 2) l.deco(sphere(0.18, [0xff7675, 0xfdcb6e, 0x74b9ff][(x + 11) / 2 % 3], 0, 0, 0, 6), x, 6.9, 10.9);
+    for (let x = -11; x <= 11; x += 2) l.prop(sphere(0.18, [0xff7675, 0xfdcb6e, 0x74b9ff][(x + 11) / 2 % 3], 0, 0, 0, 6), x, 6.9, 10.9);
     l.ringCourse([[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]], 'daecher', 30, 0x74b9ff);
     [[-12, 0], [12, 12], [0, -14]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-6, 0, 26, 'Hauptstraße', bench());
@@ -57,7 +57,7 @@ export const STRASSE = {
     // ---- Norden: Kaufhaus (drei Etagen innen)
     l.zone(0, -110, 55, () => {
       l.box(0, 0, -112, 44, 18, 28, 0xdfe6e9); l.box(0, 18, -112, 46, 0.6, 30, 0x636e72);
-      for (let i = 0; i < 3; i++) for (let k = -3; k <= 3; k++) l.deco(box(4, 2.4, 0.2, 0x74b9ff), k * 6, 3 + i * 5.5, -97.9);
+      for (let i = 0; i < 3; i++) for (let k = -3; k <= 3; k++) l.prop(box(4, 2.4, 0.2, 0x74b9ff), k * 6, 3 + i * 5.5, -97.9);
       l.deco(makeSign('KAUFHAUS', { w: 10, post: 0.4 }), 0, 18.6, -99);
       l.door(0, 0, -97.6, { x: 2000, y: 0.2, z: 11, yaw: Math.PI }, { label: 'Eingang', frame: 0x2d3436 });
       [[-30, -90], [30, -90], [-30, -130], [30, -130]].forEach(([x, z]) => l.tree(x, z, 1.4, makeRoundTree(1.4)));
@@ -72,7 +72,7 @@ export const STRASSE = {
     l.ramp(kx - 18, 12, kx - 18, -4, 3, 0, 6, 0x636e72, { bridge: true });
     // 1. Stock: Kleiderständer; Rolltreppe in den 2. Stock (Galerie rechts, Höhe 12)
     [[-12, -6], [-4, -6], [4, -7]].forEach(([x, z]) => l.box(kx + x, 6, z, 4, 1.6, 1.2, 0x6c5ce7));
-    l.box(kx + 15, 11.6, 0, 14, 0.4, 32, 0xb2bec3);
+    l.box(kx + 14.75, 11.6, 0, 13.5, 0.4, 31, 0xb2bec3); // Galerie endet an den Wänden statt in ihnen
     l.ramp(kx - 6, -12.5, kx + 8, -12.5, 3, 6, 12, 0x636e72, { bridge: true });
     l.box(kx + 16, 12, 10, 3, 1.5, 3, 0xfdcb6e); // Podest
     l.goldbone('kaufhaus', kx + 16, 14.3, 10);
@@ -90,13 +90,15 @@ export const STRASSE = {
       l.box(bx, 18, bz, 18, 0.5, 14, 0xb2bec3);
       // Gerüst an der Westseite: Plattformen im Zickzack
       [[-11, -4, 1.5], [-11, 2, 3], [-12.5, 6, 4.5], [-11, 0, 6.2], [-12.5, -6, 7.8], [-11, -2, 9.4], [-11, 4, 11], [-12.5, 8, 12.6], [-11, 2, 14.2], [-11, -4, 15.8], [-11, 2, 17.2]].forEach(([dx, dz, y]) => l.box(bx + dx, y, bz + dz, 3, 0.3, 3, 0xe17055));
-      for (let i = 0; i < 4; i++) l.deco(box(0.2, 18, 0.2, STEEL, 0, 9, 0), bx - 13.5, 0, bz - 6 + i * 4);
+      // Gerüst: Stangen in zwei Reihen, unter jeder Plattform ein Querriegel – nichts schwebt mehr
+      for (let i = 0; i < 5; i++) [-14.2, -9.2].forEach(dx => l.prop(box(0.2, 18, 0.2, STEEL, 0, 9, 0), bx + dx, 0, bz - 7 + i * 4));
+      [[-11, -4, 1.5], [-11, 2, 3], [-12.5, 6, 4.5], [-11, 0, 6.2], [-12.5, -6, 7.8], [-11, -2, 9.4], [-11, 4, 11], [-12.5, 8, 12.6], [-11, 2, 14.2], [-11, -4, 15.8], [-11, 2, 17.2]].forEach(([, dz, y]) => [-1.3, 1.3].forEach(o => l.prop(box(5, 0.15, 0.15, STEEL, 0, -0.08, 0), bx - 11.7, y, bz + dz + o)));
       l.box(bx + 6, 18.5, bz + 3, 3, 1.4, 3, 0x0984e3); // Dixi-Klo auf dem Dach
       l.goldbone('baustelle', bx + 6, 20.7, bz + 3);
       // Sandhaufen, Zementmischer, Absperrungen
       l.hill(bx - 4, bz + 22, 5, 2.4, { flat: 0.2, color: 0xe0b872, side: 0xc8a165 });
-      l.deco(cyl(1.2, 0.8, 2, 0xf39c12, 0, 1.6, 0, 10).rotateZ(0.5), bx + 14, 0, bz + 16);
-      for (let i = 0; i < 8; i++) l.deco(box(2, 1, 0.2, i % 2 ? 0xffffff : 0xe74c3c, 0, 0.8, 0), bx - 24, 0, bz - 18 + i * 4.5, Math.PI / 2);
+      l.deco(cyl(1.2, 0.8, 2, 0xf39c12, 0, 0, 0, 10).rotateZ(0.5), bx + 14, 1.9, bz + 16); l.box(bx + 14, 0, bz + 16, 1.4, 0.8, 1.4, 0x2d3436); // Mischer steht auf einem Gestell statt im Boden
+      for (let i = 0; i < 8; i++) l.prop(box(2, 1, 0.2, i % 2 ? 0xffffff : 0xe74c3c, 0, 0.8, 0), bx - 24, 0, bz - 18 + i * 4.5, Math.PI / 2);
       [[-26, -20], [-26, 18], [-20, 24], [-14, 24], [16, 20]].forEach(([dx, dz], i) => placeAsset(l, i < 4 ? 'cone' : 'carton', bx + dx, 0, bz + dz, i * 0.4, { scale: 2.2 })); // Pylonen, Karton
       l.pickup(bx, 9.8, bz, 'sausage', { goal: true });
       l.pickup(bx - 4, 2.7, bz + 22, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });
@@ -141,7 +143,7 @@ export const STRASSE = {
       for (let x = -40; x <= 40; x += 2) l.group.add(box(0.5, 0.12, 4, 0x6d4c41, x, 0.06, 110));
       [-1.4, 1.4].forEach(dz => l.group.add(box(84, 0.1, 0.2, 0x7f8c8d, 0, 0.15, 110 + dz)));
       l.box(0, 0, 102, 70, 1.2, 6, 0xb2bec3); // Bahnsteig
-      for (let i = 0; i < 3; i++) { const x = -22 + i * 14; l.box(x, 0.3, 110, 12, 3.6, 3.6, i ? 0x0984e3 : 0xd63031); l.deco(box(10, 0.8, 3.7, 0xffffff), x, 2.3, 110); }
+      for (let i = 0; i < 3; i++) { const x = -22 + i * 14; l.box(x, 0.3, 110, 12, 3.6, 3.6, i ? 0x0984e3 : 0xd63031); l.prop(box(10, 0.8, 3.7, 0xffffff), x, 2.3, 110); }
       l.box(-31, 0.3, 110, 6, 4.8, 3.6, 0xd63031); // Lok
       // Bahnhofsgebäude mit Uhrturm
       l.box(10, 0, 124, 30, 7, 10, 0xe17055); l.box(10, 7, 124, 31, 0.5, 11, 0x636e72);
