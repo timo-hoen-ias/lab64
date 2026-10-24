@@ -1,12 +1,18 @@
 // Service Worker: Spiel offline spielbar machen.
 // Netzwerk zuerst (damit neue Versionen sofort ankommen), sonst aus dem Cache.
-const CACHE = 'moll64-v1';
+// VERSION ersetzt der Pages-Workflow durch den Commit – so ändert sich sw.js bei jedem Deploy
+// und die offene App merkt, dass es eine neue Version gibt.
+const VERSION = 'dev';
+const CACHE = 'moll64-' + VERSION;
 const SHELL = ['./', './index.html', './manifest.webmanifest', './vendor/three.module.js', './src/main.js',
   './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
 });
+
+// Erst auf Knopfdruck („Neue Version – neu laden“) übernehmen, damit nichts mitten im Spiel umspringt.
+self.addEventListener('message', e => { if (e.data === 'skipWaiting') self.skipWaiting(); });
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()

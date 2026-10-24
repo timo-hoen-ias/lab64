@@ -82,6 +82,8 @@
   @keyframes cardIn{from{transform:translateY(30px) scale(.9);opacity:0}to{transform:none;opacity:1}}
   #menu button{transition:transform .1s}
   #menu button:hover{transform:translateY(-2px)}
+  #btnUpdate{position:fixed;left:50%;bottom:calc(var(--sa-b) + 14px);transform:translateX(-50%);z-index:90;font:inherit;font-weight:900;font-size:16px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:var(--good);color:var(--ink);box-shadow:0 4px 0 var(--ink);cursor:pointer;white-space:nowrap}
+  #btnUpdate:active{transform:translate(-50%,3px);box-shadow:0 1px 0 var(--ink)}
   /* Hochformat am Handy: zum Drehen auffordern */
   #rotate{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(circle at 50% 40%,#ffd56b,#f4a52a 45%,#c7641e);color:var(--ink);font-weight:900;font-size:22px;text-align:center;padding:24px}
   #rotate .phone{font-size:72px;animation:turn 1.8s ease-in-out infinite}
@@ -132,6 +134,7 @@
   </div>
 </div>
 
+<button id="btnUpdate" style="display:none">✨ Neue Version – neu laden</button>
 <div id="rotate"><div class="phone">📱</div>Bitte das Handy quer halten</div>
 
 <script type="importmap">
