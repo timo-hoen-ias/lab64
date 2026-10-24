@@ -229,6 +229,9 @@ export function makeFood(kind) {
     case 'sock': { // Socke
       g.add(box(0.3, 0.6, 0.18, 0xe84393, 0, 0.45, 0)); g.add(box(0.3, 0.2, 0.45, 0xe84393, 0, 0.2, 0.14)); g.add(box(0.32, 0.12, 0.2, 0xffffff, 0, 0.72, 0)); break;
     }
+    case 'cup': { // Kaffeetasse
+      g.add(cyl(0.25, 0.22, 0.45, 0xffffff, 0, 0.3, 0, 10)); g.add(box(0.08, 0.25, 0.08, 0xffffff, 0.3, 0.3, 0)); g.add(cyl(0.21, 0.21, 0.02, 0x6d4c41, 0, 0.52, 0, 10)); break;
+    }
     case 'ice': { // Eiskugel in der Waffel
       g.add(cone(0.22, 0.6, 0xd9a066, 0, 0.3, 0, 8).rotateX(Math.PI)); g.add(sphere(0.26, 0xffb3c6, 0, 0.66, 0)); break;
     }

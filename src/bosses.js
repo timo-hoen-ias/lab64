@@ -173,11 +173,11 @@ export class BirdBoss extends Boss {
 
 // Kleine Tauben-Plage: pickt Moll bei Berührung; weicht Bissen aus.
 export class Pigeon {
-  constructor(game, x, z) { this.game = game; this.mesh = makeBird('pigeon'); this.mesh.position.set(x, 0, z); this.radius = 0.8; this.dead = false; this.t = Math.random() * 10; this.home = { x, z }; }
+  constructor(game, x, z, y0 = 0) { this.game = game; this.mesh = makeBird('pigeon'); this.y0 = y0; this.mesh.position.set(x, y0, z); this.radius = 0.8; this.dead = false; this.t = Math.random() * 10; this.home = { x, z }; }
   update(dt) {
     this.t += dt; const u = this.mesh.userData; u.wings.forEach((w, i) => w.rotation.z = Math.sin(this.t * 12) * 0.5 * (i ? -1 : 1));
     this.mesh.position.x = this.home.x + Math.cos(this.t * 0.7) * 3; this.mesh.position.z = this.home.z + Math.sin(this.t * 0.9) * 3;
-    this.mesh.position.y = 0.3 + Math.abs(Math.sin(this.t * 2)) * 1.5; this.mesh.rotation.y = this.t * 0.8;
+    this.mesh.position.y = this.y0 + 0.3 + Math.abs(Math.sin(this.t * 2)) * 1.5; this.mesh.rotation.y = this.t * 0.8;
     const p = this.game.player; if (this.mesh.position.distanceTo(p.pos) < 1.2) p.hurt(1);
   }
   onBite() { this.dead = true; this.mesh.visible = false; this.game.audio.sfx('collect'); this.game.toast('Taube verscheucht!'); }

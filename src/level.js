@@ -254,7 +254,7 @@ export class Level {
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
-      const mm = new THREE.Mesh(g, list[0].material); mm.castShadow = mm.receiveShadow = true; group.add(mm);
+      const mm = new THREE.Mesh(g, list[0].material); mm.castShadow = list[0].castShadow; mm.receiveShadow = true; group.add(mm);
     }
   }
   // Nur Deko (keine Kollision)
