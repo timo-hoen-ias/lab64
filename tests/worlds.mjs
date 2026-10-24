@@ -220,7 +220,7 @@ console.log('Rückkehr:');
 for (const key of [...new Set([...only, ...(only.length > 1 ? ['strand'] : [])])].filter(k => k !== 'rattenrennen')) {
   await ev(k => window.game.enterLevel(k), key); await W(1500);
   for (const bb of await ev(() => window.game.level.backbones.map(bb => ({ id: bb.id, kind: bb.kind, x: bb.x, y: bb.y, z: bb.z })))) {
-    if (bb.kind === 'nose') { await tp(bb.x + 2, bb.y + 0.2, bb.z); await p.keyboard.down('KeyF'); await W(900); await p.keyboard.up('KeyF'); }
+    if (bb.kind === 'nose') { await tp(bb.x + 2, bb.y + 0.2, bb.z); await kb.down('KeyF'); await W(900); await kb.up('KeyF'); }
     else { await tp(bb.x, bb.y + 0.2, bb.z - 2.5, 0); await ev(id => { const b = window.game.level.backbones.find(b => b.id === id); b.act && b.act(); }, bb.id); await W(900); }
     const q = await ev(id => { const p = window.game.level.pickups.find(q => q.boneId === id && !q.taken && q.mesh.visible); return p && [p.x, p.y, p.z]; }, bb.id);
     if (q) { await tp(q[0], q[1] - 0.5, q[2]); await W(700); }
