@@ -1,15 +1,15 @@
 // Moll – Spielerfigur: Bewegung, Sprung/Doppelsprung, Biss, Schnüffeln, AABB-Kollision gegen Level-Solids.
 import * as THREE from 'three';
-import { makeDog, animateDog } from './models.js';
+import { makeDog, animateDog, compact } from './models.js';
 import { animateIdle } from './idle.js';
-import { makeBlobShadow, FX } from './fx.js';
+import { makeBlobShadow, FX, characterLook } from './fx.js';
 
 const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15;
 
 export class Player {
   constructor(game) {
     this.game = game;
-    this.mesh = makeDog(); this.shadow = makeBlobShadow(0.85); this.turn = 0;
+    this.mesh = characterLook(compact(makeDog())); this.shadow = makeBlobShadow(0.85); this.turn = 0;
     this.pos = new THREE.Vector3(0, 1, 0);
     this.vel = new THREE.Vector3();
     this.yaw = 0; this.onGround = false; this.canDouble = true; this.coyote = 0;
@@ -107,11 +107,16 @@ export class Player {
     this.pos.x += this.vel.x * dt; this._resolve(solids, 'x'); this._terrainSide(level, 'x', this.vel.x * dt);
     this.pos.z += this.vel.z * dt; this._resolve(solids, 'z'); this._terrainSide(level, 'z', this.vel.z * dt);
     this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
-    if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); }
+    if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); if (this._lastVy < -12) FX.land(this.game.fx, this.pos, Math.min(2, -this._lastVy / 14)); }
     this._lastVy = this.vel.y;
     // Laufstaub
     if (this.onGround && !wet && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
     if (this.pos.y < (level.killY ?? -25)) { this.hurt(1); this.respawn(); }
+    // Pfotenabdrücke (Welten mit def.prints, nur auf Gelände über Wasser): abwechselnd links/rechts
+    if (level.def.prints && this.onGround && !wet && level.heightAt(this.pos.x, this.pos.z) >= this.pos.y - 0.05 && (level.seaY === undefined || this.pos.y > level.seaY + 0.1)) {
+      this._step = (this._step || 0) + Math.hypot(this.vel.x, this.vel.z) * dt;
+      if (this._step > 0.45) { this._step = 0; this._side = -(this._side || 1); const s = this._side * 0.2, c = Math.cos(this.yaw), n = Math.sin(this.yaw); this.game.prints.add(this.pos.x + c * s, this.pos.y, this.pos.z - n * s, this.yaw); }
+    }
     // Am Ufer: schwimmt Moll gegen den Rand, hüpft sie automatisch raus
     if (swim && this.speedFrac > 0.3 && this.vel.y < 4) {
       const fx = this.pos.x + Math.sin(this.yaw) * 0.8, fz = this.pos.z + Math.cos(this.yaw) * 0.8;

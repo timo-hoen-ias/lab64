@@ -6,15 +6,15 @@ import { Player } from './player.js';
 import { Level } from './level.js';
 import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
-import { Particles, makeLightShafts, SEE_THROUGH } from './fx.js';
+import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
 const QUALITY = {
-  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220, fog: 330, grass: 3500 },
-  mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150, fog: 240, grass: 1600 },
-  niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500 },
+  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220, fog: 330, grass: 3500, outlines: true, ambient: 1 },
+  mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150, fog: 240, grass: 1600, outlines: true, ambient: 0.6 },
+  niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500, outlines: false, ambient: 0.3 },
 };
 
 // Strahl gegen Kiste (Slab-Test): Abstand oder Infinity
@@ -36,7 +36,7 @@ export class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.0;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
     this.input = new Input(); this.audio = new AudioEngine();
-    this.fx = new Particles(); this.shakeT = 0; this._shake = new THREE.Vector3();
+    this.fx = new Particles(); this.rings = this.fx.rings = new Rings(); this.prints = new Prints(); this.shakeT = 0; this._shake = new THREE.Vector3();
     this.player = new Player(this);
     this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
@@ -90,7 +90,7 @@ export class Game {
   worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; w[key].special ||= []; return w[key]; }
   applyQuality() {
     const q = this.q = QUALITY[this.save.settings.quality];
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.ratio));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.ratio)); setOutlines(q.outlines);
     if (this.renderer.shadowMap.enabled !== q.shadows) { this.renderer.shadowMap.enabled = q.shadows; this.level?.scene?.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); }); }
     if (this.level?.sun) this._sunQuality(this.level.sun);
     if (this.level?.scene?.fog && this.level.def && !this.level.def.indoor && !this.level.def.fogFar) this.level.scene.fog.far = q.fog;
@@ -162,7 +162,7 @@ export class Game {
   }
 
   enterLevel(key, silent = false) {
-    this.fx.detach(); this.player.mesh.removeFromParent(); this.player.shadow.removeFromParent(); // Moll wandert mit in die neue Welt: seine Geometrie nicht mit der alten Welt freigeben
+    this.fx.detach(); this.rings.detach(); this.prints.detach(); this.player.mesh.removeFromParent(); this.player.shadow.removeFromParent(); // Moll wandert mit in die neue Welt: seine Geometrie nicht mit der alten Welt freigeben
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
@@ -171,7 +171,7 @@ export class Game {
       this.player.yaw = this.level.spawnYaw ?? Math.PI; this.camYaw = this.player.yaw - Math.PI;
       this._sunQuality(this.level.sun); this.level.restore(); this.snapCam = true;
     }
-    this.fx.attach(this.level.scene); this.fade();
+    this.fx.attach(this.level.scene); this.rings.attach(this.level.scene); if (this.level.def.prints) this.prints.attach(this.level.scene, this.level.def.prints); this.fade();
     this.level.key = key;
     this.hud.levelName.textContent = this.level.def.name;
     this.updateHearts(); this.updateCounter();
@@ -246,7 +246,7 @@ export class Game {
       if (this.level.isRunner) this.level.update(dt);
       else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); this.updateCompass(dt); }
     }
-    if (!this.paused) this.fx.update(dt);
+    if (!this.paused) { this.fx.update(dt); this.rings.update(dt); this.prints.update(dt); }
     // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird
     if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
     if (!this.paused) { this._underwater(); this._musicMix(); }
