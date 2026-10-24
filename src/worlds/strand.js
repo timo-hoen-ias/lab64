@@ -30,7 +30,7 @@ function coral(color, h) { const g = new THREE.Group(); for (let i = 0; i < 4; i
 function seaweed(h) { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const s = box(0.15, h, 0.05, 0x2e8b57, (i - 1) * 0.25, h / 2, 0); s.rotation.y = i; g.add(s); } g.userData.weed = true; return g; }
 
 export const STRAND = {
-  name: 'Die Badebucht', time: 'mittag', backdrop: 'meer', sky: 0x6ec9ff, ground: 0xc9b27a, floorY: -12, killY: -40,
+  name: 'Die Badebucht', time: 'mittag', prints: 0xa8874f, backdrop: 'meer', sky: 0x6ec9ff, ground: 0xc9b27a, floorY: -12, killY: -40,
   size: 150, need: 8, goalKind: 'fries', camFloor: -Infinity, grass: [0xb8c66a, 0x9fb558, 0xc9d17a], waterFog: 0x1aa0c8, waterView: 42,
   music: { scale: 'major', root: 262, bpm: 112, seed: 64, swing: 0.12, style: 'beach' },
   build(l) {

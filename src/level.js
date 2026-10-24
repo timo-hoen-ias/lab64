@@ -2,11 +2,15 @@
 import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere } from './models.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough } from './fx.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam } from './fx.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const smooth = u => u * u * (3 - 2 * u);
+// Weiche Helligkeitsflecken für Wiesen und Hügel (kein Zufall: gleiche Welt sieht immer gleich aus)
+const patch = (x, z) => Math.sin(x * 0.071) * Math.sin(z * 0.063) + Math.sin(x * 0.19 + z * 0.13) * 0.5 + Math.sin(x * 0.53 - z * 0.47) * 0.18;
+// Welche Umgebungspartikel wo fliegen (Anzahl bei Grafik „Hoch“)
+const AMBIENT_N = { pollen: 90, leaves: 26, fireflies: 50, dust: 70, drips: 36, plankton: 80 };
 
 export class Level {
   constructor(game, def, key) {
@@ -38,7 +42,9 @@ export class Level {
     this._placeScatter();
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
+    CAUSTIC.uSeaY.value = this.seaY ?? -1e9;
     this._seeThrough();
+    this._ambient(); if (this.seaY !== undefined) this._shoreFoam();
     this.crumbTotal = this.pickups.filter(p => !p.goal && !p.special && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
@@ -56,7 +62,7 @@ export class Level {
   ground(color, size) {
     let g;
     if (this.def.water) { g = makeWater(color, size); this.water = g; }
-    else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; g.position.y = this.def.floorY || 0; }
+    else { g = new THREE.Mesh(this._tint(new THREE.PlaneGeometry(size * 2.4, size * 2.4, 64, 64)), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), vertexColors: true })); g.rotation.x = -Math.PI / 2; g.position.y = this.def.floorY || 0; }
     g.receiveShadow = true; this.scene.add(g); this.groundMesh = g;
     // Weiter Boden bis zum Horizont (ohne Kollision), damit man auf großen Sichtweiten keine Kante sieht
     if (!this.def.indoor && !this.def.water) {
@@ -74,7 +80,7 @@ export class Level {
     // Boden neu: Rechteck mit elliptischem Loch
     const shape = new THREE.Shape(); shape.moveTo(-size, -size); shape.lineTo(size, -size); shape.lineTo(size, size); shape.lineTo(-size, size); shape.lineTo(-size, -size);
     const hole = new THREE.Path(); hole.absellipse(x, -z, rx, rz, 0, Math.PI * 2, false, 0); shape.holes.push(hole);
-    this.groundMesh.geometry.dispose(); this.groundMesh.geometry = new THREE.ShapeGeometry(shape, 48);
+    this.groundMesh.geometry.dispose(); this.groundMesh.geometry = this._tint(new THREE.ShapeGeometry(shape, 48));
     // Kollision: Boden in Streifen um die Ellipse herum, Beckengrund tiefer
     this.solids.splice(this.solids.indexOf(this.groundSolid), 1);
     const add = (x0, x1, z0, z1, top = 0) => { if (x1 > x0 && z1 > z0) this.solids.push({ min: { x: x0, y: -5, z: z0 }, max: { x: x1, y: top, z: z1 }, active: true }); };
@@ -87,6 +93,12 @@ export class Level {
     add(x - rx, x + rx, z - rz, z + rz, -depth);
     const p = makePond(rx, rz, depth); p.position.set(x, 0, z); this.scene.add(p);
     this.ponds = (this.ponds || []).concat({ x, z, rx, rz, y: -0.25, mesh: p });
+  }
+  // Boden-Geometrie (liegt in xy, wird um -90° gekippt → Welt-z = -y) bekommt sanfte Helligkeitsflecken
+  _tint(geo) {
+    const p = geo.attributes.position, col = new Float32Array(p.count * 3), indoor = this.def.indoor;
+    for (let i = 0; i < p.count; i++) { const k = 1 + patch(p.getX(i), -p.getY(i)) * (indoor ? 0.025 : 0.055); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); return geo;
   }
   waterAt(x, z) {
     for (const p of this.ponds || []) if (((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2 < 1) return p.y;
@@ -186,7 +198,7 @@ export class Level {
       // Hänge bekommen die Erdfarbe, je steiler desto mehr
       const steep = r <= t.flat ? 0 : Math.min(1, t.h * 6 * (1 - r) * r / ((1 - t.flat) * Math.max(t.rx, t.rz)) * 1.4);
       c.copy(cTop).lerp(cSide, steep * 0.4);
-      for (let j = 0; j < (i ? S : 1); j++) { const a = j / S * Math.PI * 2; pos.push(t.x + Math.cos(a) * t.rx * r, y, t.z + Math.sin(a) * t.rz * r); col.push(c.r, c.g, c.b); }
+      for (let j = 0; j < (i ? S : 1); j++) { const a = j / S * Math.PI * 2, px = t.x + Math.cos(a) * t.rx * r, pz = t.z + Math.sin(a) * t.rz * r, k = 1 + patch(px, pz) * 0.06; pos.push(px, y, pz); col.push(c.r * k, c.g * k, c.b * k); }
     }
     for (let j = 0; j < S; j++) idx.push(0, 1 + (j + 1) % S, 1 + j);
     for (let i = 1; i < R; i++) { const a0 = 1 + (i - 1) * S, a1 = 1 + i * S; for (let j = 0; j < S; j++) { const j1 = (j + 1) % S; idx.push(a0 + j, a0 + j1, a1 + j, a0 + j1, a1 + j1, a1 + j); } }
@@ -243,30 +255,64 @@ export class Level {
   // (Decken, Zwischenböden) halten außerdem die Kamera auf, damit sie nicht über die Decke eines Raums fliegt.
   _seeThrough() {
     const skip = new Set([...this.enemies.map(e => e.mesh), ...this.pickups.map(p => p.mesh), ...(this.abilityItems || []).map(i => i.mesh)]);
-    const walk = o => { if (skip.has(o)) return; if (o.isMesh) [].concat(o.material).forEach(addSeeThrough); o.children.forEach(walk); };
+    const sea = this.seaY !== undefined;
+    const walk = o => { if (skip.has(o)) return; if (o.isMesh) [].concat(o.material).forEach(m => { addSeeThrough(m); if (sea && !m.transparent) addCaustics(m); }); o.children.forEach(walk); };
     walk(this.group); this.zones.forEach(z => walk(z.group));
+    if (sea && this.groundMesh.material.isMeshToonMaterial) addCaustics(this.groundMesh.material);
     for (const s of this.solids) if (s !== this.groundSolid && (s.max.x - s.min.x) * (s.max.z - s.min.z) > 40 && s.max.y - s.min.y < 3) s.ceil = true;
   }
 
-  // Statische Kisten gleicher Farbe zu einem Mesh zusammenfassen: viel weniger Zeichenaufrufe auf großen Karten
+  // Statische Kisten und reine Deko-Pflanzen (userData.static) gleicher Farbe zu einem Mesh zusammenfassen: viel weniger
+  // Zeichenaufrufe auf großen Karten. Dabei bekommt jedes Teil unten eine leichte Abdunklung (Kontaktschatten an Wänden).
   _mergeStatic(group) {
-    const buckets = new Map();
-    for (const m of group.children) if (m.isMesh && m.userData.merge && m.geometry.index && !m.material.transparent) {
-      const k = m.material.color.getHex(); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(m);
+    group.updateMatrixWorld(true);
+    const buckets = new Map(), statics = [];
+    const add = m => { const t = m.material, k = `${t.type}|${t.color.getHex()}|${t.flatShading ? 1 : 0}|${t.userData.sway ? 1 : 0}`; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(m); };
+    for (const m of group.children) {
+      if (m.isMesh && m.userData.merge && !m.material.transparent && !m.material.vertexColors) add(m);
+      else if (m.userData.static) { m.traverse(o => { if (o.isMesh) add(o); }); statics.push(m); }
     }
     for (const list of buckets.values()) {
-      if (list.length < 2) continue;
-      const pos = [], nor = [], uv = [], idx = []; let off = 0;
+      const pos = [], nor = [], col = [], idx = []; let off = 0;
       for (const m of list) {
-        m.updateMatrix(); const g = m.geometry.clone().applyMatrix4(m.matrix), p = g.attributes.position;
-        pos.push(...p.array); nor.push(...g.attributes.normal.array); uv.push(...g.attributes.uv.array);
-        for (const i of g.index.array) idx.push(i + off); off += p.count; g.dispose(); m.geometry.dispose(); group.remove(m);
+        const g = m.geometry.clone().applyMatrix4(m.matrixWorld), p = g.attributes.position;
+        let y0 = Infinity, y1 = -Infinity; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        const ao = y1 - y0 >= 0.6;
+        for (let i = 0; i < p.count; i++) { const k = ao ? 0.74 + 0.26 * Math.min(1, (p.getY(i) - y0) / 2.2) : 1; col.push(k, k, k); }
+        pos.push(...p.array); nor.push(...g.attributes.normal.array);
+        if (g.index) for (const i of g.index.array) idx.push(i + off); else for (let i = 0; i < p.count; i++) idx.push(i + off);
+        off += p.count; g.dispose(); if (!m.userData.static) m.geometry.dispose(); m.removeFromParent();
       }
       const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
-      const mm = new THREE.Mesh(g, list[0].material); mm.castShadow = list[0].castShadow; mm.receiveShadow = true; group.add(mm);
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+      const mt = list[0].material; mt.vertexColors = true; mt.needsUpdate = true;
+      const mm = new THREE.Mesh(g, mt); mm.castShadow = list[0].castShadow; mm.receiveShadow = true; group.add(mm);
     }
+    statics.forEach(st => st.removeFromParent());
   }
+
+  // Umgebungspartikel je Welt (def.ambient = Liste überschreibt die Auswahl); unter Wasser schweben Teilchen
+  _ambient() {
+    const d = this.def, q = this.game.q.ambient ?? 1, out = !d.indoor;
+    const kinds = d.ambient || (!out ? [this.key === 'kanal' ? 'drips' : 'dust'] : [...(d.time === 'abend' ? ['fireflies'] : []), 'pollen', ...(['huegel', 'wald', 'berge'].includes(d.backdrop) ? ['leaves'] : [])]);
+    this.ambient = kinds.map(k => { const m = makeAmbient(k, Math.max(4, Math.round(AMBIENT_N[k] * q)), k === 'leaves' ? 18 : 14, k === 'drips' ? 9 : 8); m.userData.place(this.spawn); this.scene.add(m); return m; });
+    if (this.seaY !== undefined || this.ponds) { this.plankton = makeAmbient('plankton', Math.round(AMBIENT_N.plankton * q), 12, 10); this.plankton.visible = false; this.plankton.userData.place(this.spawn); this.scene.add(this.plankton); }
+  }
+  // Schaum am Strand: Rasterpunkte, an denen das Gelände die Wasserlinie schneidet
+  _shoreFoam() {
+    const y = this.seaY, S = (this.def.size || 40) * 1.1, step = 2, pts = [];
+    for (let x = -S; x < S; x += step) for (let z = -S; z < S; z += step) {
+      const h = this.heightAt(x, z) - y; if (h === -Infinity) continue;
+      for (const [dx, dz] of [[step, 0], [0, step]]) {
+        const h2 = this.heightAt(x + dx, z + dz) - y; if (h2 === -Infinity || (h > 0) === (h2 > 0)) continue;
+        const f = h / (h - h2), gx = this.heightAt(x + 1, z) - this.heightAt(x - 1, z), gz = this.heightAt(x, z + 1) - this.heightAt(x, z - 1);
+        pts.push([x + dx * f, z + dz * f, Math.atan2(gx, gz)]);
+      }
+      if (pts.length > 2400) break;
+    }
+    if (!pts.length) return; this.foam = makeShoreFoam(pts, y); this.scene.add(this.foam);
+  }
+
   // Nur Deko (keine Kollision)
   deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); return mesh; }
   tree(x, z, s = 1, mesh) { const y = Math.max(0, this.heightAt(x, z)); this.deco(mesh || makeTree(s), x, y, z); this.solids.push({ min: { x: x - 0.4 * s, y, z: z - 0.4 * s }, max: { x: x + 0.4 * s, y: y + 1.5 * s, z: z + 0.4 * s }, active: true }); }
@@ -353,6 +399,10 @@ export class Level {
     if (this.farClouds) { this.farClouds.userData.update(dt * 0.3); this.farClouds.position.set(cp.x, 0, cp.z); }
     if (this.skyLife) this.skyLife.userData.update(dt, this.t);
     if (this.grass) this.grass.userData.update(dt);
+    WIND.uWind.value += dt; CAUSTIC.uCaT.value += dt;
+    if (this.foam) this.foam.userData.update(this.t);
+    for (const a of this.ambient || []) a.userData.update(dt, cp, pp.y - 1.5);
+    if (this.plankton) { const uw = !!this._uw; this.plankton.visible = uw; if (uw) this.plankton.userData.update(dt, cp, cp.y - 5); }
     if (this.water) this.water.userData.update(dt);
     for (const p of this.ponds || []) p.mesh.userData.update(dt);
     // Ferne Bereiche ausblenden (Sichtweite je Grafik-Stufe)
@@ -376,6 +426,7 @@ export class Level {
       p.mesh.rotation.y += dt * (p.kind === 'goldbone' ? 2.5 : 2); p.mesh.position.y = p.y + Math.sin(this.t * 3 + p.mesh.userData.spin) * 0.12;
       if (p.mesh.userData.halo) { const h = p.mesh.userData.halo; h.scale.setScalar(1 + Math.sin(this.t * 4) * 0.12); h.material.opacity = 0.3 + Math.sin(this.t * 4) * 0.15; }
       if (p.kind === 'goldbone' && p.mesh.visible && Math.random() < dt * 8) FX.sparkle(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z });
+      else if (p.goal && p.mesh.visible && Math.random() < dt * 1.5) FX.sparkle(this.game.fx, { x: p.x, y: p.y + 0.2, z: p.z }); // Ziel-Essen glitzert
       if (p.appear !== undefined && p.appear < 1) { p.appear = Math.min(1, p.appear + dt * 2.5); const k = p.appear, e = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2); p.mesh.scale.setScalar(Math.max(0.01, e)); }
       const d = Math.hypot(p.x - pp.x, p.z - pp.z), dy = Math.abs(p.y - pp.y);
       if (p.hidden) {
@@ -386,7 +437,7 @@ export class Level {
       if (d < 1.2 && dy < 1.8) {
         p.taken = true; p.mesh.visible = false;
         const at = { x: p.x, y: p.mesh.position.y + 0.3, z: p.z };
-        if (p.kind === 'goldbone') FX.gold(this.game.fx, at); else if (p.goal) FX.food(this.game.fx, at); else FX.crumb(this.game.fx, at);
+        if (p.kind === 'goldbone') FX.gold(this.game.fx, at); else if (p.goal) FX.food(this.game.fx, at); else { FX.crumb(this.game.fx, at); FX.crumbRing(this.game.fx, at); }
         this.game.collect(p, this); this.remember(p); if (p.onTake) p.onTake(p);
       }
     }
