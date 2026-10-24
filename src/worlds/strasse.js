@@ -29,15 +29,15 @@ export const STRASSE = {
     [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
     [[-4, -20, 0xd63031], [4, 12, 0x0984e3]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
     // Dächer-Parcours: Bretter zwischen den Läden, Lichterketten-Brücke über die Straße, Ringe
-    [-24, 24].forEach(x => { l.box(x, 6.2, -16, 3, 0.3, 4.4, WOOD); l.box(x, 6.2, 1, 3, 0.3, 6.4, WOOD); });
-    l.box(0, 6.2, 10, 36.4, 0.3, 1.8, 0xffeaa7);
+    [-24, 24].forEach(x => { l.box(x, 6.25, -16, 3, 0.3, 4.4, WOOD); l.box(x, 6.25, 1, 3, 0.3, 6.4, WOOD); }); // Bretter 5 cm über den Dächern, nicht bündig (Flackern)
+    l.box(0, 6.25, 10, 36.4, 0.3, 1.8, 0xffeaa7);
     for (let x = -11; x <= 11; x += 2) l.deco(sphere(0.18, [0xff7675, 0xfdcb6e, 0x74b9ff][(x + 11) / 2 % 3], 0, 0, 0, 6), x, 6.9, 10.9);
     l.ringCourse([[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]], 'daecher', 30, 0x74b9ff);
     [[-12, 0], [12, 12], [0, -14]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-6, 0, 26, 'Hauptstraße', bench());
     [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, 2.7, -20, 'bread'], [4, 2.7, 12, 'sausage'], [15.5, 3.3, -8, 'sausage'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
     // Straßen in die Viertel
-    [[0, -66, 12, 60], [0, 66, 12, 60], [66, 0, 60, 12], [-66, 0, 60, 12]].forEach(([x, z, w, d]) => l.group.add(box(w, 0.05, d, ROAD, x, 0.03, z)));
+    [[0, -66, 12, 60], [0, 66, 12, 60], [66, 0, 60, 12], [-66, 0, 60, 12]].forEach(([x, z, w, d]) => l.group.add(box(w, 0.04, d, ROAD, x, 0.02, z))); // etwas flacher als die Plätze, sonst flackert die Überlappung
 
     // ---- Norden: Kaufhaus (drei Etagen innen)
     l.zone(0, -110, 55, () => {

@@ -57,11 +57,13 @@ export class Level {
     let g;
     if (this.def.water) { g = makeWater(color, size); this.water = g; }
     else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; g.position.y = this.def.floorY || 0; }
+    // Boden in der Tiefe minimal nach hinten schieben: Wege, Teppiche, Plätze und Raumböden darauf gewinnen immer (kein Flackern)
+    if (!this.def.water) Object.assign(g.material, { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 2 });
     g.receiveShadow = true; this.scene.add(g); this.groundMesh = g;
     // Weiter Boden bis zum Horizont (ohne Kollision), damit man auf großen Sichtweiten keine Kante sieht
     if (!this.def.indoor && !this.def.water) {
-      const far = new THREE.Mesh(new THREE.RingGeometry(size * 1.2, 520, 64, 1), new THREE.MeshToonMaterial({ color: this.def.farGround ?? color, gradientMap: toonGradient() }));
-      far.rotation.x = -Math.PI / 2; far.position.y = -0.03; far.receiveShadow = true; this.scene.add(far);
+      const far = new THREE.Mesh(new THREE.RingGeometry(size * 1.2, 520, 64, 1), new THREE.MeshToonMaterial({ color: this.def.farGround ?? color, gradientMap: toonGradient(), polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4 }));
+      far.rotation.x = -Math.PI / 2; far.position.y = -0.1; // liegt unter den Ecken des Bodens, die über den Ring hinausragen far.receiveShadow = true; this.scene.add(far);
     }
     const fy = this.def.floorY || 0; // Meeresgrund o.ä. unter 0
     this.groundSolid = { min: { x: -size * 1.2, y: fy - 5, z: -size * 1.2 }, max: { x: size * 1.2, y: fy, z: size * 1.2 }, active: true };

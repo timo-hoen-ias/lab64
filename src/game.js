@@ -34,7 +34,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.0;
-    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
+    this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 600); // near nicht kleiner: sonst reicht die Tiefengenauigkeit nicht und übereinanderliegende Flächen flackern
     this.input = new Input(); this.audio = new AudioEngine();
     this.fx = new Particles(); this.shakeT = 0; this._shake = new THREE.Vector3();
     this.player = new Player(this);

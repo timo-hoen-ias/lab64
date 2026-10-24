@@ -161,7 +161,7 @@ export const STRAND = {
       const top = H(100, 0);
       l.box(100, top, 0, 4.4, 18, 4.4, 0xffffff, { cam: true });
       for (let i = 0; i < 6; i++) l.deco(cyl(2.35, 2.35, 1.5, 0xe74c3c, 0, 0, 0, 12), 100, top + 1.5 + i * 3, 0);
-      l.deco(cyl(2.6, 2.6, 0.4, 0x2d3436, 0, 0, 0, 12), 100, top + 18.2, 0); l.deco(sphere(1.2, 0xfff3a0, 0, 0, 0, 10), 100, top + 19.6, 0);
+      l.deco(cyl(2.6, 2.6, 0.4, 0x2d3436, 0, 0, 0, 12), 100, top + 18.25, 0); l.deco(sphere(1.2, 0xfff3a0, 0, 0, 0, 10), 100, top + 19.6, 0);
       for (let i = 0; i < 12; i++) { const a = i * 0.62, r = 3.8; l.box(100 + Math.cos(a) * r, top + 1.1 + i * 1.45, Math.sin(a) * r, 2, 0.4, 2, 0x95a5a6); }
       l.box(100, top + 18, 0, 6, 0.4, 6, 0x95a5a6);
       l.goldbone('leuchtturm', 100, top + 19, 2.5);
