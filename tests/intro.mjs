@@ -8,7 +8,7 @@ await p.goto('http://localhost:8077/index.html'); await p.waitForTimeout(1200);
 console.log('wartet:', await st());
 // Ablauf Schritt für Schritt (Uhr festhalten, der Software-Renderer ist zu langsam für Echtzeit)
 await p.mouse.click(400, 225); await p.evaluate(() => { const i = window.game.intro; i._now = () => i.pos; });
-for (const s of [10, 63, 67, 70]) { await p.evaluate(s => { window.game.intro.pos = s; }, s); await p.waitForTimeout(1000); console.log(`Achtel ${s}:`, await st()); }
+for (const s of [10, 25, 31, 36]) { await p.evaluate(s => { window.game.intro.pos = s; }, s); await p.waitForTimeout(1000); console.log(`Achtel ${s}:`, await st()); }
 // Echtzeit mit Ton, dann per Leertaste überspringen
 await p.reload(); await p.waitForTimeout(1200); await p.keyboard.press('Space'); await p.waitForTimeout(1500);
 console.log('Musik läuft:', await p.evaluate(() => ({ step: window.game.audio.song?.step, ctx: window.game.audio.ctx.state })));
