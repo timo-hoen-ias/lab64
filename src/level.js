@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam } from './fx.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex } from './fx.js';
+import { Critters } from './critters.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -11,6 +12,12 @@ const smooth = u => u * u * (3 - 2 * u);
 // Weiche Helligkeitsflecken für Wiesen und Hügel (kein Zufall: gleiche Welt sieht immer gleich aus)
 const patch = (x, z) => Math.sin(x * 0.071) * Math.sin(z * 0.063) + Math.sin(x * 0.19 + z * 0.13) * 0.5 + Math.sin(x * 0.53 - z * 0.47) * 0.18;
 // Welche Umgebungspartikel wo fliegen (Anzahl bei Grafik „Hoch“)
+// Wetter: in diesen Welten zieht ab und zu ein Regenschauer durch, danach steht ein Regenbogen am Himmel
+const RAIN_WORLDS = ['hub', 'park', 'dorf', 'strasse', 'hafen'];
+// Lichtstrahlen durch Baumkronen
+const SHAFT_WORLDS = ['hub', 'park', 'dorf'];
+// Farben, die abends als Lampen leuchten
+const LAMPS = [0xfff3a0, 0xffeaa7, 0xfff9c4, 0xffe066];
 const AMBIENT_N = { pollen: 90, leaves: 26, fireflies: 50, dust: 70, drips: 36, plankton: 80 };
 
 export class Level {
@@ -46,13 +53,15 @@ export class Level {
     CAUSTIC.uSeaY.value = this.seaY ?? -1e9;
     this._seeThrough();
     this._ambient(); if (this.seaY !== undefined) this._shoreFoam();
+    this.critters = new Critters(this);
+    this._sky(out);
     this.crumbTotal = this.pickups.filter(p => !p.goal && !p.special && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
 
   _light() {
     const T = this.T;
-    this.scene.add(new THREE.HemisphereLight(0xdff1ff, 0x8a6b3f, T ? T.hemi : 1.3));
+    this.hemi = new THREE.HemisphereLight(0xdff1ff, 0x8a6b3f, T ? T.hemi : 1.3); this.scene.add(this.hemi);
     // Sonne folgt dem Hund: kleiner Schattenbereich = scharfe Schatten auch auf großen Karten
     const sun = new THREE.DirectionalLight(T ? T.sun : 0xfff0d0, T ? T.sunI : 2.4); sun.castShadow = true; this.sunOff = new THREE.Vector3(...(T ? T.sunOff : [18, 34, 12])).normalize().multiplyScalar(41);
     sun.shadow.mapSize.set(1024, 1024); const s = 26; sun.shadow.camera.left = -s; sun.shadow.camera.right = s; sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s; sun.shadow.camera.far = 90;
@@ -301,9 +310,11 @@ export class Level {
   _seeThrough() {
     const skip = new Set([...this.enemies.map(e => e.mesh), ...this.pickups.map(p => p.mesh), ...(this.abilityItems || []).map(i => i.mesh)]);
     const sea = this.seaY !== undefined;
-    const walk = o => { if (skip.has(o)) return; if (o.isMesh) [].concat(o.material).forEach(m => { addSeeThrough(m); if (sea && !m.transparent) addCaustics(m); }); o.children.forEach(walk); };
+    const out = !this.def.indoor;
+    const walk = o => { if (skip.has(o)) return; if (o.isMesh) [].concat(o.material).forEach(m => { addSeeThrough(m); if (sea && !m.transparent) addCaustics(m); if (out && m.isMeshToonMaterial) addCloudShadow(m); }); o.children.forEach(walk); };
     walk(this.group); this.zones.forEach(z => walk(z.group));
     if (sea && this.groundMesh.material.isMeshToonMaterial) addCaustics(this.groundMesh.material);
+    if (out && this.groundMesh.material.isMeshToonMaterial) addCloudShadow(this.groundMesh.material);
     for (const s of this.solids) if (s !== this.groundSolid && (s.max.x - s.min.x) * (s.max.z - s.min.z) > 40 && s.max.y - s.min.y < 3) s.ceil = true;
   }
 
@@ -343,6 +354,72 @@ export class Level {
     this.ambient = kinds.map(k => { const m = makeAmbient(k, Math.max(4, Math.round(AMBIENT_N[k] * q)), k === 'leaves' ? 18 : 14, k === 'drips' ? 9 : 8); m.userData.place(this.spawn); this.scene.add(m); return m; });
     if (this.seaY !== undefined || this.ponds) { this.plankton = makeAmbient('plankton', Math.round(AMBIENT_N.plankton * q), 12, 10); this.plankton.visible = false; this.plankton.userData.place(this.spawn); this.scene.add(this.plankton); }
   }
+  // Himmel und Licht: Wolkenschatten, abends leuchtende Lampen und Sternschnuppen, Regen mit Regenbogen, Lichtstrahlen
+  _sky(out) {
+    const T = this.T, abend = out && this.def.time === 'abend';
+    CLOUDS.uCloudK.value = out ? 0.13 * Math.min(1.5, T?.clouds ?? 1) : 0; this._cloudBase = CLOUDS.uCloudK.value;
+    if (abend) {
+      const walk = o => { if (o.isMesh && !o.material.transparent && o.material.emissive && LAMPS.includes(o.material.color.getHex())) { o.material.emissive.copy(o.material.color).multiplyScalar(0.7); } o.children.forEach(walk); };
+      walk(this.group); this.zones.forEach(z => walk(z.group));
+      this.star = makeShootingStar(); this.scene.add(this.star); this._starT = 4;
+    }
+    if (out && RAIN_WORLDS.includes(this.key)) {
+      this.rain = makeAmbient('rain', Math.round(260 * (this.game.q.ambient ?? 1)), 16, 14); this.rain.visible = false; this.rain.userData.place(this.spawn); this.scene.add(this.rain);
+      this.rainbow = makeRainbow(); this.rainbow.visible = false; this.scene.add(this.rainbow);
+      this.wx = { state: 'clear', t: 70 + Math.random() * 90, k: 0, bow: 0, sunI: this.sun.intensity, hemiI: this.hemi.intensity, fog: this.scene.fog.color.clone() };
+    }
+    if (out && SHAFT_WORLDS.includes(this.key) && (this.game.q.ambient ?? 1) > 0.5) {
+      const tex = (() => { const c = document.createElement('canvas'); c.width = 32; c.height = 64; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 64); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.3, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 64); x.globalCompositeOperation = 'destination-in'; const h = x.createLinearGradient(0, 0, 32, 0); h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(0.5, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = h; x.fillRect(0, 0, 32, 64); return new THREE.CanvasTexture(c); })();
+      this.shafts = []; const dir = this.sky.sunDir;
+      for (let i = 0; i < 5; i++) {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 14), new THREE.MeshBasicMaterial({ map: tex, color: T?.glow ?? 0xfff6dd, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+        m.rotation.order = 'YXZ'; m.userData = { k: i / 5, x: 0, z: 0 }; m.frustumCulled = false; this.scene.add(m); this.shafts.push(m);
+      }
+      this._shaftTilt = Math.acos(Math.min(1, dir.y)); this._shaftYaw = Math.atan2(dir.x, dir.z);
+    }
+  }
+  // Rauch (z.B. Schornstein): steigt an (x,y,z) auf
+  smoke(x, y, z) { const s = makeSmoke(); s.position.set(x, y, z); this.scene.add(s); (this.smokes ||= []).push(s); return s; }
+  _updateSky(dt, cp, pp) {
+    // Sternschnuppen
+    if (this.star) {
+      const st = this.star, u = st.userData;
+      if (u.k < 1) { u.k += dt / 0.9; st.position.addScaledVector(u.v, dt); st.material.opacity = Math.sin(Math.min(1, u.k) * Math.PI) * 0.9; }
+      else if ((this._starT -= dt) <= 0) {
+        this._starT = 5 + Math.random() * 9; const a = Math.random() * Math.PI * 2;
+        st.position.set(cp.x + Math.cos(a) * 260, cp.y + 130 + Math.random() * 60, cp.z + Math.sin(a) * 260);
+        const b = a + Math.PI / 2 + (Math.random() - 0.5); u.v = new THREE.Vector3(Math.cos(b) * 90, -35, Math.sin(b) * 90); u.k = 0;
+        st.lookAt(cp); st.rotateZ(Math.atan2(-35, 90));
+      }
+    }
+    // Regenschauer → Regenbogen
+    const w = this.wx;
+    if (w) {
+      w.t -= dt;
+      if (w.state === 'clear' && w.t <= 0) { w.state = 'rain'; w.t = 30 + Math.random() * 15; }
+      else if (w.state === 'rain' && w.t <= 0) { w.state = 'bow'; w.t = 28; }
+      else if (w.state === 'bow' && w.t <= 0) { w.state = 'clear'; w.t = 120 + Math.random() * 120; }
+      const want = w.state === 'rain' ? 1 : 0; w.k += (want - w.k) * Math.min(1, dt * 0.35);
+      w.bow += ((w.state === 'bow' ? 1 : 0) - w.bow) * Math.min(1, dt * 0.4);
+      this.rain.visible = w.k > 0.05; if (this.rain.visible) { this.rain.material.opacity = Math.min(1, w.k * 1.3) * 0.75; this.rain.userData.update(dt, cp, pp.y - 2); if (Math.random() < dt * 40 * w.k) this.game.fx.burst({ x: pp.x + (Math.random() - 0.5) * 18, y: this.groundAt(pp.x, pp.z, pp.y + 1) + 0.05, z: pp.z + (Math.random() - 0.5) * 18 }, { n: 2, color: 0xe8f4ff, speed: 1, up: 1.2, life: 0.25, size: 0.07, gravity: -8, flat: true }); }
+      this.sky.mesh.material.uniforms.dim.value = w.k * 0.85; this.sun.intensity = w.sunI * (1 - w.k * 0.65); this.hemi.intensity = w.hemiI * (1 - w.k * 0.4);
+      if (!this._uw) this.scene.fog.color.copy(w.fog).lerp(this._grey ||= w.fog.clone().lerp(new THREE.Color(0x9aa5b1), 1), w.k * 0.6);
+      CLOUDS.uCloudK.value = this._cloudBase + w.k * 0.12;
+      this.rainbow.visible = w.bow > 0.02;
+      if (this.rainbow.visible) { const d = this.sky.sunDir; this.rainbow.position.set(cp.x - d.x * 300, -40, cp.z - d.z * 300); this.rainbow.lookAt(cp.x, -40, cp.z); this.rainbow.material.opacity = w.bow * 0.42; }
+    }
+    // Lichtstrahlen: tauchen nacheinander rund um Moll auf und verblassen wieder
+    for (const m of this.shafts || []) {
+      const u = m.userData; u.k += dt / 9;
+      if (u.k >= 1) { u.k = 0; const a = Math.random() * Math.PI * 2, r = 6 + Math.random() * 16; u.x = pp.x + Math.cos(a) * r; u.z = pp.z + Math.sin(a) * r; }
+      const y = Math.max(0, this.heightAt(u.x, u.z)); m.position.set(u.x, y + 6, u.z);
+      m.rotation.set(0, Math.atan2(cp.x - u.x, cp.z - u.z), 0); m.rotateOnWorldAxis(new THREE.Vector3(Math.cos(this._shaftYaw), 0, -Math.sin(this._shaftYaw)), -this._shaftTilt * 0.35);
+      m.material.opacity = Math.sin(u.k * Math.PI) * 0.09 * (1 - (this.wx?.k || 0));
+    }
+    for (const s of this.smokes || []) s.userData.update(dt);
+    CLOUDS.uCloudT.value += dt;
+  }
+
   // Schaum am Strand: Rasterpunkte, an denen das Gelände die Wasserlinie schneidet
   _shoreFoam() {
     const y = this.seaY, S = (this.def.size || 40) * 1.1, step = 2, pts = [];
@@ -401,6 +478,7 @@ export class Level {
       gm.material.emissive = new THREE.Color(color).multiplyScalar(0.5); ring.add(gm); gems.push(gm);
     }
     const disk = makePortalDisk(color); ring.add(disk);
+    const glow = makeGlow(color, 6, 0.35); ring.add(glow); orbs.forEach(o => o.add(makeGlow(color, 2.2, 0.7)));
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 2.0, 7, 20, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
     beam.position.y = 3.5; g.add(beam);
     const lock = new THREE.Group(); lock.position.set(0, 2.0, 0.35); g.add(lock);
@@ -409,14 +487,14 @@ export class Level {
     const prog = this.game.levelProgress(target);
     const crown = sphere(0.35, 0xffcc33, 0, 5.0, 0, 4); crown.material.emissive = new THREE.Color(0x8a5a00); crown.visible = prog.total > 0 && prog.have === prog.total; g.add(crown); // alles gesammelt
     this.group.add(g);
-    const po = { x, z, target, text, group: g, disk, need, ring, gems, orbs, beam, lock, crown, color: new THREE.Color(color), locked: null };
+    const po = { x, z, target, text, group: g, disk, need, ring, gems, orbs, beam, lock, crown, glow, color: new THREE.Color(color), locked: null };
     this.portals.push(po); this._portalState(po);
   }
   _portalState(po) {
     const locked = po.need > this.game.boneCount(); if (locked === po.locked) return; po.locked = locked;
     const c = locked ? new THREE.Color(0x777777) : po.color;
     [...po.gems, ...po.orbs].forEach(m => { m.material.color.copy(c); m.material.emissive.copy(c).multiplyScalar(locked ? 0.1 : 0.5); });
-    po.beam.visible = !locked; po.lock.visible = locked;
+    po.beam.visible = !locked; po.lock.visible = locked; po.glow.visible = !locked; po.orbs.forEach(o => { o.children[0].visible = !locked; });
     const prog = this.game.levelProgress(po.target);
     const txt = locked ? `${po.text} 🔒${po.need}` : `${po.text} ${prog.have}/${prog.total}`;
     if (po.label) po.label.userData.setText(txt); else { po.label = makeSign(txt, { w: 3.8 }); po.label.position.set(0, 4.5, 0); po.group.add(po.label); }
@@ -448,6 +526,7 @@ export class Level {
     if (this.grass) this.grass.userData.update(dt);
     WIND.uWind.value += dt; CAUSTIC.uCaT.value += dt;
     if (this.foam) this.foam.userData.update(this.t);
+    GRASS.uPlayer.value.copy(pp); this.critters?.update(dt); this._updateSky(dt, cp, pp);
     for (const a of this.ambient || []) a.userData.update(dt, cp, pp.y - 1.5);
     if (this.plankton) { const uw = !!this._uw; this.plankton.visible = uw; if (uw) this.plankton.userData.update(dt, cp, cp.y - 5); }
     if (this.water) this.water.userData.update(dt);

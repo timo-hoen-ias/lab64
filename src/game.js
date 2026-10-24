@@ -9,13 +9,14 @@ import { RunnerLevel } from './runner.js';
 import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
 import { Intro } from './intro.js';
+import { Post } from './post.js';
 import { ABILITIES, UPGRADES } from './abilities.js';
 import { Dialog } from './dialog.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
 const QUALITY = {
-  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220, fog: 330, grass: 3500, outlines: true, ambient: 1 },
+  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220, fog: 330, grass: 3500, outlines: true, ambient: 1, post: true },
   mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150, fog: 240, grass: 1600, outlines: true, ambient: 0.6 },
   niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500, outlines: false, ambient: 0.3 },
 };
@@ -36,7 +37,8 @@ export class Game {
     this.canvas = document.getElementById('game');
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.0;
+    this.post = new Post(this.renderer); this.vignette();
+    this.renderer.toneMapping = THREE.CustomToneMapping; // ACES + kräftigere Farben, siehe fx.js this.renderer.toneMappingExposure = 1.0;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.3, 600); // near nicht kleiner: sonst reicht die Tiefengenauigkeit nicht und übereinanderliegende Flächen flackern
     this.input = new Input(); this.audio = new AudioEngine();
     this.fx = new Particles(); this.rings = this.fx.rings = new Rings(); this.prints = new Prints(); this.shakeT = 0; this._shake = new THREE.Vector3();
@@ -189,8 +191,20 @@ export class Game {
   }
   persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } }
 
+  // Bild zeichnen: bei Grafik „Hoch“ mit Bloom, Sonnenstrahlen und Linsenreflex (post.js), sonst direkt
+  draw() {
+    const L = this.level;
+    if (this.q.post) { try { this.post.render(L.scene, this.camera, L.T && !L.def?.indoor && !L._uw && L.sky ? L.sky.sunDir : null); return; } catch (e) { this.q = { ...this.q, post: false }; console.warn('Nachbearbeitung aus:', e); } }
+    this.renderer.setRenderTarget(null); this.renderer.render(L.scene, this.camera);
+  }
+  // Leichte Vignette (dunklere Bildränder) als CSS-Ebene: kostet nichts
+  vignette() {
+    const v = document.createElement('div'); v.id = 'vignette';
+    v.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(20,10,30,0.28) 100%)';
+    this.canvas.after(v);
+  }
   resize() {
-    const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.camera.aspect = w / h;
+    const w = window.innerWidth, h = window.innerHeight; this.renderer.setSize(w, h, false); this.post?.setSize(w, h); this.camera.aspect = w / h;
     const portrait = h > w; this.camera.fov = portrait ? 80 : 60; this.camDist = portrait ? 14 : 9; this.camPitch = portrait ? 0.5 : 0.35; // Hochformat: mehr Überblick
     this.camera.updateProjectionMatrix();
   }
@@ -293,8 +307,8 @@ export class Game {
     requestAnimationFrame(() => this.loop());
     const dt = Math.min(0.05, this.clock.getDelta());
     this.input.update(); this.dialog.update();
-    if (this.dialog.open) { this.dialog.input(this.input); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
-    if (this.shopOpen) { this._shopInput(); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
+    if (this.dialog.open) { this.dialog.input(this.input); if (this.level) this.draw(); return; }
+    if (this.shopOpen) { this._shopInput(); if (this.level) this.draw(); return; }
     if (this.intro.blocking()) this.intro.poll(this.input); // Intro im Startmenü: Eingaben starten/überspringen nur das Intro
     else if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
     else if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
@@ -308,7 +322,7 @@ export class Game {
     if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
     if (!this.paused) { this._underwater(); this._musicMix(); }
     this.camera.position.add(this._shake);
-    if (this.level) this.renderer.render(this.level.scene, this.camera);
+    if (this.level) this.draw();
     this.camera.position.sub(this._shake);
   }
 }

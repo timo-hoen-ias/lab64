@@ -1,6 +1,6 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
-import { toonGradient, addSway } from './fx.js';
+import { toonGradient, addSway, makeGlow } from './fx.js';
 
 const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
@@ -417,13 +417,14 @@ export function makeFood(kind) {
     g.add(bake('goldbone', FOOD.goldbone, { emissive: new THREE.Color(0x8a5a00) }));
     const halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1.0, 24), new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }));
     halo.position.y = 0.5; g.add(halo); g.userData.halo = halo;
+    const glow = makeGlow(0xffd84a, 2.6, 0.55); glow.position.y = 0.5; g.add(glow);
   } else { const k = FOOD[kind] ? kind : 'crumb'; g.add(bake(k, FOOD[k])); }
   g.userData.spin = Math.random() * Math.PI * 2;
   return g;
 }
 
 // ---- Pflanzen. static = reine Deko: das Level backt sie mit den Kisten zu wenigen großen Meshes zusammen
-const leafMat = (c, amp = 0.07) => addSway(mat(c, { flatShading: true }), amp);
+const leafMat = (c, amp = 0.07) => addSway(mat(c), amp); // Ikosaeder ohne Index → von sich aus flach schattiert
 const blob = (r, c, x, y, z, amp) => { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafMat(c, amp)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; };
 export function makeTree(scale = 1) {
   const g = new THREE.Group(), s = scale;

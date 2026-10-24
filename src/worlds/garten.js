@@ -17,6 +17,7 @@ export const GARTEN = {
     l.deco(box(14.4, 0.4, 12.4, trim), 0, H, -18); // Traufe
     const roof = new THREE.Group(); roof.add(cone(10.2, 4.2, 0xc0392b, 0, 0, 0, 4)); roof.add(box(1, 2.2, 1, 0x8d6e63, 3.5, 0.8, 1.5)); // Dach + Schornstein
     roof.scale.set(1, 1, 0.86); l.deco(roof, 0, H + 2.1, -18, 0); roof.children[0].rotation.y = Math.PI / 4; l.roof = roof;
+    l.smoke(3.5, H + 4.1, -16.7); // Rauch aus dem Schornstein
     l.deco(box(14.6, 0.15, 12.6, 0xa47148), 0, 0.02, -18); // Holzboden
     [[-4.25, -11.95], [4.25, -11.95], [-4.25, -24.05], [4.25, -24.05]].forEach(([x, z]) => { l.deco(box(1.8, 1.4, 0.15, 0x9ad7ff), x, 2.4, z); l.deco(box(2.1, 0.15, 0.25, trim), x, 1.65, z); }); // Fenster
     [-18, -15].forEach(z => { l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), -7.05, 2.4, z); l.deco(box(0.15, 1.4, 1.8, 0x9ad7ff), 7.05, 2.4, z); });
