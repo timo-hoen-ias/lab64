@@ -6,7 +6,7 @@ import { Player } from './player.js';
 import { Level } from './level.js';
 import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
-import { Particles, makeLightShafts } from './fx.js';
+import { Particles, makeLightShafts, SEE_THROUGH } from './fx.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -217,9 +217,9 @@ export class Game {
     const c = this.input.consumeCam(); this.camYaw -= c.x; this.camPitch = Math.max(0.1, Math.min(1.2, this.camPitch + c.y));
     const p = this.player.pos; const target = new THREE.Vector3(p.x, p.y + 1.2, p.z);
     const off = new THREE.Vector3(Math.sin(this.camYaw) * Math.cos(this.camPitch), Math.sin(this.camPitch), Math.cos(this.camYaw) * Math.cos(this.camPitch)).multiplyScalar(this.camDist);
-    // Kamera-Kollision: hohe Kisten und Hügel zwischen Hund und Kamera verkürzen den Abstand
+    // Kamera-Kollision: hohe Kisten, Decken über dem Hund und Hügel zwischen Hund und Kamera verkürzen den Abstand
     const L = this.level, dir = off.clone().normalize(); let hit = this.camDist;
-    for (const s of L.solids) if (s.cam && s.active) { const d = rayBox(target, dir, s); if (d < hit) hit = d; }
+    for (const s of L.solids) if (s.active && (s.cam || s.ceil && s.min.y > target.y)) { const d = rayBox(target, dir, s); if (d < hit) hit = d; }
     if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z, y) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
     const blocked = hit < this.camDist; if (blocked) off.setLength(Math.max(1.5, hit - 0.4));
     const want = target.clone().add(off);
@@ -228,6 +228,7 @@ export class Game {
     if (this.player.diving) want.y = Math.max(want.y, L.groundAt(want.x, want.z, want.y + 2) + 0.6);
     else if (this.player.swimming) { const wy = L.waterAt(p.x, p.z); if (wy !== null) want.y = Math.max(want.y, wy + 0.6); }
     this.camera.position.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false; this.camera.lookAt(target);
+    SEE_THROUGH.uCutA.value.copy(this.camera.position); SEE_THROUGH.uCutB.value.set(p.x, p.y + 0.7, p.z); SEE_THROUGH.uCutFeet.value = p.y + 0.25; SEE_THROUGH.uCutR.value = 1.5;
   }
 
   loop() {
