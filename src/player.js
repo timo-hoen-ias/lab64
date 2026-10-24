@@ -17,7 +17,7 @@ export class Player {
     this.checkpoint = new THREE.Vector3(0, 1, 0);
   }
 
-  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = 3; this.hurtT = 0; this.frozen = false; }
+  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = 3; this.hurtT = 0; this.frozen = false; this.diving = false; this.air = undefined; }
   respawn() { this.pos.copy(this.checkpoint); this.pos.y += 0.5; this.vel.set(0, 0, 0); }
 
   hurt(amount = 1) {
@@ -50,32 +50,51 @@ export class Player {
       if (len <= 0.05) this.turn = 0;
       this.speedFrac = len;
     } else this.speedFrac = 0;
-    // Schwimmen: im Teich treibt Moll an der Oberfläche, paddelt langsamer und kann jederzeit rausspringen
+    // Schwimmen: im Wasser treibt Moll an der Oberfläche, paddelt langsamer und kann jederzeit rausspringen.
+    // Tauchen (mit Taucherbrille): NASE halten = abtauchen/tiefer, SPRUNG halten = hoch, sonst leichter Auftrieb.
     const wy = level.waterAt ? level.waterAt(this.pos.x, this.pos.z) : null;
-    const swim = wy !== null && this.pos.y < wy - 0.45;
-    if (swim && !this.swimming) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.spinT = 0; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
-    this.swimming = swim;
-    const accel = this.onGround || swim ? 40 : 18, top = swim ? RUN * 0.55 : RUN;
+    const wet = wy !== null && this.pos.y < wy - 0.45;
+    if (!wet) this.diving = false;
+    else if (!this.diving && !this.frozen && this.game.has('tauchen') && (input.held('sniff') || (!this.swimming && this.vel.y < -12))) { this.diving = true; this.vel.y = Math.min(this.vel.y, -3); this.game.audio.sfx('splash'); } // Abtauchen oder Kopfsprung
+    if (this.diving && this.pos.y > wy - 0.95 && this.vel.y > 0 && !input.held('sniff')) this.diving = false; // wieder oben
+    const swim = wet && !this.diving, dive = this.diving;
+    if (wet && !this._wet) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.spinT = 0; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
+    this._wet = wet; this.swimming = swim;
+    const accel = dive ? 8 : this.onGround || swim ? 40 : 18, top = dive ? RUN * 0.62 : swim ? RUN * 0.55 : RUN;
     this.vel.x += (mx * top - this.vel.x) * Math.min(1, accel * dt);
     this.vel.z += (mz * top - this.vel.z) * Math.min(1, accel * dt);
 
     // Springen
     if (this.onGround || swim) { this.coyote = 0.12; this.canDouble = true; } else this.coyote -= dt;
-    if (!this.frozen && input.pressed('jump')) {
+    if (!this.frozen && !dive && input.pressed('jump')) {
       if (this.coyote > 0) { this.vel.y = JUMP; this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
       else if (this.canDouble) { this.vel.y = JUMP2; this.canDouble = false; this.game.audio.sfx('jump2'); this.spinT = 0.5; this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 0.3, z: this.pos.z }, { n: 10, color: [0xffffff, 0xfff3a0], speed: 4, up: -1, life: 0.4, size: 0.18, gravity: 0, flat: true }); }
     }
     if (this.vel.y <= 0) this.autoHop = false;
-    if (!this.frozen && !this.autoHop && !input.held('jump') && this.vel.y > 4) this.vel.y -= 40 * dt; // kurzer Sprung bei Loslassen
-    if (swim && this.vel.y < 4) { this.vel.y += ((wy - 0.8 - this.pos.y) * 40 - this.vel.y * 6) * dt; } // Auftrieb
-    else this.vel.y += GRAVITY * dt;
+    if (dive) { // unter Wasser schweben
+      const target = this.frozen ? 0.8 : input.held('jump') ? 4.5 : input.held('sniff') ? -4.5 : 0.8;
+      this.vel.y += (target - this.vel.y) * Math.min(1, dt * 4);
+    } else {
+      if (!this.frozen && !this.autoHop && !input.held('jump') && this.vel.y > 4) this.vel.y -= 40 * dt; // kurzer Sprung bei Loslassen
+      if (swim && this.vel.y < 4) { this.vel.y += ((wy - 0.8 - this.pos.y) * 40 - this.vel.y * 6) * dt; } // Auftrieb
+      else this.vel.y += GRAVITY * dt;
+    }
     if (swim && this.speedFrac > 0.1) { this._rip = (this._rip || 0) - dt; if (this._rip <= 0) { this._rip = 0.15; this.game.fx.burst({ x: this.pos.x, y: wy + 0.02, z: this.pos.z }, { n: 3, color: 0xffffff, speed: 1.6, up: 0, life: 0.6, size: 0.14, gravity: 0, flat: true, drag: 3 }); } }
+    // Luft: unter Wasser zählt sie runter, an der Oberfläche oder an Luftblasen füllt sie sich wieder
+    this.airMax = this.game.has('grosseLunge') ? 25 : 15; if (this.air === undefined) this.air = this.airMax;
+    const under = wy !== null && this.pos.y + 0.95 < wy; this.underwater = under;
+    if (under) {
+      this.air -= dt; if (level.airAt && level.airAt(this.pos)) this.air = Math.min(this.airMax, this.air + dt * 12);
+      this._bub = (this._bub || 0) - dt; if (this._bub <= 0) { this._bub = 0.5 + Math.random() * 0.4; this.game.fx.burst({ x: this.pos.x + Math.sin(this.yaw) * 0.9, y: this.pos.y + 0.8, z: this.pos.z + Math.cos(this.yaw) * 0.9 }, { n: 2, color: [0xdff6ff, 0xffffff], speed: 0.3, up: 2.5, life: 1.2, size: 0.12, gravity: 1.5, drag: 1, floor: -1e9 }); }
+      if (this.air <= 0) { this.air = 4; this.game.toast('Luft! Schnell nach oben!'); this.hurtT = 0; this.hurt(1); this.vel.y = 6; }
+    } else this.air = Math.min(this.airMax, this.air + dt * 10);
+    this.game.updateAir(this.air / this.airMax, under || this.air < this.airMax - 0.01);
 
     // Biss
     if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
       this.bite = 1; this.biteCd = 0.45; this.game.audio.sfx('chomp'); if (Math.random() < 0.25) this.game.audio.sfx('bark');
       const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
-      this.vel.x += fwd.x * 4; this.vel.z += fwd.z * 4;
+      const push = this.diving ? 7 : 4; this.vel.x += fwd.x * push; this.vel.z += fwd.z * push; // unter Wasser: Schwimmstoß
       const at = this.pos.clone().addScaledVector(fwd, 1.2); at.y += 1; FX.bite(this.game.fx, at); at.y -= 1;
       level.onBite(at, 1.6);
     }
@@ -90,7 +109,7 @@ export class Player {
     if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); }
     this._lastVy = this.vel.y;
     // Laufstaub
-    if (this.onGround && !swim && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
+    if (this.onGround && !wet && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
     if (this.pos.y < (level.killY ?? -25)) { this.hurt(1); this.respawn(); }
     // Am Ufer: schwimmt Moll gegen den Rand, hüpft sie automatisch raus
     if (swim && this.speedFrac > 0.3 && this.vel.y < 4) {
@@ -107,16 +126,17 @@ export class Player {
 
     // Mesh
     this.mesh.position.copy(this.pos); this.mesh.rotation.y = this.yaw;
-    if (this.spinT > 0) { this.spinT -= dt; this.mesh.rotation.x = -this.spinT * Math.PI * 4; } else this.mesh.rotation.x = 0;
+    if (this.spinT > 0) { this.spinT -= dt; this.mesh.rotation.x = -this.spinT * Math.PI * 4; }
+    else this.mesh.rotation.x = this.diving ? THREE.MathUtils.clamp(-this.vel.y * 0.12, -0.7, 0.7) : 0; // Kopf voran tauchen
     // Squash beim Landen, Stretch beim Absprung (Volumen bleibt ungefähr gleich)
     if (this.squash > 0) { this.squash -= dt; const s = 1 - this.squash * 0.8; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else if (this.stretch > 0) { this.stretch -= dt; const s = 1 + this.stretch * 1.2; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
-    animateDog(this.mesh, this.speedFrac, !this.onGround && !swim, dt, this.bite, this.vel.y, this.turn, swim);
+    animateDog(this.mesh, this.speedFrac, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet);
     // Blob-Schatten auf dem höchsten Boden unter Moll
     const gy = level.groundAt ? level.groundAt(this.pos.x, this.pos.z, this.pos.y) : -Infinity;
-    this.shadow.visible = gy > -Infinity && !swim;
+    this.shadow.visible = gy > -Infinity && !wet;
     if (this.shadow.visible) { const h = this.pos.y - gy, k = Math.max(0.35, 1 - h * 0.08); this.shadow.position.set(this.pos.x, gy + 0.03, this.pos.z); this.shadow.scale.setScalar(k); this.shadow.material.opacity = k; }
   }
 

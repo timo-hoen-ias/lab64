@@ -1,8 +1,8 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
 import { BONES } from './levels.js';
-import { box, makeFood, makeLabel, makeTree, makeBush, cyl, sphere } from './models.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, toonGradient, FX } from './fx.js';
+import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere } from './models.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX } from './fx.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -55,14 +55,15 @@ export class Level {
   ground(color, size) {
     let g;
     if (this.def.water) { g = makeWater(color, size); this.water = g; }
-    else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; }
+    else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; g.position.y = this.def.floorY || 0; }
     g.receiveShadow = true; this.scene.add(g); this.groundMesh = g;
     // Weiter Boden bis zum Horizont (ohne Kollision), damit man auf großen Sichtweiten keine Kante sieht
     if (!this.def.indoor && !this.def.water) {
       const far = new THREE.Mesh(new THREE.RingGeometry(size * 1.2, 520, 64, 1), new THREE.MeshToonMaterial({ color: this.def.farGround ?? color, gradientMap: toonGradient() }));
       far.rotation.x = -Math.PI / 2; far.position.y = -0.03; far.receiveShadow = true; this.scene.add(far);
     }
-    this.groundSolid = { min: { x: -size * 1.2, y: -5, z: -size * 1.2 }, max: { x: size * 1.2, y: 0, z: size * 1.2 }, active: true };
+    const fy = this.def.floorY || 0; // Meeresgrund o.ä. unter 0
+    this.groundSolid = { min: { x: -size * 1.2, y: fy - 5, z: -size * 1.2 }, max: { x: size * 1.2, y: fy, z: size * 1.2 }, active: true };
     this.solids.push(this.groundSolid);
   }
 
@@ -86,7 +87,25 @@ export class Level {
     const p = makePond(rx, rz, depth); p.position.set(x, 0, z); this.scene.add(p);
     this.ponds = (this.ponds || []).concat({ x, z, rx, rz, y: -0.25, mesh: p });
   }
-  waterAt(x, z) { for (const p of this.ponds || []) if (((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2 < 1) return p.y; return null; }
+  waterAt(x, z) {
+    for (const p of this.ponds || []) if (((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2 < 1) return p.y;
+    if (this.seaY !== undefined && this.groundAt(x, z, this.seaY) < this.seaY - 0.3) return this.seaY;
+    return null;
+  }
+  // Meer: Wasser überall dort, wo der Boden unter y liegt (Strand: Grund bei floorY, Land = Hügel darüber)
+  sea(y = 0, color = 0x2e9be0) {
+    this.seaY = y; const size = this.def.size || 40, w = makeWater(color, size); w.position.y = y - 0.12;
+    w.material.transparent = true; w.material.opacity = 0.8; w.material.side = THREE.DoubleSide; w.renderOrder = 2; this.scene.add(w); this.water = w;
+  }
+  // Luftblasen-Säule vom Grund bis zur Oberfläche: dort tankt Moll unter Wasser Luft
+  airBubbles(x, y0, z, h = 6) { const c = makeBubbleColumn(h); c.position.set(x, y0, z); this.group.add(c); (this.bubbles ||= []).push({ x, y0, z, h, mesh: c }); }
+  airAt(p) { return (this.bubbles || []).some(b => Math.hypot(b.x - p.x, b.z - p.z) < 1.4 && p.y > b.y0 - 1 && p.y < b.y0 + b.h + 1); }
+  // Fähigkeits-Gegenstand (z.B. Taucherbrille): einmal einsammeln, dauerhaft freigeschaltet
+  abilityItem(x, y, z, ability, text) {
+    if (this.game.has(ability)) return null;
+    const m = ability === 'tauchen' ? makeGoggles() : sphere(0.4, 0xffcc33); m.position.set(x, y, z); this.group.add(m);
+    const it = { x, y, z, ability, text, mesh: m }; (this.abilityItems ||= []).push(it); return it;
+  }
 
   // Fester Block: x,y,z = Mittelpunkt (y = Unterkante), w,h,d
   box(x, y, z, w, h, d, color, opts = {}) {
@@ -290,6 +309,12 @@ export class Level {
     // Ferne Bereiche ausblenden (Sichtweite je Grafik-Stufe)
     this._zoneT = (this._zoneT || 0) - dt;
     if (this._zoneT <= 0) { this._zoneT = 0.25; const c = this.game.camera.position, vd = this.game.q.view; for (const z of this.zones) z.group.visible = Math.hypot(z.x - c.x, z.z - c.z) < vd + z.r; }
+    for (const b of this.bubbles || []) b.mesh.userData.update(dt, this.t);
+    for (const it of this.abilityItems || []) {
+      if (it.taken) continue; it.mesh.rotation.y += dt * 2; it.mesh.position.y = it.y + Math.sin(this.t * 3) * 0.15;
+      if (Math.random() < dt * 10) FX.sparkle(this.game.fx, { x: it.x, y: it.y + 0.3, z: it.z });
+      if (Math.hypot(it.x - pp.x, it.z - pp.z) < 1.3 && Math.abs(it.y - pp.y) < 2) { it.taken = true; it.mesh.visible = false; FX.gold(this.game.fx, it); this.game.unlock(it.ability, it.text); }
+    }
     // Türen
     if (this._doorCd > 0) this._doorCd -= dt;
     else for (const d of this.doors) if (Math.hypot(d.x - pp.x, d.z - pp.z) < 1.1 && Math.abs(d.y - pp.y) < 2) { this.teleport(d.to); break; }

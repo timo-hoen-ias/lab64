@@ -280,3 +280,12 @@ export function makeGnome() {
   g.add(cone(0.22, 0.5, 0xe74c3c, 0, 1.0, 0, 8)); const beard = cone(0.18, 0.35, 0xffffff, 0, 0.5, 0.12, 6); beard.rotation.x = Math.PI; g.add(beard);
   return g;
 }
+
+// Taucherbrille: zwei Gläser, Steg und Gummiband
+export function makeGoggles() {
+  const g = new THREE.Group(), glass = new THREE.MeshLambertMaterial({ color: 0x9be7ff, transparent: true, opacity: 0.7, emissive: 0x2d9cdb, emissiveIntensity: 0.5 });
+  [-0.32, 0.32].forEach(x => { const f = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.07, 6, 16), mat(0xff7f27)); f.position.x = x; g.add(f); const l = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), glass); l.position.set(x, 0, 0.01); g.add(l); });
+  g.add(box(0.2, 0.08, 0.08, 0xff7f27));
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 4, 20, Math.PI), mat(0x2d3436)); band.rotation.set(Math.PI / 2, 0, 0); band.position.z = -0.05; g.add(band);
+  g.scale.setScalar(1.3); return g;
+}

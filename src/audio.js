@@ -30,9 +30,15 @@ export class AudioEngine {
   init() {
     if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.master = this.ctx.createGain(); this.master.gain.value = 0.5; this.master.connect(this.ctx.destination);
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.5;
+    this.lowpass = this.ctx.createBiquadFilter(); this.lowpass.type = 'lowpass'; this.lowpass.frequency.value = 20000; // unter Wasser dumpf
+    this.master.connect(this.lowpass); this.lowpass.connect(this.ctx.destination);
     this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.35; this.musicGain.connect(this.master);
     this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.7; this.sfxGain.connect(this.master);
+  }
+  underwater(on) {
+    if (!this.ctx) return; const t = this.ctx.currentTime; this.lowpass.frequency.cancelScheduledValues(t);
+    this.lowpass.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.08 : 0.2); if (on) this.sfx('splash');
   }
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
 
