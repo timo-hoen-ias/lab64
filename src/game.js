@@ -9,29 +9,66 @@ import { RunnerLevel } from './runner.js';
 import { Particles } from './fx.js';
 
 const SAVE_KEY = 'moll-save-v1';
+// Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
+const QUALITY = {
+  hoch: { name: 'Hoch', ratio: 2, shadows: true, shadowMap: 2048, view: 220 },
+  mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150 },
+  niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95 },
+};
+const QUALITY_ORDER = ['hoch', 'mittel', 'niedrig'];
+
+// Strahl gegen Kiste (Slab-Test): Abstand oder Infinity
+function rayBox(o, d, s) {
+  let t0 = 0, t1 = Infinity;
+  for (const a of ['x', 'y', 'z']) {
+    if (Math.abs(d[a]) < 1e-6) { if (o[a] < s.min[a] || o[a] > s.max[a]) return Infinity; continue; }
+    let ta = (s.min[a] - o[a]) / d[a], tb = (s.max[a] - o[a]) / d[a]; if (ta > tb) [ta, tb] = [tb, ta];
+    t0 = Math.max(t0, ta); t1 = Math.min(t1, tb); if (t0 > t1) return Infinity;
+  }
+  return t0;
+}
 
 export class Game {
   constructor() {
     this.canvas = document.getElementById('game');
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.0;
-    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
     this.input = new Input(); this.audio = new AudioEngine();
     this.fx = new Particles(); this.shakeT = 0; this._shake = new THREE.Vector3();
     this.player = new Player(this);
     this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
     this.paused = true; this.level = null; this.clock = new THREE.Clock();
-    this.save = this.loadSave();
+    this.save = this.loadSave(); this.applyQuality();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
     document.getElementById('btnReset').addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); this.save = this.loadSave(); this.toast('Spielstand gelöscht'); });
+    document.getElementById('btnQuality').addEventListener('click', () => { const i = QUALITY_ORDER.indexOf(this.save.settings.quality); this.save.settings.quality = QUALITY_ORDER[(i + 1) % 3]; this.persist(); this.applyQuality(); });
+    document.getElementById('btnLeave').addEventListener('click', () => { this.enterLevel('hub', true); this.start(); });
     this.enterLevel('hub', true);
     this.loop();
   }
 
-  loadSave() { try { const s = Object.assign({ crumbs: 0, bones: {} }, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); if (typeof s.bones !== 'object' || !s.bones) s.bones = {}; return s; } catch (e) { return { crumbs: 0, bones: {} }; } }
+  loadSave() {
+    const fresh = () => ({ crumbs: 0, bones: {}, worlds: {}, abilities: {}, settings: {} });
+    let s; try { s = Object.assign(fresh(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { s = fresh(); }
+    for (const k of ['bones', 'worlds', 'abilities', 'settings']) if (typeof s[k] !== 'object' || !s[k]) s[k] = {};
+    if (!QUALITY[s.settings.quality]) s.settings.quality = matchMedia('(pointer: coarse)').matches ? 'mittel' : 'hoch';
+    return s;
+  }
+  has(ability) { return !!this.save.abilities[ability]; }
+  worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; return w[key]; }
+  applyQuality() {
+    const q = this.q = QUALITY[this.save.settings.quality];
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.ratio));
+    if (this.renderer.shadowMap.enabled !== q.shadows) { this.renderer.shadowMap.enabled = q.shadows; this.level?.scene?.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); }); }
+    if (this.level?.sun) this._sunQuality(this.level.sun);
+    const b = document.getElementById('btnQuality'); if (b) b.textContent = `Grafik: ${q.name}`;
+    this.resize?.();
+  }
+  _sunQuality(sun) { sun.castShadow = this.q.shadows; if (sun.shadow.mapSize.x !== this.q.shadowMap) { sun.shadow.mapSize.set(this.q.shadowMap, this.q.shadowMap); sun.shadow.map?.dispose(); sun.shadow.map = null; } }
   // Verzögerte Aktion, die verfällt, sobald das Level gewechselt wurde.
   later(ms, fn) { const lvl = this.level; setTimeout(() => { if (this.level === lvl) fn(); }, ms); }
   boneCount() { return Object.keys(this.save.bones).length; }
@@ -42,7 +79,8 @@ export class Game {
     if (fresh) { this.save.bones[`${key}:${id}`] = true; this.persist(); }
     this.audio.sfx('win'); this.input.vibrate(250); this.updateCounter();
     this.toast(fresh ? `GOLDKNOCHEN! ${this.boneCount()}/${TOTAL_BONES}` : 'Den hattest du schon.', 3000);
-    if (exit) { this.player.frozen = true; this.later(2500, () => { this.player.frozen = false; this.enterLevel('hub'); }); }
+    // Kein Rauswurf mehr: man bleibt in der Welt und sammelt weiter (zurück über Pause → Welt verlassen)
+    if (fresh && id === 'boss' && key !== 'hub') this.later(3200, () => this.toast('Sammle ruhig weiter! Zurück in den Garten: Pause → Welt verlassen', 4500));
   }
   persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } }
 
@@ -60,6 +98,7 @@ export class Game {
   pause() {
     this.paused = true; const m = document.getElementById('menu'); m.classList.remove('hidden');
     document.getElementById('btnStart').textContent = 'Weiter';
+    document.getElementById('btnLeave').style.display = this.level && this.level.key !== 'hub' ? '' : 'none';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
     document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();
@@ -70,7 +109,10 @@ export class Game {
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
-    else { this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
+    else {
+      this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0;
+      this._sunQuality(this.level.sun); this.level.restore(); this.snapCam = true;
+    }
     this.fx.attach(this.level.scene); this.fade();
     this.level.key = key;
     this.hud.levelName.textContent = this.level.def.name;
@@ -112,23 +154,23 @@ export class Game {
     else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); level.onCrumb(); }
     this.updateCounter();
   }
-  onDeath() { this.toast('Moll braucht ein Nickerchen … zurück zum Garten.', 3000); this.audio.sfx('lose'); this.later(1800, () => this.enterLevel('hub')); this.player.hp = 3; }
+  // Fortschritt bleibt gespeichert, deshalb geht es nach einem Nickerchen am Welteingang weiter
+  onDeath() { const key = this.level.key; this.toast('Moll braucht ein Nickerchen … gleich geht es weiter.', 3000); this.audio.sfx('lose'); this.later(1800, () => this.enterLevel(key, true)); this.player.hp = 3; }
 
   // ------------------------------------------------------------- Kamera
   updateCamera(dt) {
     const c = this.input.consumeCam(); this.camYaw -= c.x; this.camPitch = Math.max(0.1, Math.min(1.2, this.camPitch + c.y));
     const p = this.player.pos; const target = new THREE.Vector3(p.x, p.y + 1.2, p.z);
     const off = new THREE.Vector3(Math.sin(this.camYaw) * Math.cos(this.camPitch), Math.sin(this.camPitch), Math.cos(this.camYaw) * Math.cos(this.camPitch)).multiplyScalar(this.camDist);
-    // Kamera-Kollision: Wände zwischen Hund und Kamera verkürzen den Abstand
-    if (!this.level._camMeshes) this.level._camMeshes = this.level.solids.filter(s => s.mesh && s.max.y - s.min.y > 2.2).map(s => s.mesh);
-    this._ray = this._ray || new THREE.Raycaster();
-    this._ray.set(target, off.clone().normalize()); this._ray.far = this.camDist;
-    const hit = this._ray.intersectObjects(this.level._camMeshes, false)[0];
-    if (hit) off.setLength(Math.max(1.5, hit.distance - 0.4));
+    // Kamera-Kollision: hohe Kisten und Hügel zwischen Hund und Kamera verkürzen den Abstand
+    const L = this.level, dir = off.clone().normalize(); let hit = this.camDist;
+    for (const s of L.solids) if (s.cam && s.active) { const d = rayBox(target, dir, s); if (d < hit) hit = d; }
+    if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
+    const blocked = hit < this.camDist; if (blocked) off.setLength(Math.max(1.5, hit - 0.4));
     const want = target.clone().add(off);
-    // Kamera nicht unter den Boden / in Blöcke
-    want.y = Math.max(want.y, 1.2);
-    this.camera.position.lerp(want, Math.min(1, dt * (hit ? 20 : 6))); this.camera.lookAt(target);
+    // Kamera nicht unter den Boden
+    want.y = Math.max(want.y, L.camFloor ?? 1.2, L.heightAt(want.x, want.z) + 0.8);
+    this.camera.position.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false; this.camera.lookAt(target);
   }
 
   loop() {
