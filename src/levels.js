@@ -7,6 +7,7 @@ import { STRAND } from './worlds/strand.js';
 import { PARK } from './worlds/park.js';
 import { HAFEN } from './worlds/hafen.js';
 import { DORF } from './worlds/dorf.js';
+import { STRASSE } from './worlds/strasse.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -14,7 +15,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 export const BONES = {
   hub: ['huegel', 'geheim'],
   kueche: ['boss', 'kruemel', 'geheim', 'kletter'],
-  strasse: ['boss', 'kruemel', 'geheim', 'kletter'],
+  strasse: ['boss', 'kruemel', 'geheim', 'kletter', 'daecher', 'kaufhaus', 'baustelle', 'brunnen', 'eisdiele', 'bahnhof'],
   buero: ['boss', 'kruemel', 'geheim', 'kletter'],
   park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
   rattenrennen: ['sieg', 'gierig'],
@@ -150,33 +151,7 @@ export const LEVELS = {
   },
 
   // -------------------------------------------------------- EINKAUFSSTRASSE
-  strasse: {
-    name: 'Die Einkaufsstraße', time: 'mittag', backdrop: 'stadt', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 36, need: 12, goalKind: 'bread', music: { scale: 'major', root: 330, bpm: 140, seed: 11, style: 'street' },
-    build(l) {
-      l.spawn.set(0, 1, 30); l.wallRing(36, 10, 0xc7c7c7);
-      // Straße & Bürgersteige
-      l.group.add(box(16, 0.06, 72, 0x5a5a5a, 0, 0.03, 0));
-      for (let z = -34; z < 34; z += 6) l.group.add(box(0.6, 0.07, 3, 0xffffff, 0, 0.04, z));
-      l.box(-18, 0, 0, 20, 0.5, 72, 0xbdbdbd); l.box(18, 0, 0, 20, 0.5, 72, 0xbdbdbd);
-      // Läden
-      const shops = [[-24, -24, 'Metzger', 0xe17055], [-24, -8, 'Bäcker', 0xfdcb6e], [-24, 10, 'Fischladen', 0x74b9ff], [24, -24, 'Café', 0xa29bfe], [24, -8, 'Döner', 0x55efc4], [24, 10, 'Imbiss', 0xff7675]];
-      shops.forEach(([x, z, n, c]) => { l.box(x, 0.5, z, 12, 6, 12, c); l.box(x + (x < 0 ? 6.2 : -6.2), 0.5, z, 0.4, 3, 8, 0x3b2412); l.label(n, x, 7.5, z); });
-      // Markise-Plattformen und Bänke
-      [[-15.5, 2.8, -24], [-15.5, 2.8, -8], [15.5, 2.8, -8]].forEach(([x, y, z]) => l.box(x, y, z, 5, 0.3, 8, 0xffffff));
-      [[-12, 20], [12, 20], [-12, -30], [12, -30]].forEach(([x, z]) => { l.box(x, 0.5, z, 3, 0.6, 1, 0x7a4a1f); l.box(x, 1.1, z + 0.4, 3, 0.5, 0.2, 0x7a4a1f); });
-      l.box(15.5, 0.5, -14, 2, 1.5, 2, 0x7a4a1f); l.box(15.5, 4.6, -8, 3, 0.3, 3, 0xffeaa7); // Kiste + Ladenschild
-      l.goldbone('kletter', 24, 7.2, -8);
-      l.goldbone('geheim', -33, 0.6, 1, { hidden: true }); // hinter den Läden
-      // Mülleimer (Treppen) und Autos
-      [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
-      [[-4, -20, 0xd63031], [4, 12, 0x0984e3]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
-      // Essensreste (12 Ziele)
-      [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, 2.7, -20, 'bread'], [4, 2.7, 12, 'sausage'], [-12, 1.2, -30, 'fish'], [12, 1.2, -30, 'bread'], [15.5, 3.3, -8, 'sausage'], [-30, 0.8, 24, 'fish'], [30, 0.8, 24, 'bread'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
-      l.scatter(30);
-      l.label('12 Essensreste finden – Vorsicht, Kater!', 0, 4, 26);
-    },
-    onGoal(l) { l.game.toast('Ein Fauchen vom Dach … DER KATER!'); l.game.later(1000, () => l.setBoss(new Cat(l.game, 0, 0, 13))); }
-  },
+  strasse: STRASSE,
 
   // ----------------------------------------------------------------- BÜRO
   buero: {
