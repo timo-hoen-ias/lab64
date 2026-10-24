@@ -67,7 +67,7 @@ export function installGadgets(Level) {
       const y = o.y ?? Math.max(0, this.top(x, z)), g = this.game;
       const m = makeCorgi(); m.scale.setScalar(1.1); this.deco(m, x, y, z, o.ry ?? Math.atan2(this.spawn.x - x, this.spawn.z - z)); // Heribert, alter Corgi
       this.solids.push({ min: { x: x - 0.5, y, z: z - 0.5 }, max: { x: x + 0.5, y: y + 1.4, z: z + 0.5 }, active: true });
-      this.bruno = { x, y, z, mesh: m, ability };
+      this.bruno = { x, y, z, mesh: m, ability, ry: m.rotation.y, st: 'idle', t: 0, next: 2 + Math.random() * 2, ear: 0, earT: 1.5 };
       // Gespräch und Tipp zum Rätsel stehen in dialog.js („bruno.<fähigkeit>“)
       if (ability) this.trigger(x, y, z, 4.5, () => { if (!g.has(ability)) g.learn(ability, true, m); });
       this.interactable(x, y, z, 1.6, it => {
@@ -77,6 +77,68 @@ export function installGadgets(Level) {
         else if (ability) g.learn(ability, true, m);
       }, o.shop ? 'BISS = Leckerli-Laden' : 'BISS = Heribert fragen');
       return this.bruno;
+    },
+
+    // Heribert lebt: atmet, zuckt mit den Ohren, legt den Kopf schief, wackelt mit dem Popo, schnüffelt, hopst,
+    // macht den Corgi-„Sploot“ (flach auf dem Bauch, Hinterbeine nach hinten gestreckt) und tappt ein wenig um seinen Platz.
+    // Läuft vor dem Kopf-Tracking der NPCs; ist Moll nah, bleibt er stehen und schaut sie an (Tracking setzt dann den Kopf).
+    animateTeacher(dt) {
+      const b = this.bruno, m = b.mesh, u = m.userData, pp = this.game.player.pos;
+      const near = Math.hypot(pp.x - m.position.x, pp.z - m.position.z) < 5 && Math.abs(pp.y - b.y) < 4;
+      b.t += dt; b.clock = (b.clock ?? 0) + dt; const t = b.t, T = b.clock, ease = k => k * k * (3 - 2 * k);
+      // Grundhaltung, jeden Frame neu (Zustände setzen nur ihre Abweichungen)
+      u.rig.position.y = 0; u.rig.rotation.set(0, 0, 0); u.front.rotation.set(0, 0, 0); u.rear.rotation.set(0, 0, 0);
+      u.legs.forEach(l => { l.rotation.x = 0; }); u.tail.rotation.set(0, 0, 0); u.head.rotation.x = 0;
+      u.body.scale.y = 1 + Math.sin(T * 2.2) * 0.025; // atmen
+      let look = 0; u.headTilt = 0; // Kopf: in Molls Nähe übernimmt das Tracking (u.headTilt wird dort dazugerechnet)
+      // nächster Zustand: in Molls Nähe freundlich (wackeln, Kopf schief, hopsen), sonst gemütlich
+      if (b.st === 'idle' && t > b.next) {
+        const pick = near ? ['wiggle', 'tilt', 'hop', 'wiggle'] : ['walk', 'sniff', 'sploot', 'wiggle', 'tilt', 'walk', 'hop'];
+        b.st = pick[Math.floor(Math.random() * pick.length)]; b.t = 0;
+        b.side = Math.random() < 0.5 ? 1 : -1;
+        if (b.st === 'walk') { const a = Math.random() * Math.PI * 2, r = 0.4 + Math.random() * 0.8; b.to = { x: b.x + Math.cos(a) * r, z: b.z + Math.sin(a) * r }; }
+        return;
+      }
+      const done = len => { if (t > len) { b.st = 'idle'; b.t = 0; b.next = (near ? 1 : 2) + Math.random() * 3; } };
+      const k = st => Math.sin(Math.min(1, t / st) * Math.PI); // 0 → 1 → 0 über st Sekunden
+      if (b.st === 'wiggle') { // Popo-Wackeln mit Stummelschwanz
+        const w = k(1.6), f = Math.sin(t * 22);
+        u.rear.rotation.z = f * 0.14 * w; u.rear.rotation.y = f * 0.1 * w; u.tail.rotation.y = Math.sin(t * 30) * 0.7 * w; u.rig.rotation.z = -f * 0.03 * w;
+        done(1.6);
+      } else if (b.st === 'tilt') { // Kopf schief legen, Ohren aufstellen
+        const w = k(1.8); u.headTilt = b.side * 0.35 * w; u.ear = Math.max(u.ear ?? 0, w);
+        done(1.8);
+      } else if (b.st === 'hop') { // zwei kleine Hopser
+        const q = (t % 0.45) / 0.45, h = Math.sin(q * Math.PI);
+        u.rig.position.y = h * 0.22; u.legs.forEach((l, i) => { l.rotation.x = (i < 2 ? -0.5 : 0.5) * h; }); u.tail.rotation.y = Math.sin(t * 25) * 0.5;
+        done(0.9);
+      } else if (b.st === 'sniff') { // Nase am Boden, schnuppern
+        const w = k(2.4); u.front.rotation.x = 0.18 * w; u.head.rotation.x = 0.55 * w + Math.sin(t * 16) * 0.05 * w; look = Math.sin(t * 1.7) * 0.4 * w;
+        done(2.4);
+      } else if (b.st === 'sploot') { // flach hinlegen, Hinterbeine nach hinten, Vorderbeine nach vorn
+        const w = ease(Math.min(1, t / 0.5)) * (1 - ease(Math.max(0, (t - 3.5) / 0.5)));
+        u.rig.position.y = -0.2 * w; u.legs.forEach((l, i) => { l.rotation.x = (i < 2 ? -1.35 : 1.45) * w; }); u.head.rotation.x = -0.1 * w;
+        u.tail.rotation.y = Math.sin(t * 6) * 0.3 * w;
+        done(4);
+      } else if (b.st === 'walk') { // ein paar Schritte trotten, dann wieder zur alten Blickrichtung drehen
+        const dx = b.to.x - m.position.x, dz = b.to.z - m.position.z, d = Math.hypot(dx, dz);
+        if (d > 0.05 && t < 4) {
+          const want = Math.atan2(dx, dz); let da = Math.atan2(Math.sin(want - m.rotation.y), Math.cos(want - m.rotation.y));
+          m.rotation.y += da * Math.min(1, dt * 6);
+          if (Math.abs(da) < 0.6) { const v = Math.min(d, dt * 0.9); m.position.x += dx / d * v; m.position.z += dz / d * v; }
+          const ph = t * 11; u.legs.forEach((l, i) => { l.rotation.x = Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.55; });
+          u.rig.position.y = Math.abs(Math.sin(ph)) * 0.04; u.tail.rotation.y = Math.sin(t * 9) * 0.3;
+        } else {
+          let da = Math.atan2(Math.sin(b.ry - m.rotation.y), Math.cos(b.ry - m.rotation.y)); m.rotation.y += da * Math.min(1, dt * 4);
+          if (Math.abs(da) < 0.05) { b.st = 'idle'; b.t = 0; b.next = 2 + Math.random() * 3; }
+        }
+      }
+      // Ohren zucken ab und zu (beim Kopf-schief-Legen stehen sie aufmerksam nach vorn)
+      b.earT -= dt; if (b.earT < 0) { b.ear = 1; b.earSide = Math.random() < 0.5; b.earT = 1.5 + Math.random() * 3; } // mal das linke, mal das rechte Ohr
+      b.ear = Math.max(0, b.ear - dt * 5); const tw = Math.sin(b.ear * Math.PI) * 0.35, alert = u.ear ?? 0; u.ear = Math.max(0, alert - dt * 2);
+      u.earL.rotation.z = -0.25 - (b.earSide ? tw : 0) + alert * 0.15; u.earR.rotation.z = 0.25 + (b.earSide ? 0 : tw) - alert * 0.15;
+      u.earL.rotation.x = u.earR.rotation.x = -alert * 0.2;
+      if (!near && Math.abs(u.track ?? 0) < 0.01) { u.head.rotation.y += (look - u.head.rotation.y) * Math.min(1, dt * 6); u.head.rotation.z += (u.headTilt - u.head.rotation.z) * Math.min(1, dt * 8); }
     },
 
     // ---- Drehknopf / Ventil / Drehkreuz: Trillern in der Nähe dreht ihn

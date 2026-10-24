@@ -655,12 +655,13 @@ export class Level {
     this.game.hint(hint);
     if (this.decoAnim) animateDeko(this, dt);
     if (this.def.update) this.def.update(this, dt);
+    if (this.bruno) this.animateTeacher(dt); // Heribert bewegt sich (vor dem Kopf-Tracking, das in Molls Nähe den Kopf übernimmt)
     // NPCs drehen den Kopf zu Moll, wenn sie in der Nähe vorbeiläuft (nach def.update, das manche NPCs animiert)
     for (const n of this.npcs) {
       const u = n.userData, dx = pp.x - n.position.x, dz = pp.z - n.position.z;
       const on = n.visible && Math.hypot(dx, dz) < 9 && Math.abs(pp.y - n.position.y) < 4;
       if (!on && Math.abs(u.track ?? 0) < 0.002) continue;
-      u.head.rotation.y = headTrack(u, dx, dz, n.rotation.y, on, dt); u.head.rotation.z = -u.track * 0.12; // leicht schief gelegt: neugierig
+      u.head.rotation.y = headTrack(u, dx, dz, n.rotation.y, on, dt); u.head.rotation.z = -u.track * 0.12 + (u.headTilt ?? 0); // leicht schief gelegt: neugierig (Heribert legt ihn zusätzlich schief)
     }
     if (this.boss) this.game.updateBossBar(this.boss);
   }
