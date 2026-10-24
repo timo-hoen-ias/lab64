@@ -182,21 +182,64 @@ function waterLook(sh) {
 }
 
 // Wasser mit Wellen (Vertex-Animation im Shader des Lambert-Materials)
-export function makeWater(color, size) {
-  const geo = new THREE.PlaneGeometry(size * 2.4, size * 2.4, 48, 48);
+export function makeWater(color, size, sea = null) {
+  const geo = new THREE.PlaneGeometry(size * 2.4, size * 2.4, sea ? 120 : 48, sea ? 120 : 48);
   const mat = new THREE.MeshLambertMaterial({ color, flatShading: true, emissive: color, emissiveIntensity: 0.15 });
   const uni = { uTime: { value: 0 } };
   mat.onBeforeCompile = sh => {
-    sh.uniforms.uTime = uni.uTime; waterLook(sh);
+    sh.uniforms.uTime = uni.uTime;
+    if (sea) seaLook(sh, sea);
+    waterLook(sh);
     sh.vertexShader = 'uniform float uTime;\nvarying vec2 vW;\n' + sh.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\n transformed.z += sin(position.x * 0.35 + uTime * 1.6) * 0.18 + cos(position.y * 0.3 + uTime * 1.2) * 0.14;\n vW = position.xy;');
+      '#include <begin_vertex>\n' + (sea ? ' transformed.z += seaSwell(position.xy);' : ' transformed.z += sin(position.x * 0.35 + uTime * 1.6) * 0.18 + cos(position.y * 0.3 + uTime * 1.2) * 0.14;') + '\n vW = position.xy;');
     // Glitzern: helle Wellenkämme, die über das Wasser wandern
     sh.fragmentShader = 'uniform float uTime;\nvarying vec2 vW;\n' + sh.fragmentShader.replace('#include <dithering_fragment>',
       '#include <dithering_fragment>\n float sp = sin(vW.x * 1.3 + uTime * 1.5) * sin(vW.y * 1.1 - uTime * 1.2) + sin(vW.x * 0.4 - vW.y * 0.5 + uTime * 0.7) * 0.4;\n gl_FragColor.rgb += vec3(0.85, 0.95, 1.0) * smoothstep(1.05, 1.3, sp) * 0.45;');
   };
+  if (sea) mat.customProgramCacheKey = () => 'sea';
   const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.y = -0.15; m.receiveShadow = true;
   m.userData.update = dt => { uni.uTime.value += dt; };
   return m;
+}
+
+// ---- Meer: Tiefenkarte (aus dem Gelände gebacken) macht flaches Wasser klar und türkis, tiefes dunkelblau.
+// Dazu Dünung (läuft auf den Strand zu, wird im Flachen kleiner), Schaumkronen auf den Kämmen und Brandungsstreifen am Ufer.
+// sea = { tex, box: [x0, z0, w, d], max } – Tiefe im Texel = Tiefe / max
+export function bakeSeaDepth(depthAt, x0, z0, w, d, n = 256, max = 8, maxDist = 24) {
+  // R = Tiefe, G = Abstand zum Ufer (Chamfer-Abstandstransformation über das Raster)
+  const data = new Uint8Array(n * n * 4), dep = new Float32Array(n * n), dist = new Float32Array(n * n), cell = w / n, D = Math.SQRT2;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const k = j * n + i; dep[k] = depthAt(x0 + (i + 0.5) / n * w, z0 + (j + 0.5) / n * d); dist[k] = dep[k] <= 0 ? 0 : 1e9; }
+  const relax = (k, k2, c) => { if (dist[k2] + c < dist[k]) dist[k] = dist[k2] + c; };
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const k = j * n + i; if (i) relax(k, k - 1, 1); if (j) { relax(k, k - n, 1); if (i) relax(k, k - n - 1, D); if (i < n - 1) relax(k, k - n + 1, D); } }
+  for (let j = n - 1; j >= 0; j--) for (let i = n - 1; i >= 0; i--) { const k = j * n + i; if (i < n - 1) relax(k, k + 1, 1); if (j < n - 1) { relax(k, k + n, 1); if (i < n - 1) relax(k, k + n + 1, D); if (i) relax(k, k + n - 1, D); } }
+  for (let k = 0; k < n * n; k++) { data[k * 4] = Math.round(THREE.MathUtils.clamp(dep[k] / max, 0, 1) * 255); data[k * 4 + 1] = Math.round(Math.min(1, dist[k] * cell / maxDist) * 255); data[k * 4 + 3] = 255; }
+  const tex = new THREE.DataTexture(data, n, n); tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
+  return { tex, box: new THREE.Vector4(x0, z0, w, d), max, maxDist };
+}
+function seaLook(sh, sea) {
+  Object.assign(sh.uniforms, { tSeaD: { value: sea.tex }, uSeaBox: { value: sea.box }, uSeaMax: { value: new THREE.Vector2(sea.max, sea.maxDist) } });
+  const pars = `uniform sampler2D tSeaD; uniform vec4 uSeaBox; uniform vec2 uSeaMax;
+    vec2 seaDepth(vec2 xz) { return texture2D(tSeaD, (xz - uSeaBox.xy) / uSeaBox.zw).rg * uSeaMax; } // x = Tiefe, y = Abstand zum Ufer\n`;
+  // Plane liegt gedreht: lokales (x, y) = Welt (x, -z)
+  sh.vertexShader = pars + `varying float vSwell;
+    float seaSwell(vec2 p) { vec2 w = vec2(p.x, -p.y); float d = seaDepth(w).y;
+      float h = sin(dot(w, vec2(0.6, 0.8)) * 0.24 + uTime * 1.15) * 0.2 + sin(dot(w, vec2(-0.7, 0.71)) * 0.41 + uTime * 1.6) * 0.1 + sin(dot(w, vec2(0.95, -0.3)) * 0.9 + uTime * 2.4) * 0.045;
+      vSwell = h * smoothstep(0.5, 10.0, d);
+      return vSwell + sin(uTime * 0.7) * 0.1; }\n` + sh.vertexShader;
+  sh.fragmentShader = pars + 'varying float vSwell;\n' + sh.fragmentShader
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      vec2 sDD = seaDepth(vWw.xz); float sD = sDD.y, sK = smoothstep(0.0, 18.0, sD) * 0.6 + smoothstep(1.0, 8.0, sDD.x) * 0.4; // sD = Abstand zum Ufer in m
+      diffuseColor.rgb = mix(vec3(0.45, 0.97, 0.9), diffuseColor.rgb * 0.8, sK);`)
+    .replace('#include <opaque_fragment>', `
+      // Brandung: Schaumstreifen laufen auf das Ufer zu, dazu eine feste Schaumkante direkt am Sand
+      float band = sin(sD * 1.6 + uTime * 1.8 + sin(vWw.x * 0.21 + vWw.z * 0.13) * 1.8) * 0.5 + 0.5;
+      float foam = (smoothstep(1.4, 0.2, sD) * 0.9 + smoothstep(0.82, 1.0, band) * smoothstep(7.0, 1.0, sD)) * (0.75 + 0.25 * sin(vWw.x * 2.3 + vWw.z * 1.7));
+      // Schaumkronen auf hohen Wellenkämmen
+      foam += smoothstep(0.2, 0.3, vSwell) * smoothstep(0.35, 0.8, sin(vWw.x * 1.7 + uTime) * sin(vWw.z * 1.9 - uTime * 0.8)) * 0.8;
+      foam = clamp(foam, 0.0, 1.0);
+      outgoingLight = mix(outgoingLight, vec3(1.0), foam * 0.85);
+      diffuseColor.a = mix(0.28, 0.78, sK) + foam * 0.6;
+      #include <opaque_fragment>`);
 }
 
 // Runder Schatten unter Figuren – zeigt beim Springen, wo man landet

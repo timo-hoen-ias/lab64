@@ -7,7 +7,7 @@ import { installGadgets } from './abilities.js';
 import { collectPatches, surfaceAt } from './surface.js';
 import { installDetails } from './details.js';
 import { installPuzzles } from './puzzles.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
+import { makeSky, makeClouds, makeWater, bakeSeaDepth, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
 import { placeFoes } from './enemies.js';
 import { dekorate, animateDeko } from './deko/index.js';
@@ -65,7 +65,7 @@ export class Level {
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
     CAUSTIC.uSeaY.value = this.seaY ?? -1e9;
     this._seeThrough();
-    this._ambient(); if (this.seaY !== undefined) this._shoreFoam();
+    this._ambient(); if (this.seaY !== undefined) { this._shoreFoam(); this._bakeSea(); }
     this.critters = new Critters(this);
     this._sky(out);
     this.crumbTotal = this.pickups.filter(p => !p.goal && !p.special && p.kind !== 'goldbone').length;
@@ -136,7 +136,10 @@ export class Level {
   }
   // Meer: Wasser überall dort, wo der Boden unter y liegt (Strand: Grund bei floorY, Land = Hügel darüber)
   sea(y = 0, color = 0x2e9be0) {
-    this.seaY = y; const size = this.def.size || 40, w = makeWater(color, size); w.position.y = y - 0.12;
+    this.seaY = y; const size = this.def.size || 40, S = size * 1.2, fl = this.def.floorY ?? -12;
+    // Tiefenkarte erst nach dem Aufbau füllen (Hügel stehen dann alle); bis dahin überall tief
+    this._seaDepth = bakeSeaDepth(() => 8, -S, -S, S * 2, S * 2, 4);
+    const w = makeWater(color, size, this._seaDepth); w.position.y = y - 0.12;
     w.material.transparent = true; w.material.opacity = 0.8; w.material.side = THREE.DoubleSide; w.renderOrder = 2; this.scene.add(w); this.water = w;
   }
   // Luftblasen-Säule vom Grund bis zur Oberfläche: dort tankt Moll unter Wasser Luft
@@ -453,9 +456,20 @@ export class Level {
     const out = !this.def.indoor, rain = this.wx?.k || 0;
     WATER.uWSky.value.copy(this.scene.fog.color); if (out) WATER.uWSky.value.lerp(this.sky.top, 0.7);
     WATER.uWSunK.value = out && this.T ? 1 - rain * 0.9 : 0; WATER.uWSun.value.copy(this.sky.sunDir);
+    // Gischt: an der Brandungslinie in Molls Nähe spritzt es ab und zu hoch
+    if (this._surf && !this.bounds?.room && Math.random() < dt * 10) for (let i = 0; i < 4; i++) {
+      const [x, z] = this._surf[(Math.random() * this._surf.length) | 0]; if (Math.hypot(x - pp.x, z - pp.z) > 32) continue;
+      this.game.fx.burst({ x, y: this.seaY + 0.15, z }, { n: 4, color: [0xffffff, 0xe0f7ff], speed: 1.4, up: 3.2, life: 0.7, size: 0.15, gravity: -9 }); break;
+    }
     if (rain > 0.2 && !this.bounds?.room && Math.random() < dt * 14 * rain) { const x = pp.x + (Math.random() - 0.5) * 16, z = pp.z + (Math.random() - 0.5) * 16; if (this.waterAt(x, z) !== null) WATER.ripple(x, z, 0.45); }
   }
   // Schaum am Strand: Rasterpunkte, an denen das Gelände die Wasserlinie schneidet
+  // Wassertiefe unter dem Meer in eine Textur backen (für Farbe, Durchsicht, Brandung und kleinere Wellen im Flachen)
+  _bakeSea() {
+    const d = this._seaDepth, b = d.box, fl = this.def.floorY ?? -12, y = this.seaY;
+    const nd = bakeSeaDepth((x, z) => { const h = this.heightAt(x, z, y); return y - (h === -Infinity ? fl : Math.max(h, fl)); }, b.x, b.y, b.z, b.w, 256, d.max, d.maxDist);
+    d.tex.image = nd.tex.image; d.tex.needsUpdate = true;
+  }
   _shoreFoam() {
     const y = this.seaY, S = (this.def.size || 40) * 1.1, step = 2, pts = [];
     for (let x = -S; x < S; x += step) for (let z = -S; z < S; z += step) {
@@ -467,7 +481,7 @@ export class Level {
       }
       if (pts.length > 2400) break;
     }
-    if (!pts.length) return; this.foam = makeShoreFoam(pts, y); this.scene.add(this.foam);
+    if (!pts.length) return; this._surf = pts; this.foam = makeShoreFoam(pts, y); this.scene.add(this.foam);
   }
 
   // Nur Deko (keine Kollision)
