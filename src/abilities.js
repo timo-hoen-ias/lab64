@@ -1,7 +1,7 @@
 // Fähigkeiten: Texte, Krümel-Laden und die Bausteine, die Welten für Fähigkeiten-Rätsel benutzen
 // (Opa Bruno als Lehrer, Drehknöpfe, Bell-Ziele, Bodenschalter, Kisten, Erdhügel, Kletterwände, Aufwind, Apportieren).
 import * as THREE from 'three';
-import { box, cyl, sphere, cone, makeNpcDog } from './models.js';
+import { box, cyl, sphere, cone, makeNpcDog, makeSign } from './models.js';
 import { FX } from './fx.js';
 
 // Ball: Radius und Sitz im Maul (Mittelpunkt, im Koordinatensystem von Molls Kopf: vorn an der Schnauze, auf Höhe der Lefzen)
@@ -298,7 +298,6 @@ export function installGadgets(Level) {
       const bb = { id, need, kind, x, y, z }; (this.backbones ||= []).push(bb);
       const bone = (bx, by, bz, opts) => { const p = this.goldbone(id, bx, by, bz, opts); p.backtrack = true; bb.bone = p; return p; };
       const spawn = (bx, by, bz) => { this.spawnGoldbone(bx, by, bz, id); const p = this.pickups[this.pickups.length - 1]; p.backtrack = true; bb.bone = p; };
-      let signY = y + 3.2;
       if (kind === 'spin') {
         this.box(x, y, z, 0.5, 1.6, 0.5, 0x636e72);
         bb.target = this.spinTarget(x, y + 2, z, () => spawn(x + 2, y + 1, z), { kind: 'valve', strong: o.strong });
@@ -306,7 +305,7 @@ export function installGadgets(Level) {
       } else if (kind === 'bark') {
         this.box(x, y, z, 0.4, 3, 0.4, 0x8d6e4a);
         const crow = new THREE.Group(); crow.add(box(0.5, 0.45, 0.8, 0x2d3436, 0, 0.3, 0)); crow.add(box(0.35, 0.35, 0.35, 0x2d3436, 0, 0.65, 0.4)); crow.add(box(0.1, 0.1, 0.3, 0xfdcb6e, 0, 0.6, 0.7)); crow.add(box(0.7, 0.12, 0.25, 0xffd32a, 0, 0.45, 0.85));
-        this.deco(crow, x, y + 3, z); signY = y + 5;
+        this.deco(crow, x, y + 3, z);
         bb.target = this.barkTarget(x, y, z, () => { crow.visible = false; g.audio.sfx('honk'); g.fx.burst({ x, y: y + 3.4, z }, { n: 14, color: 0x2d3436, speed: 5, up: 4, life: 0.8, size: 0.16 }); g.toast('KRAH! Die Krähe lässt den Knochen fallen!'); spawn(x + 1.5, y + 1, z); }, { ringY: 4.2 });
         bb.act = () => this.onBark({ x, y, z: z - 4 }, { x: 0, z: 1 }, 11);
       } else if (kind === 'stomp') {
@@ -317,16 +316,16 @@ export function installGadgets(Level) {
         bb.act = () => this.dig(d);
       } else if (kind === 'glide') {
         const H = o.h ?? 11; this.box(x, y, z, 3, H, 3, o.color ?? 0x95a5a6); this.box(x, y + H, z, 3.6, 0.3, 3.6, 0x7f8c8d);
-        this.updraft(x + 4.6, y, z, H + 3, 2.2); bone(x, y + H + 1.1, z); signY = y + 2.6; bb.x2 = x + 4.6;
+        this.updraft(x + 4.6, y, z, H + 3, 2.2); bone(x, y + H + 1.1, z); bb.x2 = x + 4.6;
       } else if (kind === 'wall') {
         const H = o.h ?? 10; this.climbWall(x - 3, y, z, 2, H, 4); this.climbWall(x + 2.5, y, z, 1, H, 4);
-        bone(x - 3, y + H + 0.9, z); signY = y + 2.6;
+        bone(x - 3, y + H + 0.9, z);
       } else if (kind === 'ledge') {
-        const H = o.h ?? 6; this.box(x, y, z, 3, H, 3, o.color ?? 0xdfe6e9); bone(x, y + H + 0.9, z); signY = y + H + 2.6;
+        const H = o.h ?? 6; this.box(x, y, z, 3, H, 3, o.color ?? 0xdfe6e9); bone(x, y + H + 0.9, z);
       } else if (kind === 'nose') {
         const p = bone(x, y + 0.8, z, { hidden: true }); p.nose = true;
       }
-      if (kind !== 'nose' && !g.has(need)) { const sg = makeLabel(`${info.icon} ${info.name}`); sg.scale.set(3.2, 0.8, 1); sg.position.set(x, signY, z); this.group.add(sg); bb.sign = sg; }
+      if (kind !== 'nose' && !g.has(need)) { const sx = x + (kind === 'wall' ? 0 : -2.6), sz = z - 3.6, sg = makeSign(`${info.icon} ${info.name}`, { w: 2.6, post: 1.2 }); sg.position.set(sx, y, sz); sg.rotation.y = Math.atan2(this.spawn.x - sx, this.spawn.z - sz); this.group.add(sg); bb.sign = sg; } // Holzschild: was hier fehlt
       if (kind !== 'nose') this.trigger(x, y, z, o.hintR ?? 6.5, () => { if (g.has(need) || g.hasBone(this.key, id) || this._gateSaid?.[id]) return; (this._gateSaid ||= {})[id] = true; g.toast(`${info.icon} Hier kommt Moll erst mit „${info.name}“ weiter – später wiederkommen!`, 4000); }, false);
       return bb;
     },

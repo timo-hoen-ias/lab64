@@ -79,14 +79,13 @@ export class Game {
   learn(ability, fromBruno, mesh) {
     const a = ABILITIES[ability]; if (!a) return; const fresh = !this.has(ability);
     if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); }
-    const card = () => { if (fresh) { this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); } this._learnCard(a, fresh, fromBruno); };
+    const card = () => { if (fresh) { this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); } this._learnCard(a, fresh, fromBruno); if (fresh) this.later(7000, () => this.backtrackHint(ability)); };
     if (fromBruno) this.talk('bruno.' + ability, { mesh, onDone: card }); else card();
   }
   _learnCard(a, fresh, fromBruno) {
     const el = document.getElementById('learn'); if (!el) return;
     el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Opa Bruno' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
     el.classList.add('show'); clearTimeout(this._lt); this._lt = setTimeout(() => el.classList.remove('show'), 6500);
-    if (fresh) this.later(7000, () => this.backtrackHint(ability));
   }
   // Nach neuer Fähigkeit: in welchen schon besuchten Welten jetzt Rückkehr-Knochen erreichbar sind
   backtrackHint(ability) {

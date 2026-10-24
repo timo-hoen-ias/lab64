@@ -62,7 +62,7 @@ export const GARTEN = {
     // Opa Bruno: bringt Moll das Apportieren bei und hat einen Leckerli-Laden (Krümel gegen Upgrades)
     l.teacher(-9, 9.5, 'apportieren', { shop: true });
     // Rückkehr-Knochen (später mit Trillern bzw. Helikopter-Ohren wiederkommen)
-    l.backbone('r_trillern', 'trillern', 'spin', 37, 1); l.backbone('r_gleiten', 'gleiten', 'glide', -47, 53);
+    l.backbone('r_trillern', 'trillern', 'spin', 30, -6); l.backbone('r_gleiten', 'gleiten', 'glide', -62, -2);
     l.fetchItem(7, 0, 9, 'ball');
     // Spielzeug zum Herumtollen (rollt, rutscht, quietscht): weitere Bälle und Quietsche-Knochen, im Haus und im Garten
     [[-3, 5, 0xe74c3c], [10, -4, 0x3498db, 0xf1c40f], [-1.5, -16.5, 0xfd79a8], [12, 15, 0xf39c12]].forEach(([x, z, color, stripe]) => l.fetchItem(x, 0, z, 'ball', { color, stripe }));
