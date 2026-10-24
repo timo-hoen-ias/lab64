@@ -30,6 +30,8 @@ export const PARK = {
     l.warp(-24, 0, 30, 'Grillwiese', bench());
     // ---- Fähigkeit dieser Welt: Buddeln. Erdhügel überall im Park, in einem steckt ein Goldknochen
     l.teacher(-31, 24, 'buddeln');
+    // Rückkehr-Knochen (später mit Helikopter-Ohren bzw. Wandsprung wiederkommen)
+    l.backbone('r_gleiten', 'gleiten', 'glide', 51, 43); l.backbone('r_wand', 'wandsprung', 'wall', 19, 11);
     [[-30, 18], [22, 28], [-48, -22], [50, 32]].forEach(([x, z]) => l.digSpot(x, z, [l.pickup(x, 0.4, z, 'bone', { value: 5 })]));
     l.digSpot(-70, -30, [l.goldbone('buddeln', -70, 0.8, -30)]);
     // Wege von den Toren nach draußen

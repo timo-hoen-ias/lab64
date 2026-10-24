@@ -133,6 +133,32 @@ const tShort = await tornadoRun(4), tFull = await tornadoRun(45); await shot('ab
 console.log('  kurz getrillert: höchster Punkt/Ende', tShort, '| Tornado:', tFull); res.tornadoHoch = tShort[0] < 6.5 && tFull[0] > 7.1;
 res.tornadoKnochen = await boneHere('tornado'); console.log('  Goldknochen Tornado:', res.tornadoKnochen);
 
+// ---- Rückkehr-Knochen: brauchen Fähigkeiten aus späteren Welten
+console.log('Rückkehr-Knochen:');
+const bbAt = id => ev(id => { const b = window.game.level.backbones.find(b => b.id === id); return [b.x, b.y, b.z]; }, id);
+const peakFrom = async (x, y, z, run) => { await tp(x, y + 0.2, z, 0); await sim(4); let peak = y; await run(async n => { for (let i = 0; i < n; i++) { await sim(1); peak = Math.max(peak, (await pos())[1]); } }); await sim(30); return +(peak - y).toFixed(1); };
+// Dorf: verrostetes Ventil dreht nur der Tornado, glatter Sockel (6 m) nur per Tornado erreichbar
+await enter('dorf'); let [vx, vy, vz] = await bbAt('r_ventil');
+await setAb('tornado', false); await tp(vx, vy + 0.2, vz - 1.5, 0); await sim(3); await press('spin', 2); await sim(20);
+const ventilOhne = await ev(() => window.game.level.backbones.find(b => b.id === 'r_ventil').target.done);
+await setAb('tornado', true); await tp(vx, vy + 0.2, vz - 1.5, 0); await sim(3); await sim(45, { spin: true }); await sim(40);
+const ventilMit = await ev(() => window.game.level.backbones.find(b => b.id === 'r_ventil').target.done);
+console.log('  Rost-Ventil ohne/mit Tornado:', ventilOhne, ventilMit); res.rueckVentil = !ventilOhne && ventilMit && await grab('r_ventil');
+let [lx, ly, lz] = await bbAt('r_tornado');
+const hopPeak = await peakFrom(lx, ly, lz - 3, async step => { await press('jump', 3); await step(10); await press('jump', 3); await step(30); });
+const tornPeak = await peakFrom(lx, ly, lz - 3, async step => { await sim(45, { spin: true }); await step(16); await press('jump', 3); await step(30); });
+console.log('  Sockel 6 m – Höhe Doppelsprung / Tornado:', hopPeak, tornPeak); res.rueckSockel = hopPeak < 5.5 && tornPeak > 6.2;
+// Garten: Säule mit Aufwind nur mit Helikopter-Ohren
+await enter('hub'); let [gx, gy, gz] = await bbAt('r_gleiten');
+const upPeak = async () => { await tp(gx + 4.6, gy + 0.2, gz, 0); await sim(4); let pk = 0; await press('jump', 3); await sim(8); await press('jump', 3); await sim(6); for (let i = 0; i < 90; i++) { await sim(1, { spin: true }); pk = Math.max(pk, (await pos())[1] - gy); } await sim(40); return +pk.toFixed(1); };
+await setAb('gleiten', false); const upOhne = await upPeak(); await setAb('gleiten', true); const upMit = await upPeak();
+console.log('  Aufwind an der Säule (11 m) ohne/mit Gleiten:', upOhne, upMit); res.rueckAufwind = upOhne < 5 && upMit > 11.5;
+// Kanal: Supernasen-Versteck
+await enter('kanal'); let [nx, ny, nz] = await bbAt('r_nase');
+const sniffAt = async () => { await tp(nx + 2, ny + 0.2, nz, 0); await sim(15, { sniff: true }); return ev(() => window.game.level.pickups.find(q => q.boneId === 'r_nase').mesh.visible); };
+await setAb('supernase', false); const naseOhne = await sniffAt(); await setAb('supernase', true); const naseMit = await sniffAt();
+console.log('  Versteck ohne/mit Supernase sichtbar:', naseOhne, naseMit); res.rueckNase = !naseOhne && naseMit && await grab('r_nase');
+
 const bad = Object.entries(res).filter(([, v]) => !v).map(([k]) => k);
 console.log(bad.length ? 'FEHLGESCHLAGEN: ' + bad.join(', ') : `ALLE ${Object.keys(res).length} PROBEN OK`);
 console.log('ERR', JSON.stringify(errs)); await b.close();

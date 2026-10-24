@@ -111,6 +111,8 @@ export const BUERO = {
     for (const x of [-16, -14.6, -13.2, -11.8, -4.2, -2.8, 2.8, 4.2, 11.8, 13.2, 14.6, 16]) { l.box(x, 0, 30.4, 1.2, 0.8, 1.2, 0xe67e22); md(box(1.2, 1.1, 0.15, 0xe67e22), x, 1.35, 30.95); }
     // ---- Fähigkeit dieser Welt: Bauchklatscher. Drei Riesenstempel am Boden genehmigen die Anträge, dann öffnet die Poststelle; Kartons zerbrechen
     l.teacher(-5, 20, 'bauchklatscher', { y: 0 });
+    // Rückkehr-Knochen im Erdgeschoss (später mit Buddeln bzw. Tornado wiederkommen)
+    l.backbone('r_buddeln', 'buddeln', 'dig', 1, -23, { from: 1 }); l.backbone('r_tornado', 'tornado', 'ledge', 25, 5, { from: 1 });
     l.knoepfe = 0;
     [[-10, 24], [8, 27], [-22, 6]].forEach(([x, z]) => l.stompPad(x, 0, z, () => {
       l.knoepfe++; if (l.knoepfe < 3) { g.toast(`STEMPEL! Antrag ${l.knoepfe}/3 genehmigt.`); return; }

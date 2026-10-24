@@ -114,11 +114,12 @@ Bosse werden nach jedem Treffer ca. 30 % schneller (Phase 2/3). Bereits gesammel
 
 ## Fähigkeiten-Progression
 Moll lernt in jeder Welt **eine** neue Fähigkeit bei Opa Bruno direkt am Eingang (wie Bottles bei Banjo-Kazooie). Regeln:
-- Jede Welt ist in einem Besuch komplett schaffbar. Rätsel einer Welt brauchen nur die Fähigkeit dieser Welt (Portale öffnen nach Knochenzahl, die Reihenfolge ist also nicht fest).
+- Beim ersten Besuch schafft man 11 Knochen je Welt mit den bis dahin gelernten Fähigkeiten.
+- **Backtracking:** Jede Welt hat 2 Rückkehr-Knochen (`BACKTRACK` in `src/levels.js`), die eine Fähigkeit aus einer *späteren* Welt brauchen (im Kanal: die Supernase aus dem Laden). Man sieht sie schon beim ersten Besuch, ein Schild mit dem Fähigkeiten-Symbol zeigt, was fehlt. Nach dem Lernen nennt das Spiel die Welten, in denen jetzt neue Knochen warten. Gesamt: 118 Goldknochen. Die Portalschwellen (max. 52) sind ohne Rückkehr-Knochen erreichbar.
 - Der Boss jeder Welt reagiert auf ihre Fähigkeit (Trillern → Staubsauger, Bellen → Kater, Bauchklatscher → Dosenöffner, Gleiten → Möwe, Tornado → Kanalratte).
 - Krümel sind die Währung für reine Werte-Upgrades in Opas Leckerli-Laden im Garten.
 
-Übersicht und Steuerung: README, Code: `src/abilities.js` (Texte, Laden, Bausteine wie `teacher`, `spinTarget`, `barkTarget`, `stompPad`, `crate`, `digSpot`, `climbWall`, `updraft`, `fetchItem`) und `src/player.js` (`_abilities`). Test: `tests/abilities.mjs`.
+Übersicht und Steuerung: README, Code: `src/abilities.js` (Texte, Laden, Bausteine wie `teacher`, `spinTarget`, `barkTarget`, `stompPad`, `crate`, `digSpot`, `climbWall`, `updraft`, `fetchItem`, `backbone` für Rückkehr-Knochen) und `src/player.js` (`_abilities`). Test: `tests/abilities.mjs`.
 
 ## 8. Roadmap
 1. **Prototyp (jetzt):** alle Welten spielbar, je 1 Hauptmission + Boss

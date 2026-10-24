@@ -35,6 +35,8 @@ export const STRASSE = {
     placeAsset(l, 'lieferwagen', 4.6, 0, -9, Math.PI, { solid: 'car' }); placeAsset(l, 'police', 4.6, 0, -27, Math.PI, { size: 6.6, solid: 'car' });
     // ---- Fähigkeit dieser Welt: Bellen. Drei Autos mit Alarmanlage – jedes einmal anbellen
     l.teacher(6, 28, 'bellen');
+    // Rückkehr-Knochen (später mit Bauchklatscher bzw. Helikopter-Ohren wiederkommen)
+    l.backbone('r_stampfen', 'bauchklatscher', 'stomp', 43, -5); l.backbone('r_gleiten', 'gleiten', 'glide', 75, 39);
     l.alarms = 0;
     [[-4, -20], [4, 12], [-4, -2]].forEach(([x, z]) => l.barkTarget(x, 0, z, () => {
       l.alarms++; g.audio.sfx('honk'); g.shake(0.15);

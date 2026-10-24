@@ -37,6 +37,8 @@ export const KUECHE = {
     // ---- Fähigkeit dieser Welt: Trillern. Opa Bruno am Eingang, Übungskreisel neben ihm
     l.teacher(-8, 13, 'trillern');
     l.spinTarget(-10.5, 0.7, 15, () => g.talk('bruno.kreisel', { mesh: l.bruno.mesh }));
+    // Rückkehr-Knochen (später mit Bellen bzw. Wandsprung wiederkommen)
+    l.backbone('r_bellen', 'bellen', 'bark', 1, -27); l.backbone('r_wand', 'wandsprung', 'wall', -43, 29, { h: 9 });
     // Herd: drei Drehknöpfe vorne – alle aufgetrillert, kocht im Topf ein Goldknochen hoch
     l.herd = 0;
     [3, 6, 9].forEach(x => l.spinTarget(x, 0.9, -11.75, () => {
