@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { Vacuum, Cat, CanOpener, BirdBoss, Pigeon, FatMan, RatBoss } from './bosses.js';
 import { box, cyl, cone, sphere } from './models.js';
+import { FX } from './fx.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -23,7 +24,7 @@ export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufs
 export const LEVELS = {
   // ------------------------------------------------------------------ HUB
   hub: {
-    name: 'Molls Garten', sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7 },
+    name: 'Molls Garten', sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
     build(l) {
       l.spawn.set(0, 1, 6);
       // Haus
@@ -54,7 +55,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- KÜCHE
   kueche: {
-    name: 'Die Küche', sky: 0xfff1c9, ground: 0xe7d2a8, size: 18, need: 8, goalKind: 'ham', music: { scale: 'mixo', root: 294, bpm: 132, seed: 3 },
+    name: 'Die Küche', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 18, need: 8, goalKind: 'ham', music: { scale: 'mixo', root: 294, bpm: 132, seed: 3, style: 'kitchen' },
     build(l) {
       l.spawn.set(0, 1, 12); l.wallRing(18, 7, 0xfdf4e3);
       // Fliesenmuster
@@ -81,7 +82,7 @@ export const LEVELS = {
 
   // -------------------------------------------------------- EINKAUFSSTRASSE
   strasse: {
-    name: 'Die Einkaufsstraße', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 36, need: 12, goalKind: 'bread', music: { scale: 'major', root: 330, bpm: 140, seed: 11 },
+    name: 'Die Einkaufsstraße', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 36, need: 12, goalKind: 'bread', music: { scale: 'major', root: 330, bpm: 140, seed: 11, style: 'street' },
     build(l) {
       l.spawn.set(0, 1, 30); l.wallRing(36, 10, 0xc7c7c7);
       // Straße & Bürgersteige
@@ -110,7 +111,7 @@ export const LEVELS = {
 
   // ----------------------------------------------------------------- BÜRO
   buero: {
-    name: 'Das Büro', sky: 0xdfe6e9, ground: 0x636e72, size: 26, need: 6, goalKind: 'treat', music: { scale: 'dorian', root: 247, bpm: 112, seed: 21 },
+    name: 'Das Büro', indoor: true, sky: 0xdfe6e9, ground: 0x636e72, size: 26, need: 6, goalKind: 'treat', music: { scale: 'dorian', root: 247, bpm: 112, seed: 21, style: 'office' },
     build(l) {
       l.spawn.set(0, 1, 18); l.wallRing(26, 6, 0xf5f6fa);
       // Teppich
@@ -147,7 +148,7 @@ export const LEVELS = {
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
   park: {
-    name: 'Der Grillpark', sky: 0xa7e8ff, ground: 0x58b04f, size: 36, need: 10, goalKind: 'sausage', music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1 },
+    name: 'Der Grillpark', sky: 0xa7e8ff, ground: 0x58b04f, size: 36, need: 10, goalKind: 'sausage', music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1, style: 'bbq' },
     build(l) {
       l.spawn.set(-28, 1, 28); l.wallRing(36, 4, 0x6b8e23);
       // Weg
@@ -170,7 +171,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- HAFEN
   hafen: {
-    name: 'Der Hafen', sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42 },
+    name: 'Der Hafen', water: true, sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42, style: 'harbor' },
     build(l) {
       l.spawn.set(0, 2.5, 26);
       // Kai (Holz) – alles darunter ist Wasser
@@ -200,14 +201,14 @@ export const LEVELS = {
     update(l, dt) {
       if (l.gull && !l.gullActive) { const g = l.gull; g.t += dt; g.mesh.position.set(Math.cos(g.t * 0.5) * 20, 12 + Math.sin(g.t) * 2, Math.sin(g.t * 0.5) * 20); g.mesh.rotation.y = -g.t * 0.5 + Math.PI; g.mesh.userData.wings.forEach((w, i) => w.rotation.z = Math.sin(g.t * 10) * 0.5 * (i ? -1 : 1)); }
       // ins Wasser gefallen?
-      if (l.game.player.pos.y < 1.5) { l.game.toast('Platsch! Nass bis auf die Knochen.'); l.game.player.hurt(1); l.game.player.respawn(); }
+      if (l.game.player.pos.y < 1.5) { FX.splash(l.game.fx, l.game.player.pos); l.game.toast('Platsch! Nass bis auf die Knochen.'); l.game.player.hurt(1); l.game.player.respawn(); }
     },
     onGoal(l) { l.game.toast('KREEEE! Die Möwe will ihre Beute zurück!'); l.gullActive = true; l.group.remove(l.gull.mesh); l.game.later(1000, () => { const b = new BirdBoss(l.game, 'seagull', 0, 10, 'Die Möwe'); b.pos.y = 8; l.setBoss(b); }); }
   },
 
   // ----------------------------------------------------------------- DORF
   dorf: {
-    name: 'Das Dorf', sky: 0xffe0a3, ground: 0x9ccc65, size: 36, need: 8, goalKind: 'bread', music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09 },
+    name: 'Das Dorf', sky: 0xffe0a3, ground: 0x9ccc65, size: 36, need: 8, goalKind: 'bread', music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09, style: 'village' },
     build(l) {
       l.spawn.set(0, 1, 28); l.wallRing(36, 5, 0xa1887f);
       // Marktplatz
@@ -237,7 +238,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- KANAL
   kanal: {
-    name: 'Der Kanal', sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13 },
+    name: 'Der Kanal', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13, style: 'sewer' },
     build(l) {
       l.spawn.set(-12, 2, 20); l.wallRing(26, 8, 0x57606f);
       // Abwasserrinne in der Mitte, Gehwege links/rechts
@@ -255,7 +256,7 @@ export const LEVELS = {
       l.scatter(20);
       l.label('Käse sammeln. Hier unten wohnt etwas Großes …', 0, 4, 18);
     },
-    update(l) { if (l.game.player.pos.y < 0.6 && Math.abs(l.game.player.pos.x) < 5) { l.game.toast('Igitt – Kanalbrühe!'); l.game.player.hurt(1); l.game.player.respawn(); } },
+    update(l) { if (l.game.player.pos.y < 0.6 && Math.abs(l.game.player.pos.x) < 5) { FX.splash(l.game.fx, l.game.player.pos); l.game.toast('Igitt – Kanalbrühe!'); l.game.player.hurt(1); l.game.player.respawn(); } },
     onGoal(l) { l.game.toast('Rote Augen im Dunkeln. DIE KANALRATTE!'); l.game.later(1000, () => l.setBoss(new RatBoss(l.game, 0, -4))); }
   },
 };

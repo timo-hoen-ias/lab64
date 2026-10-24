@@ -2,13 +2,17 @@
 import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, cyl } from './models.js';
+import { makeSky, makeClouds, makeWater, toonGradient, FX } from './fx.js';
 
 export class Level {
   constructor(game, def, key) {
     this.game = game; this.def = def; this.key = key; this._scatter = [];
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(def.sky || 0x6fc3ff);
-    this.scene.fog = new THREE.Fog(def.sky || 0x6fc3ff, def.fogNear || 40, def.fogFar || 110);
+    const dark = new THREE.Color(def.sky || 0x6fc3ff).getHSL({}).l < 0.35;
+    this.sky = makeSky(def.sky || 0x6fc3ff, dark); this.scene.add(this.sky.mesh);
+    this.scene.background = this.sky.horizon.clone();
+    this.scene.fog = new THREE.Fog(this.sky.horizon, def.fogNear || 40, def.fogFar || 110);
+    if (!def.indoor) { this.clouds = makeClouds(Math.round((def.size || 40) / 3), (def.size || 40) * 1.8, 38); this.scene.add(this.clouds); }
     this.solids = []; this.pickups = []; this.enemies = []; this.portals = []; this.interact = []; this.hideSpots = [];
     this.bounds = { min: { x: -(def.size || 40), z: -(def.size || 40) }, max: { x: def.size || 40, z: def.size || 40 } };
     this.boss = null; this.goal = { have: 0, need: def.need || 0, kind: def.goalKind || 'ham' }; this.done = false; this.t = 0;
@@ -23,15 +27,19 @@ export class Level {
   }
 
   _light() {
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a6b3f, 0.75));
-    const sun = new THREE.DirectionalLight(0xfff4d6, 1.2); sun.position.set(20, 40, 15); sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024); const s = 45; sun.shadow.camera.left = -s; sun.shadow.camera.right = s; sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s; sun.shadow.camera.far = 120;
-    this.scene.add(sun); this.sun = sun;
+    this.scene.add(new THREE.HemisphereLight(0xdff1ff, 0x8a6b3f, 1.3));
+    // Sonne folgt dem Hund: kleiner Schattenbereich = scharfe Schatten auch auf großen Karten
+    const sun = new THREE.DirectionalLight(0xfff0d0, 2.4); sun.castShadow = true; this.sunOff = new THREE.Vector3(18, 34, 12);
+    sun.shadow.mapSize.set(1024, 1024); const s = 26; sun.shadow.camera.left = -s; sun.shadow.camera.right = s; sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s; sun.shadow.camera.far = 90;
+    sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.02;
+    this.scene.add(sun, sun.target); this.sun = sun;
   }
 
   ground(color, size) {
-    const g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshLambertMaterial({ color }));
-    g.rotation.x = -Math.PI / 2; g.receiveShadow = true; this.scene.add(g);
+    let g;
+    if (this.def.water) { g = makeWater(color, size); this.water = g; }
+    else { g = new THREE.Mesh(new THREE.PlaneGeometry(size * 2.4, size * 2.4), new THREE.MeshToonMaterial({ color, gradientMap: toonGradient() })); g.rotation.x = -Math.PI / 2; }
+    g.receiveShadow = true; this.scene.add(g);
     this.solids.push({ min: { x: -size * 1.2, y: -5, z: -size * 1.2 }, max: { x: size * 1.2, y: 0, z: size * 1.2 }, active: true });
   }
 
@@ -65,10 +73,13 @@ export class Level {
     ring.position.y = 1.9; g.add(ring);
     const disk = new THREE.Mesh(new THREE.CircleGeometry(1.4, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
     disk.position.y = 1.9; g.add(disk);
+    // Wirbel im Ring
+    const swirl = new THREE.Group(); swirl.position.y = 1.9; g.add(swirl);
+    for (let i = 0; i < 3; i++) { const arc = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.35, 0.05, 4, 16, Math.PI * 1.2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 - i * 0.12, side: THREE.DoubleSide })); arc.rotation.z = i * 2.1; swirl.add(arc); }
     g.position.set(x, 0, z); this.group.add(g);
     const prog = this.game.levelProgress(target); const locked = need > this.game.boneCount();
     const lab = makeLabel(locked ? `${text} 🔒${need}` : `${text} ${prog.have}/${prog.total}`); lab.scale.set(6, 1.5, 1); lab.position.set(0, 4.6, 0); g.add(lab);
-    this.portals.push({ x, z, target, group: g, disk, need, ring });
+    this.portals.push({ x, z, target, group: g, disk, need, ring, swirl });
   }
 
   // Interaktion in Reichweite (Schublade etc.)
@@ -87,27 +98,39 @@ export class Level {
   update(dt) {
     this.t += dt;
     const pl = this.game.player, pp = pl.pos;
+    this.sun.position.copy(pp).add(this.sunOff); this.sun.target.position.copy(pp);
+    this.sky.mesh.position.copy(this.game.camera.position);
+    if (this.clouds) this.clouds.userData.update(dt);
+    if (this.water) this.water.userData.update(dt);
     // Sammeln
     let nearestHidden = null, nd = 1e9;
     for (const p of this.pickups) {
       if (p.taken) continue;
-      p.mesh.rotation.y += dt * 2; p.mesh.position.y = p.y + Math.sin(this.t * 3 + p.mesh.userData.spin) * 0.12;
+      p.mesh.rotation.y += dt * (p.kind === 'goldbone' ? 2.5 : 2); p.mesh.position.y = p.y + Math.sin(this.t * 3 + p.mesh.userData.spin) * 0.12;
+      if (p.mesh.userData.halo) { const h = p.mesh.userData.halo; h.scale.setScalar(1 + Math.sin(this.t * 4) * 0.12); h.material.opacity = 0.3 + Math.sin(this.t * 4) * 0.15; }
+      if (p.kind === 'goldbone' && p.mesh.visible && Math.random() < dt * 8) FX.sparkle(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z });
+      if (p.appear !== undefined && p.appear < 1) { p.appear = Math.min(1, p.appear + dt * 2.5); const k = p.appear, e = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2); p.mesh.scale.setScalar(Math.max(0.01, e)); }
       const d = Math.hypot(p.x - pp.x, p.z - pp.z), dy = Math.abs(p.y - pp.y);
       if (p.hidden) {
         if (d < nd) { nd = d; nearestHidden = p; }
-        if (pl.sniffing && d < 6) p.mesh.visible = true;
+        if (pl.sniffing && d < 6 && !p.mesh.visible) { p.mesh.visible = true; p.appear = 0; FX.crumb(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z }); }
         if (!p.mesh.visible) continue;
       }
       if (d < 1.2 && dy < 1.8) {
         p.taken = true; p.mesh.visible = false;
+        const at = { x: p.x, y: p.mesh.position.y + 0.3, z: p.z };
+        if (p.kind === 'goldbone') FX.gold(this.game.fx, at); else if (p.goal) FX.food(this.game.fx, at); else FX.crumb(this.game.fx, at);
         this.game.collect(p, this); if (p.onTake) p.onTake(p);
       }
     }
     this.game.sniffHint(pl.sniffing ? nearestHidden : null, nd);
     // Portale
     for (const po of this.portals) {
-      po.ring.rotation.y += dt; po.disk.material.opacity = 0.3 + Math.sin(this.t * 3) * 0.1;
       const locked = po.need > this.game.boneCount(); po.ring.material.color.set(locked ? 0x777777 : 0xffcc33);
+      po.ring.rotation.z += dt * 0.6; po.disk.material.opacity = 0.3 + Math.sin(this.t * 3) * 0.1;
+      po.group.rotation.y = Math.atan2(this.game.camera.position.x - po.x, this.game.camera.position.z - po.z); // Ring schaut zur Kamera
+      po.swirl.rotation.z -= dt * (locked ? 0.4 : 3); po.swirl.visible = !locked;
+      if (!locked && Math.random() < dt * 6) FX.sparkle(this.game.fx, { x: po.x + (Math.random() - 0.5) * 2.4, y: 0.6 + Math.random() * 2.6, z: po.z });
       if (Math.hypot(po.x - pp.x, po.z - pp.z) < 1.3 && pp.y < 3) {
         if (locked) { this.game.toast(`Verschlossen – ${po.need} Goldknochen nötig`); pl.vel.z -= 5; pl.vel.x -= 5; }
         else this.game.enterLevel(po.target);
@@ -159,7 +182,8 @@ export class Level {
   }
   spawnGoldbone(x, y, z, id = 'boss') {
     this.game.audio.sfx('big'); this.game.toast('Ein GOLDKNOCHEN ist erschienen! 🦴');
-    this.goldbone(id, x, Math.max(y, 1), z, { exit: id === 'boss' });
+    const p = this.goldbone(id, x, Math.max(y, 1), z, { exit: id === 'boss' }); p.appear = 0; p.mesh.scale.setScalar(0.01);
+    FX.gold(this.game.fx, { x, y: Math.max(y, 1) + 0.5, z }); this.game.shake(0.25);
   }
   onCrumb() {
     this.crumbHave++;

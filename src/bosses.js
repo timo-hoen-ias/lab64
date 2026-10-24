@@ -1,5 +1,6 @@
 // Bosse und Gegner. Jeder hat: mesh, name, hp, maxHp, radius, dead, update(dt, level), onBite().
 import * as THREE from 'three';
+import { FX } from './fx.js';
 import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, box, cyl } from './models.js';
 
 class Boss {
@@ -19,20 +20,27 @@ class Boss {
   }
   touchPlayer(r = 1.5, dmg = 1) { if (this.dist() < r + this.radius * 0.5 && Math.abs(this.player.pos.y - this.pos.y) < 2.5) this.player.hurt(dmg); }
   damage(n = 1) {
-    this.hp -= n; this.flash = 0.3; this.rage = 1 + (this.maxHp - this.hp) * 0.3; // Phase 2+: schneller this.game.audio.sfx('hit'); this.game.input.vibrate(150);
+    this.hp -= n; this.flash = 0.3; this.rage = 1 + (this.maxHp - this.hp) * 0.3; // Phase 2+: schneller
+    this.game.audio.sfx('hit'); this.game.input.vibrate(150); this.game.shake(0.35);
+    FX.hit(this.game.fx, { x: this.pos.x, y: this.pos.y + 1.5, z: this.pos.z });
     this.mesh.traverse(o => { if (o.material) { o.material.emissive = new THREE.Color(0xff4444); } });
     if (this.hp <= 0) this.die();
   }
   onBite() { if (this.stun > 0 && !this.dead) { this.damage(1); this.stun = 0; } else if (!this.dead) this.game.toast('Nur angreifbar, wenn er benommen ist!'); }
   die() {
-    this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss();
+    this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss(); this.game.shake(0.6);
+    this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, { n: 40, color: [0xffffff, 0xdddddd, 0xffe066], speed: 9, up: 6, life: 1, size: 0.35, gravity: -10 });
     this.game.toast(`${this.name} besiegt!`);
     const lvl = this.game.level; this.game.later(800, () => lvl.spawnGoldbone(this.pos.x, this.pos.y + 1, this.pos.z));
   }
   baseUpdate(dt) {
     this.t += dt;
     if (this.flash > 0) { this.flash -= dt; if (this.flash <= 0) this.mesh.traverse(o => { if (o.material) o.material.emissive = new THREE.Color(0x000000); }); }
-    if (this.stun > 0) { this.stun -= dt; this.mesh.rotation.z = Math.sin(this.t * 20) * 0.1; return true; }
+    if (this.stun > 0) {
+      this.stun -= dt; this.mesh.rotation.z = Math.sin(this.t * 20) * 0.1;
+      if (Math.random() < dt * 12) { const a = this.t * 6; this.game.fx.burst({ x: this.pos.x + Math.cos(a) * this.radius, y: this.pos.y + this.radius * 2 + 0.6, z: this.pos.z + Math.sin(a) * this.radius }, { n: 1, color: [0xffe066, 0xffffff], speed: 0.3, up: 0.5, life: 0.6, size: 0.25, gravity: 0 }); } // Sternchen
+      return true;
+    }
     this.mesh.rotation.z = 0; return false;
   }
   clampArena(r) { const l = Math.hypot(this.pos.x - this.cx, this.pos.z - this.cz); if (l > r) { this.pos.x = this.cx + (this.pos.x - this.cx) / l * r; this.pos.z = this.cz + (this.pos.z - this.cz) / l * r; return true; } return false; }
@@ -41,27 +49,38 @@ class Boss {
 // Staubsauger: saugt sich an Moll ran, rammt und bleibt an der Wand hängen → benommen.
 export class Vacuum extends Boss {
   constructor(game, cx, cz, arena = 12) {
-    super(game, makeVacuum(), 'Der Staubsauger', 3, 1.5); this.cx = cx; this.cz = cz; this.arena = arena;
-    this.pos.set(cx, 0, cz); this.state = 'hunt'; this.timer = 0;
+    super(game, makeVacuum(), 'Der Staubsauger', 3, 2.5); this.cx = cx; this.cz = cz; this.arena = arena;
+    this.pos.set(cx, 0, cz); this.state = 'hunt'; this.timer = 0; this.size = 1.7; this.mesh.scale.setScalar(this.size);
   }
+  // Motorgeräusch: lauter, je näher Moll ist; heult beim Anlauf und Rammen auf, stottert wenn benommen
+  motor() {
+    if (this.dead) { if (this.hum) this.hum.stop(); return; }
+    if (!this.hum || this.hum.dead) this.hum = this.game.audio.loop('vacuum');
+    if (!this.hum) return;
+    const near = Math.max(0.25, 1 - this.dist() / 30), pitch = this.stun > 0 ? 0.6 + Math.sin(this.t * 25) * 0.1 : this.state === 'wind' ? 1 + this.timer * 0.8 : this.state === 'charge' ? 1.8 : 1;
+    this.hum.set(0.22 * near * (this.stun > 0 ? 0.6 : 1), pitch);
+  }
+  die() { if (this.hum) this.hum.stop(); this.game.audio.sfx('ko'); super.die(); }
   update(dt, lvl) {
+    this.motor();
+    if (this.state === 'hunt' && Math.random() < dt * 10) this.game.fx.burst({ x: this.pos.x, y: 0.3, z: this.pos.z }, { n: 1, color: [0xcfcfcf, 0xa8a8a8], speed: 1.5, up: 0.8, life: 0.6, size: 0.25, gravity: 0, flat: true }); // Staubwolke
     if (this.baseUpdate(dt)) { this.mesh.userData.nozzle.rotation.y = Math.sin(this.t * 15) * 0.3; return; }
     this.mesh.userData.nozzle.rotation.y = 0;
     this.mesh.position.y = Math.abs(Math.sin(this.t * 10)) * 0.05;
     if (this.state === 'hunt') {
       this.faceTo(this.player.pos, dt, 2.5); this.moveTo(this.player.pos, 3.2 * this.rage, dt);
       // Schnauzsog: zieht Moll in der Nähe an
-      if (this.dist() < 6) { const d = new THREE.Vector3().subVectors(this.pos, this.player.pos).normalize(); this.player.vel.x += d.x * 10 * dt; this.player.vel.z += d.z * 10 * dt; }
+      if (this.dist() < 8) { const d = new THREE.Vector3().subVectors(this.pos, this.player.pos).normalize(); this.player.vel.x += d.x * 10 * dt; this.player.vel.z += d.z * 10 * dt; }
       this.timer += dt;
       if (this.timer > 3.5 / this.rage && this.dist() < 10) { this.state = 'wind'; this.timer = 0; this.game.audio.sfx('vacuum'); }
       this.touchPlayer(1.2);
     } else if (this.state === 'wind') {
-      this.timer += dt; this.mesh.scale.setScalar(1 + Math.sin(this.t * 30) * 0.03);
+      this.timer += dt; this.mesh.scale.setScalar(this.size * (1 + Math.sin(this.t * 30) * 0.03));
       this.faceTo(this.player.pos, dt, 6);
-      if (this.timer > 0.9) { this.state = 'charge'; this.timer = 0; this.dir = new THREE.Vector3(Math.sin(this.mesh.rotation.y), 0, Math.cos(this.mesh.rotation.y)); this.mesh.scale.setScalar(1); }
+      if (this.timer > 0.9) { this.state = 'charge'; this.timer = 0; this.dir = new THREE.Vector3(Math.sin(this.mesh.rotation.y), 0, Math.cos(this.mesh.rotation.y)); this.mesh.scale.setScalar(this.size); }
     } else if (this.state === 'charge') {
       this.pos.addScaledVector(this.dir, 16 * this.rage * dt); this.timer += dt; this.touchPlayer(1.4);
-      if (this.clampArena(this.arena) || this.timer > 1.6) { this.state = 'hunt'; this.timer = 0; this.stun = 2.6; this.game.audio.sfx('hit'); this.game.toast('Benommen – BEISSEN!'); }
+      if (this.clampArena(this.arena) || this.timer > 1.6) { this.state = 'hunt'; this.timer = 0; this.stun = 2.6; this.game.audio.sfx('hit'); this.game.shake(0.4); this.game.toast('Benommen – BEISSEN!'); }
     }
     this.clampArena(this.arena);
   }

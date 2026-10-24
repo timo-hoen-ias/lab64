@@ -6,6 +6,7 @@ import { Player } from './player.js';
 import { Level } from './level.js';
 import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
+import { Particles } from './fx.js';
 
 const SAVE_KEY = 'moll-save-v1';
 
@@ -14,8 +15,10 @@ export class Game {
     this.canvas = document.getElementById('game');
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.0;
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
     this.input = new Input(); this.audio = new AudioEngine();
+    this.fx = new Particles(); this.shakeT = 0; this._shake = new THREE.Vector3();
     this.player = new Player(this);
     this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
@@ -59,14 +62,16 @@ export class Game {
     document.getElementById('btnStart').textContent = 'Weiter';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
     document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
-    this.audio.stopMusic();
+    this.audio.stopMusic(); this.audio.stopLoops();
   }
 
   enterLevel(key, silent = false) {
+    this.fx.detach(); if (this.player.shadow.parent) this.player.shadow.parent.remove(this.player.shadow);
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    this.hideBoss(); this.suspicion(0);
+    this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
-    else { this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
+    else { this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
+    this.fx.attach(this.level.scene); this.fade();
     this.level.key = key;
     this.hud.levelName.textContent = this.level.def.name;
     this.updateHearts(); this.updateCounter();
@@ -75,12 +80,15 @@ export class Game {
   }
 
   // ------------------------------------------------------------- HUD
-  updateHearts() { this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, 3 - this.player.hp)); }
+  updateHearts() { if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts); this.shake(0.3); } this._hp = this.player.hp; this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, 3 - this.player.hp)); }
   updateCounter() {
     const l = this.level; if (!l || l.isRunner) return;
     const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀' }[l.goal.kind] || '⭐';
     this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   ✦ ${l.crumbHave}/${l.crumbTotal}   🦴 ${this.boneCount()}` : `🦴 ${this.boneCount()}/${TOTAL_BONES}   ✦ ${l.crumbHave}/${l.crumbTotal}`;
   }
+  pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  fade() { const f = document.getElementById('fade'); if (!f) return; f.classList.remove('out'); void f.offsetWidth; f.classList.add('out'); }
+  shake(t = 0.3) { this.shakeT = Math.max(this.shakeT, t); }
   toast(text, ms = 2600) { const t = this.hud.toast; t.textContent = text; t.classList.add('show'); clearTimeout(this._tt); this._tt = setTimeout(() => t.classList.remove('show'), ms); }
   hint(text) { if (text && this._hint !== text) { this.toast(text, 1200); } this._hint = text; }
   showBoss(b) { this.hud.boss.style.display = 'block'; this.hud.boss.querySelector('.name').textContent = b.name; }
@@ -99,6 +107,7 @@ export class Game {
   // ---------------------------------------------------------- Ereignisse
   collect(p, level) {
     if (p.kind === 'goldbone') { this.audio.sfx('win'); return; }
+    this.pop(this.hud.counter);
     if (p.goal) { level.goal.have++; this.audio.sfx('big'); this.input.vibrate(60); level.checkGoal(); }
     else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); level.onCrumb(); }
     this.updateCounter();
@@ -132,6 +141,11 @@ export class Game {
       if (this.level.isRunner) this.level.update(dt);
       else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); }
     }
+    if (!this.paused) this.fx.update(dt);
+    // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird
+    if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
+    this.camera.position.add(this._shake);
     if (this.level) this.renderer.render(this.level.scene, this.camera);
+    this.camera.position.sub(this._shake);
   }
 }
