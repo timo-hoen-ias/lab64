@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Moll – Der Labrador</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#3b2412">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <style>
   :root{
     --ui:#fff8e7; --ink:#3b2412; --accent:#f4a52a; --good:#7bd36a; --bad:#e9553f;
@@ -75,6 +82,11 @@
   @keyframes cardIn{from{transform:translateY(30px) scale(.9);opacity:0}to{transform:none;opacity:1}}
   #menu button{transition:transform .1s}
   #menu button:hover{transform:translateY(-2px)}
+  /* Hochformat am Handy: zum Drehen auffordern */
+  #rotate{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(circle at 50% 40%,#ffd56b,#f4a52a 45%,#c7641e);color:var(--ink);font-weight:900;font-size:22px;text-align:center;padding:24px}
+  #rotate .phone{font-size:72px;animation:turn 1.8s ease-in-out infinite}
+  @keyframes turn{0%,30%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+  @media (orientation:portrait) and (pointer:coarse){#rotate{display:flex}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -114,14 +126,18 @@
     <button id="btnStart">Spielen</button>
     <button id="btnLeave" style="display:none">Welt verlassen</button>
     <br><button id="btnQuality" style="background:#ddd;font-size:14px;padding:8px 14px">Grafik: Hoch</button>
+    <button id="btnInstall" style="display:none;background:var(--good);font-size:14px;padding:8px 14px">📲 App installieren</button>
     <button id="btnReset" style="background:#ddd;font-size:14px;padding:8px 14px">Spielstand löschen</button>
     <div class="keys">Tastatur: WASD/Pfeile · Leertaste Sprung · Shift/E Biss · F Nase · Q/R Kamera · Esc Pause<br>Gamepad: Stick links laufen · Stick rechts Kamera · A Sprung · X Biss · Y Nase · Start Pause<br>Touch: Stick links · Wischen rechts = Kamera · Buttons rechts</div>
   </div>
 </div>
 
+<div id="rotate"><div class="phone">📱</div>Bitte das Handy quer halten</div>
+
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js" } }
 </script>
 <script type="module" src="./src/main.js"></script>
+<script type="module" src="./src/pwa.js"></script>
 </body>
 </html>
