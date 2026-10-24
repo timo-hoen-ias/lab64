@@ -391,6 +391,8 @@ export class AudioEngine {
       case 'squeak': this._tone(820, t, 0.07, 'square', 0.12, null, 700); this._tone(1450, t + 0.06, 0.11, 'square', 0.1, null, -500); this._tone(1100, t, 0.17, 'sine', 0.08, null, 300); break; // Quietsche-Spielzeug
       case 'pop': this._click(t, 0.9); this._tone(380, t, 0.12, 'sine', 0.3, null, 900); this._tone(1200, t + 0.1, 0.35, 'sine', 0.07, null, -700); break; // Gemüse ploppt aus dem Beet
       case 'bonk': this._tone(150, t, 0.3, 'sine', 0.45, null, -70); this._tone(300, t + 0.02, 0.18, 'triangle', 0.15, null, 260); this._noise(t, 0.08, 0.2); break; // Kürbis
+      case 'boop': this._click(t, 0.6); this._tone(240, t, 0.14, 'sine', 0.35, null, 260); this._tone(520, t + 0.05, 0.1, 'triangle', 0.1, null, 200); break; // Nasenstupser
+      case 'growl': this._tone(70, t, 0.7, 'sawtooth', 0.18, null, 15); this._noise(t, 0.6, 0.08); break; // Heribert knurrt
       case 'click': this._click(t, 0.8); this._tone(660, t, 0.08, 'square', 0.12); break;
       case 'honk': this._tone(392, t, 0.25, 'square', 0.16); this._tone(494, t, 0.25, 'square', 0.12); this._tone(392, t + 0.3, 0.3, 'square', 0.16); this._tone(494, t + 0.3, 0.3, 'square', 0.12); break;
       // Intro: das Y löst sich (Lotsenpfeife abwärts) und schlägt irgendwo unten auf

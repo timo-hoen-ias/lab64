@@ -73,6 +73,29 @@ export const TALKS = {
       [B, 'Um Himmels willen, nein! Sammeln, Mädchen. SAMMELN. Davon hat man länger was.'],
     ],
   },
+  'bruno.kickt': { // Heribert schießt Moll ein Spielzeug zurück (Spruch nur ab und zu)
+    again: [
+      [B, 'Hopp! Zurück an den Absender.'],
+      [B, 'Früher hab ich die mit dem Kopf gefangen. Heute schubs ich.'],
+      [B, 'Volltreffer! Na gut, fast.'],
+      [B, 'Noch mal? Meine Nase ist schon ganz rund.'],
+    ],
+  },
+  'bruno.meins': { // Moll legt Heribert einen Kauknochen direkt vor die Nase
+    again: [
+      [B, 'Der ist MEIN … grrrrr.'],
+      [B, 'MEINER! Grrrr … Den kriegst du nie wieder.'],
+      [B, 'Grrrr … ein Geschenk ist ein Geschenk. MEINS.'],
+      [B, 'Mmmpf … mein Knochen. Grrr. Geh spielen.'],
+    ],
+  },
+  'bruno.meinsnoch': { // Moll will den Knochen zurück
+    again: [
+      [B, 'Grrrrrr. Nein.'],
+      [B, 'MEINS, hab ich gesagt. Grrr!'],
+      [B, 'Mmmpf! Finger … äh, Pfoten weg!'],
+    ],
+  },
   'bruno.laden': {
     again: [
       [B, 'Willkommen in Heriberts Leckerli-Laden! Heute im Angebot: alles, was du dir leisten kannst.'],
