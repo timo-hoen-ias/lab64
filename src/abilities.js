@@ -431,7 +431,7 @@ export function installGadgets(Level) {
     // Einen Kauknochen direkt vor seiner Nase behält er (im Maul) und knurrt.
     _heribertPlay(dt) {
       const h = this.bruno, pl = this.game.player; if (!h || !this.fetchItems) return;
-      const m = h.mesh, hx = m.position.x, hz = m.position.z; h.base ??= m.position.clone();
+      const m = h.mesh, hx = m.position.x, hz = m.position.z;
       if (h.bone) { // Knochen im Maul halten
         const it = h.bone, u = m.userData; m.updateMatrixWorld(true); _v.set(0, -0.27, 0.78); u.head.localToWorld(_v);
         it.x = _v.x; it.y = _v.y - it.r; it.z = _v.z; it.vx = it.vy = it.vz = 0; it.mesh.position.set(it.x, it.y, it.z); it.mesh.rotation.set(0, 0, 0); u.head.getWorldQuaternion(it.spin.quaternion);
@@ -439,7 +439,7 @@ export function installGadgets(Level) {
       if (h.kick) { // Ausholen und Stupsen: kurzer Ausfallschritt zum Spielzeug
         const k = h.kick, it = k.it; k.t += dt; const f = Math.min(1, k.t / 0.45);
         const want = Math.atan2(it.x - hx, it.z - hz), dy = ((want - m.rotation.y) % TAU + TAU * 1.5) % TAU - TAU / 2; m.rotation.y += dy * Math.min(1, dt * 8); // zum Spielzeug drehen
-        const lunge = Math.sin(Math.PI * f) * 0.35; m.position.set(h.base.x + Math.sin(m.rotation.y) * lunge, h.base.y, h.base.z + Math.cos(m.rotation.y) * lunge);
+        const lunge = Math.sin(Math.PI * f) * 0.35; m.position.set(k.base.x + Math.sin(m.rotation.y) * lunge, k.base.y, k.base.z + Math.cos(m.rotation.y) * lunge);
         if (f >= 0.5 && !k.done) {
           k.done = true; if (it.carried || h.bone === it) return;
           const dx = pl.pos.x - it.x, dz = pl.pos.z - it.z, d = Math.min(14, Math.hypot(dx, dz)) || 1, T = Math.max(0.5, Math.min(1.3, 0.35 + d * 0.07)), sp = d * 0.8 / T, n = Math.hypot(dx, dz) || 1;
@@ -448,7 +448,7 @@ export function installGadgets(Level) {
           this.game.audio.sfx('boop'); this.toySqueak(it); it._kicked = this.t;
           if (Math.random() < 0.3) this.game.talk('bruno.kickt', { mesh: m });
         }
-        if (f >= 1) { h.kick = null; m.position.copy(h.base); }
+        if (f >= 1) { h.kick = null; m.position.copy(k.base); h.st = 'idle'; h.t = 0; h.next = 1 + Math.random() * 2; } // danach wieder sein eigenes Leben (animateTeacher)
         return;
       }
       if (Math.hypot(pl.pos.x - hx, pl.pos.z - hz) > 22) return;
@@ -458,7 +458,7 @@ export function installGadgets(Level) {
         if (it.squeak && !h.bone && d < 1.5 && still) { // Kauknochen ganz nah: gehört jetzt Heribert
           h.bone = it; it.carried = true; it.heldBy = h; it.done = true; this.game.audio.sfx('growl'); this.toySqueak(it); this.game.talk('bruno.meins', { mesh: m }); return;
         }
-        if (d < 2.4 && still) { h.kick = { it, t: 0 }; return; }
+        if (d < 2.4 && still) { h.kick = { it, t: 0, base: m.position.clone() }; h.st = 'kick'; return; } // 'kick' hält animateTeacher an
       }
     },
     updateGadgets(dt) {
