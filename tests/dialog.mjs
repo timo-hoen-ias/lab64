@@ -13,6 +13,8 @@ const ev = (f, a) => p.evaluate(f, a), W = ms => p.waitForTimeout(ms);
 // Tasten lange genug halten: der Software-Renderer schafft nur wenige Bilder pro Sekunde
 const frames = (n = 2) => ev(n => new Promise(r => { const f = () => --n ? requestAnimationFrame(f) : r(); requestAnimationFrame(f); }), n);
 const key = async k => { await p.keyboard.down(k); await frames(3); await p.keyboard.up(k); await frames(2); };
+// Auf einen Zustand warten statt fester Zeiten: der Software-Renderer ist je nach Welt und Last unterschiedlich langsam
+const until = (f, ms) => p.waitForFunction(f, null, { timeout: ms, polling: 100 }).catch(() => { });
 const fails = []; const check = (name, ok, info = '') => { console.log(`${ok ? '✓' : '✗'} ${name}`, info); if (!ok) fails.push(name); };
 
 // ---- Statisch: alle aufgerufenen IDs vorhanden, alle Sprecher mit Stimme
@@ -33,7 +35,8 @@ check('jeder Sprecher hat eine Stimme', !info.mute.length, info.mute.join(', '))
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await W(300);
 await ev(() => { const a = window.game.audio; a.init(); window.blubs = []; const o = a.blub.bind(a); a.blub = (v, vo, st, l, t) => { window.blubs.push([v.base, vo, st]); o(v, vo, st, l, t); }; });
 const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z]; });
-await ev(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x + 2.5, y + 0.2, z); pl.vel.set(0, 0, 0); }, br); await W(800);
+await ev(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x + 2.5, y + 0.2, z); pl.vel.set(0, 0, 0); }, br);
+await until(() => window.game.dialog.open, 8000);
 const st = () => ev(() => { const d = window.game.dialog, el = document.getElementById('dialog'); return { open: d.open, cls: el.className, name: el.querySelector('.name').textContent, shown: el.querySelector('.shown').textContent, full: d.line?.text || '', i: d.i, q: d.queue.length }; });
 let s = await st();
 check('Gespräch mit Opa Bruno startet', s.open && s.name === 'Opa Bruno', s.cls);
@@ -41,7 +44,7 @@ const p0 = await ev(() => window.game.player.pos.toArray().map(v => +v.toFixed(2
 await p.keyboard.down('KeyW'); await W(600); await p.keyboard.up('KeyW');
 check('Spiel steht während des Gesprächs', p0 === await ev(() => window.game.player.pos.toArray().map(v => +v.toFixed(2)).join()));
 s = await st(); check('Text erscheint Buchstabe für Buchstabe', s.shown.length > 0 && s.shown.length <= s.full.length, `${s.shown.length}/${s.full.length}`);
-const nb = await ev(() => window.blubs.length); check('Stimme blubbert pro Silbe', nb >= 3, `${nb} Silben, Grundton ${await ev(() => window.blubs[0]?.[0])} Hz`);
+await until(() => window.blubs.length >= 3, 8000); const nb = await ev(() => window.blubs.length); check('Stimme blubbert pro Silbe', nb >= 3, `${nb} Silben, Grundton ${await ev(() => window.blubs[0]?.[0])} Hz`);
 if (out) await p.screenshot({ path: `${out}/dialog_bruno.png` });
 // Erster Druck zeigt alles, zweiter blättert weiter
 await key('Space'); s = await st(); check('SPRUNG zeigt den ganzen Satz', s.shown === s.full);
@@ -56,7 +59,7 @@ check('Spiel läuft wieder', p0 !== await ev(() => window.game.player.pos.toArra
 // Zweites Mal: nur Spruch nebenbei
 await ev(() => window.game.learn('apportieren', true, window.game.level.bruno.mesh)); await W(300);
 s = await st(); check('zweites Mal: kurzer Spruch, Spiel läuft', !s.open && s.cls.includes('chat'), s.full);
-await W(8000); check('Spruch blendet sich aus', !(await st()).cls.includes('show'));
+await until(() => !document.getElementById('dialog').classList.contains('show'), 20000); check('Spruch blendet sich aus', !(await st()).cls.includes('show'));
 // Platzhalter
 await ev(() => { window.game.save.talked.zwerge = 1; window.game.talk('zwerge', { vars: { n: 2, r: 3 } }); }); await W(200);
 s = await st(); check('Platzhalter ersetzt', /[23]/.test(s.full) && !s.full.includes('{'), s.full);
