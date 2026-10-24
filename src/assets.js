@@ -14,6 +14,7 @@ export const ASSETS = {
   ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell', 'ice', 'bone', 'treat', 'sock', 'cup'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (makeFood)
   ...Object.fromEntries(['moll', 'ratte', 'taube', 'moewe', 'katze', 'krabbe', 'staubsauger', 'dosenoeffner', 'einkaeufer', 'riesenmuschel'].map(k => [k, 'figuren/' + k])), // Figuren mit Knoten (rigAsset)
   ...Object.fromEntries(['meise', 'spatz', 'moewe-klein', 'huhn', 'wildente', 'teichfrosch', 'frosch', 'quietscheente', 'kuh', 'fisch'].map(k => [k, 'tiere/' + k])), ball: 'deko/ball', kuckucksuhr: 'deko/kuckucksuhr', // Kleintiere, Deko (details.js, critters.js)
+  ...Object.fromEntries(['schnecke', 'wespe', 'biene', 'fliege', 'bremse', 'frosch', 'kroete', 'maulwurf', 'gullyratte', 'wollmaus', 'kakerlake', 'kaefer', 'einsiedler', 'krebs', 'ratte', 'saugi', 'tacker', 'drohne', 'fledermaus', 'huhn', 'gans', 'moewe'].map(k => ['foe-' + k, 'gegner/' + ({ ratte: 'miniratte', saugi: 'putzroboter', moewe: 'minimoewe' }[k] ?? k)])), // kleine Gegner (enemies.js)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };

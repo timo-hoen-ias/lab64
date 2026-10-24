@@ -4,6 +4,7 @@
 // wenn Moll verletzt ist, oft ein Leckerli, das ein Herz heilt (wie die Honigwaben bei Banjo).
 import * as THREE from 'three';
 import { FX } from './fx.js';
+import { rigAsset } from './assets.js';
 import { makeFood, makeSnail, makeBug, makeBeetle, makeFrog, makeMole, makeDustBunny, makeMiniRat, makeRobo, makeStapler, makeDrone, makeBat, makeFowl, makeMiniGull, animateLife, cyl, sphere } from './models.js';
 
 // move: walk (läuft, stürmt kurz vor), hop (springt auf Moll zu), fly (kreist, stößt herab), pop (schießt aus dem Boden)
@@ -32,6 +33,16 @@ const KINDS = {
   moewe: { name: 'Möwe', make: makeMiniGull, move: 'fly', speed: 3.4, chase: 5.6, radius: 0.7, aggro: 12, fly: 3.4, puff: [0xffffff, 0xbfc7cc] },
 };
 
+// GLB-Modelle aus Blender (assets/gegner, Name = Typ): bewegliche Knoten werden die userData-Teile der Grundkörper-Fabriken
+function foeModel(kind) {
+  const r = rigAsset('foe-' + kind, { glow: { lamp: 0xd00000 } }); if (!r) return null;
+  const u = {}, wings = r.list('wing'), legs = r.list('leg');
+  if (wings.length) u.wings = wings; if (legs.length) u.legs = legs; else if (r.n('legs')) u.legs = r.n('legs');
+  for (const k of ['tail', 'jaw', 'head']) if (r.n(k)) u[k] = r.n(k);
+  if (r.n('lamp')) u.lamp = r.n('lamp').children[0];
+  r.root.userData = u; return r.root;
+}
+
 // Gruppen je Welt: [Typ, Anzahl Gruppen, Gegner pro Gruppe]. Der Garten ist der Hub: nur Gegner, die man ohne Trillern schafft.
 export const WORLD_FOES = {
   hub: [['schnecke', 3, 2], ['wespe', 3, 1], ['frosch', 2, 2]],
@@ -54,7 +65,7 @@ const blocked = (lvl, x, y, z, r) => { for (const s of lvl.solids) if (s.active 
 export class Foe {
   constructor(game, lvl, kind, x, y, z, rnd = Math.random) {
     const K = this.K = KINDS[kind]; this.game = game; this.lvl = lvl; this.kind = kind; this.name = K.name;
-    this.mesh = K.make(); this.mesh.position.set(x, y, z); this.mesh.rotation.y = rnd() * Math.PI * 2;
+    this.mesh = foeModel(kind) ?? K.make(); this.mesh.position.set(x, y, z); this.mesh.rotation.y = rnd() * Math.PI * 2;
     this.home = { x, y, z }; this.radius = K.radius; this.dead = false; this.t = rnd() * 10; this.seed = rnd() * 7;
     this.state = K.move === 'pop' ? 'under' : 'roam'; this.timer = rnd() * 2; this.goal = null; this.vy = 0; this.hv = null;
     this.stun = 0; this.flip = 0; this.cool = 0; this.air = false; this.base = this.mesh.scale.x; this._last = { x, z }; this.moveK = 0;

@@ -43,7 +43,8 @@ export function compact(root) {
 
 // ---------- Moll, der braune Labrador ------------------------------------
 export function makeDog(paint) {
-  const r = rigAsset('moll', paint === undefined ? {} : { paint }); // GLB aus Blender (gleiche Knoten wie unten), paint = andere Fellfarbe
+  // Moll selbst bleibt das eckige Grundkörper-Modell (timo mag es lieber); andere Hunde (paint = Fellfarbe) nehmen das GLB aus Blender
+  const r = paint !== undefined && rigAsset('moll', { paint });
   if (r) {
     r.root.userData = { rig: r.n('rig'), front: r.n('front'), rear: r.n('rear'), head: r.n('head'), legs: r.list('leg'), tail: r.n('tail'), body: r.n('body'), earL: r.n('earL'), earR: r.n('earR'), tongue: r.n('tongue'), eyes: r.list('eye'), t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
     r.root.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); return r.root;
