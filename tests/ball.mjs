@@ -80,6 +80,20 @@ res.knochen = toys.baelle >= 5 && toys.knochen >= 2 && await ev(() => window.gam
 console.log('  Spielzeug:', toys, '| Quietsche-Knochen im Maul:', res.knochen);
 res.dach = await ev(() => { const l = window.game.level; return l.sheltered(0, 2, -18) && !l.sheltered(0, 2, 5); }); console.log('  Kein Regen im Haus, draußen schon:', res.dach);
 
+// 6) Gemüsegarten: Beißen lässt eine Karotte rausploppen und wegfliegen, Trillern wirbelt einen Kürbis weg
+const veg = k => ev(k => { const it = window.game.level.fetchItems.find(i => i.kind === k && i.planted); return it && [it.x, it.y, it.z]; }, k);
+const c0 = await veg('karotte'); await ev(() => window.game.player.carry = null);
+await tp(c0[0] + 1.3, 0.8, c0[2], -Math.PI / 2); await sim(3); await sim(1, { act: true }); await sim(6);
+const cFly = await ev(([x, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'karotte' && i.home.x === x && i.home.z === z); return { planted: it.planted, y: it.y }; }, [c0[0], c0[2]]);
+await sim(60); const c1 = await ev(([x, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'karotte' && i.home.x === x && i.home.z === z); return [it.x, it.y, it.z, Math.hypot(it.vx, it.vz)]; }, [c0[0], c0[2]]);
+res.karotte = !cFly.planted && cFly.y > c0[1] + 0.5 && Math.hypot(c1[0] - c0[0], c1[2] - c0[2]) > 1.5;
+console.log('  Karotte gebissen: fliegt bis', cFly.y.toFixed(1), '→ liegt bei', c1.map(v => +v.toFixed(1)), res.karotte);
+await shot('gemuese');
+const k0 = await veg('kuerbis'); await ev(() => { window.game.save.abilities.trillern = true; });
+await tp(k0[0] + 1.2, 0.8, k0[2]); await sim(2); await sim(1, { spin: true }); await sim(40);
+res.kuerbis = await ev(([x, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'kuerbis' && i.home.x === x && i.home.z === z); return !it.planted && Math.hypot(it.x - x, it.z - z) > 1; }, [k0[0], k0[2]]);
+console.log('  Kürbis weggetrillert:', res.kuerbis);
+
 console.log('Fehler:', errs.length ? errs : 'keine');
 const ok = Object.values(res).every(Boolean) && !errs.length; console.log(ok ? 'BALL OK' : 'BALL FEHLER', res);
 await b.close(); process.exit(ok ? 0 : 1);

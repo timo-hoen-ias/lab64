@@ -6,6 +6,18 @@ import { FX } from './fx.js';
 
 // Ball: Radius und Sitz im Maul (Mittelpunkt, im Koordinatensystem von Molls Kopf: vorn an der Schnauze, auf Höhe der Lefzen)
 const BALL_R = 0.26, BONE_R = 0.13, MOUTH = new THREE.Vector3(0, -0.31, 0.95), MOUTH_BONE = new THREE.Vector3(0, -0.3, 0.88);
+// Gemüse im Gemüsegarten: r = Kollisionsradius, sink = wie tief es im Beet steckt, lie = Neigung nach der Landung, hold = Lage im Maul
+const VEGGIES = {
+  karotte: { r: 0.13, sink: 0.35, lie: Math.PI / 2, hold: new THREE.Euler(0, 0, Math.PI / 2), make: g => {
+    g.add(cone(0.11, 0.55, 0xf0761e, 0, -0.05, 0, 8).rotateX(Math.PI)); // Rübe, Spitze nach unten
+    [-0.5, 0, 0.5].forEach(a => { const l = box(0.05, 0.32, 0.05, 0x3fae49, 0, 0.36, 0); l.rotation.z = a; l.position.x = Math.sin(a) * 0.1; g.add(l); }); } },
+  kartoffel: { r: 0.17, sink: 0.12, roll: true, make: g => {
+    const k = sphere(0.17, 0xb08850, 0, 0, 0, 7); k.scale.set(1.25, 0.85, 1); g.add(k);
+    [[0.12, 0.08, 0.06], [-0.1, 0.05, -0.1], [0.02, -0.06, 0.15]].forEach(([x, y, z]) => g.add(sphere(0.025, 0x7a5a30, x, y, z, 4))); } },
+  kuerbis: { r: 0.42, sink: 0, heavy: true, roll: true, make: g => {
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, s = sphere(0.3, i % 2 ? 0xf39c12 : 0xe67e22, Math.cos(a) * 0.15, 0, Math.sin(a) * 0.15, 8); s.scale.set(1, 0.95, 1); g.add(s); } // Rippen
+    g.add(cyl(0.05, 0.07, 0.2, 0x6b8e23, 0, 0.35, 0, 6)); } },
+};
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _ax = new THREE.Vector3(), _q = new THREE.Quaternion();
 
 // Tasten: TRILLER = C / Gamepad B / Touch 🌀, BELLEN = V / Gamepad RB / Touch 📢
@@ -143,13 +155,18 @@ export function installGadgets(Level) {
         [-1, 1].forEach(sx => [-1, 1].forEach(sz => spin.add(sphere(0.12, c, sx * 0.34, 0, sz * 0.08, 8))));
         spin.add(sphere(0.05, 0xffffff, 0, 0.07, 0, 6)); // Quietscher
       }
+      else if (VEGGIES[kind]) { // Gemüse im Beet: steckt fest, bis Moll es beißt oder wegtrillert
+        const V = VEGGIES[kind]; r = V.r; spin = new THREE.Group(); spin.position.y = r; m.add(spin); V.make(spin);
+        if (o.planted) m.position.y = -V.sink;
+      }
       else if (kind === 'key') { m.add(cyl(0.22, 0.22, 0.08, 0xffcc33, 0, 0.3, 0, 10).rotateX(Math.PI / 2)); m.add(box(0.1, 0.1, 0.6, 0xffcc33, 0, 0.3, 0.4)); }
       else m.add(box(0.14, 0.14, 1.3, 0x8d6e4a, 0, 0.15, 0));
-      m.position.set(x, y, z); this.group.add(m);
-      const it = { x, y, z, kind, mesh: m, spin, r, roll: kind === 'ball', squeak: kind === 'quietsch', carried: false, done: false, vx: 0, vy: 0, vz: 0, home: { x, y, z } }; (this.fetchItems ||= []).push(it); return it;
+      m.position.set(x, y + m.position.y, z); this.group.add(m);
+      const V = VEGGIES[kind];
+      const it = { x, y, z, kind, mesh: m, spin, r, roll: kind === 'ball' || !!V?.roll, veg: V, planted: !!(V && o.planted), heavy: !!V?.heavy, squeak: kind === 'quietsch', carried: false, done: false, vx: 0, vy: 0, vz: 0, home: { x, y, z } }; (this.fetchItems ||= []).push(it); return it;
     },
     fetchGoal(x, y, z, r, kind, cb) { const fg = { x, y, z, r, kind, cb, done: false }; (this.fetchGoals ||= []).push(fg); return fg; },
-    fetchNear(p) { return (this.fetchItems || []).find(it => !it.carried && !it.done && Math.hypot(it.x - p.x, it.z - p.z) < (it.spin ? 2.4 : 1.9) && Math.abs(it.y - p.y) < 1.5); }, // Ball liegt oft vor der Schnauze
+    fetchNear(p) { return (this.fetchItems || []).find(it => !it.carried && !it.done && !it.planted && !it.heavy && Math.hypot(it.x - p.x, it.z - p.z) < (it.spin ? 2.4 : 1.9) && Math.abs(it.y - p.y) < 1.5); }, // Ball liegt oft vor der Schnauze
     dropItem(it, at, vel) {
       it.carried = false; it.mesh.rotation.set(0, 0, 0);
       if (it.spin) { // Ball fällt aus dem Maul (dort, wo er gerade ist) und rollt mit Molls Schwung weiter
@@ -179,7 +196,7 @@ export function installGadgets(Level) {
         it.vy += (wy - it.r * 0.8 - it.y) * 18 * dt - it.vy * 3 * dt; const k = Math.exp(-1.5 * dt); it.vx *= k; it.vz *= k;
       } else if (onGround) {
         const e = 0.25, gx = (this._ballGround(it.x + e, it.z, it.y) - this._ballGround(it.x - e, it.z, it.y)) / (2 * e), gz = (this._ballGround(it.x, it.z + e, it.y) - this._ballGround(it.x, it.z - e, it.y)) / (2 * e);
-        const slide = it.roll ? 0.71 : 0.35; if (Math.abs(gx) < 2 && Math.abs(gz) < 2 && (it.roll || Math.hypot(gx, gz) > 0.35)) { it.vx -= G * slide * gx * dt; it.vz -= G * slide * gz * dt; } // Knochen rutscht erst auf steilen Hängen // rollende Kugel: 5/7 der Hangkraft; Kanten (Sprung im Boden) zählen nicht
+        const slide = it.roll ? 0.71 : 0.35; if (Math.abs(gx) < 2 && Math.abs(gz) < 2 && (it.roll || Math.hypot(gx, gz) > 0.35)) { it.vx -= G * slide * gx * dt; it.vz -= G * slide * gz * dt; } // rollende Kugel: 5/7 der Hangkraft, Knochen rutscht erst auf steilen Hängen; Kanten (Sprung im Boden) zählen nicht
         const sp = Math.hypot(it.vx, it.vz), dec = Math.min(sp, (it.roll ? 1.5 + sp * 0.6 : 5 + sp * 0.8) * dt); // Rollreibung + Luftwiderstand
         if (sp > 0) { it.vx -= it.vx / sp * dec; it.vz -= it.vz / sp * dec; }
         if (Math.hypot(it.vx, it.vz) < 0.03 && Math.hypot(gx, gz) < 0.02) it.vx = it.vz = 0;
@@ -213,8 +230,11 @@ export function installGadgets(Level) {
       if (it.y < (this.killY ?? -25)) { Object.assign(it, { x: it.home.x, y: it.home.y + 2, z: it.home.z, vx: 0, vy: 0, vz: 0 }); FX.sparkle(this.game.fx, it); }
       // Drehung passend zur zurückgelegten Strecke
       const dist = Math.hypot(it.vx, it.vz) * dt;
-      if (dist > 1e-5 && it.roll) { _ax.set(it.vz, 0, -it.vx).normalize(); _q.setFromAxisAngle(_ax, dist / it.r); it.spin.quaternion.premultiply(_q); }
-      else if (dist > 1e-5) it.spin.rotation.set(0, it.spin.rotation.y + dist * 2.5, 0); // Knochen kreiselt flach über den Boden
+      if (it.tumble) { // fliegendes Gemüse überschlägt sich und bleibt nach der Landung liegen
+        if (it.y > g2 + 0.05 || it.vy > 0) { _q.setFromAxisAngle(it.tumbleAx, it.tumble * dt); it.spin.quaternion.premultiply(_q); }
+        else { it.tumble = 0; it.spin.rotation.set(it.veg?.lie || 0, 0, 0); it.mesh.rotation.y = Math.random() * 6.28; }
+      } else if (dist > 1e-5 && it.roll) { _ax.set(it.vz, 0, -it.vx).normalize(); _q.setFromAxisAngle(_ax, dist / it.r); it.spin.quaternion.premultiply(_q); }
+      else if (dist > 1e-5) it.mesh.rotation.y += dist * 2.5; // Knochen kreiselt flach über den Boden
       it.mesh.position.set(it.x, it.y, it.z);
       if (!it.done && Math.hypot(it.vx, it.vz) > 0.05) this._fetchGoalCheck(it); // auch reingerollt oder reingestupst zählt
     },
@@ -222,13 +242,23 @@ export function installGadgets(Level) {
       for (const s of this.solids) if (s.active && x + 0.42 > s.min.x && x - 0.42 < s.max.x && z + 0.42 > s.min.z && z - 0.42 < s.max.z && y + 0.45 < s.max.y && y + 1.15 > s.min.y) return false;
       return true;
     },
+    // Schabernack: Gemüse (und Spielzeug) fliegt im hohen Bogen davon, weg vom Punkt `from`
+    launch(it, from, power = 1) {
+      const dx = it.x - from.x, dz = it.z - from.z, d = Math.hypot(dx, dz) || 1, k = (it.heavy ? 0.55 : 1) * power;
+      if (it.planted) { it.planted = false; it.y = it.mesh.position.y + (it.veg?.sink || 0); this.game.fx.burst({ x: it.x, y: it.y + 0.2, z: it.z }, { n: 10, color: [0x6d4c41, 0x8d6e4a], speed: 3, up: 3, life: 0.5, size: 0.14 }); }
+      it.vx += dx / d * (4 + Math.random() * 3) * k; it.vz += dz / d * (4 + Math.random() * 3) * k; it.vy = Math.max(it.vy, (7 + Math.random() * 3) * k);
+      it.tumble = it.roll ? 0 : 10 + Math.random() * 8; _ax.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(); (it.tumbleAx ||= new THREE.Vector3()).copy(_ax);
+      this.game.audio.sfx(it.heavy ? 'bonk' : it.veg ? 'pop' : 'click'); this.toySqueak(it);
+    },
     toySqueak(it) { if (!it.squeak || this.t - (it._sq ?? -9) < 0.25) return; it._sq = this.t; this.game.audio.sfx('squeak'); it._squish = 1; },
     // Beißen ohne Apportieren: Spielzeug vor der Schnauze bekommt einen Schubs (Quietsche-Knochen quiekt)
     toyBite(point, r) {
       const pl = this.game.player, fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw);
-      for (const it of this.fetchItems || []) if (it.spin && !it.carried && Math.hypot(it.x - point.x, it.z - point.z) < r + it.r && Math.abs(it.y - point.y) < 1.5) { it.vx += fx * 5; it.vz += fz * 5; it.vy = Math.max(it.vy, 3); this.toySqueak(it); }
+      for (const it of this.fetchItems || []) if (it.spin && !it.carried && Math.hypot(it.x - point.x, it.z - point.z) < r + it.r && Math.abs(it.y - point.y) < 1.5) {
+        if (it.veg) this.launch(it, { x: pl.pos.x - fx * 2, z: pl.pos.z - fz * 2 }); else { it.vx += fx * 5; it.vz += fz * 5; it.vy = Math.max(it.vy, 3); this.toySqueak(it); }
+      }
     },
-    _ballBonk(it, v) { if (Math.abs(v) > 2.5 && Math.hypot(it.x - this.game.player.pos.x, it.z - this.game.player.pos.z) < 25) this.game.audio.sfx('click'); },
+    _ballBonk(it, v) { if (Math.abs(v) > 2.5 && Math.hypot(it.x - this.game.player.pos.x, it.z - this.game.player.pos.z) < 25) this.game.audio.sfx(it.veg ? 'plonk' : 'click'); },
     // Ball im Maul: Mittelpunkt sitzt vorn zwischen den Lefzen (Kopf-Knochen), folgt Kopfnicken, Kopfdrehen, Trab/Galopp und Biss.
     // Ragt er in eine Wand oder in den Boden, wird er herausgeschoben statt hindurchzuragen.
     _holdBall(it, pl) {
@@ -253,13 +283,14 @@ export function installGadgets(Level) {
       }
       y = Math.max(y, this._ballGround(x, z, y + it.r)); // nie in den Boden
       it.x = x; it.y = y; it.z = z; it.vx = pl.vel.x; it.vy = pl.vel.y; it.vz = pl.vel.z;
-      it.mesh.position.set(x, y, z); it.mesh.rotation.set(0, 0, 0);
-      u.head.getWorldQuaternion(it.spin.quaternion);
+      it.mesh.position.set(x, y, z); it.mesh.rotation.set(0, 0, 0); it.tumble = 0;
+      u.head.getWorldQuaternion(it.spin.quaternion); if (it.veg?.hold) it.spin.quaternion.multiply(_q.setFromEuler(it.veg.hold)); // Karotte quer im Maul
       if (it.squeak) { if (pl.onGround && it._air) this.toySqueak(it); it._air = !pl.onGround; } // Landung mit Knochen im Maul: quiek
     },
 
     // ---- Treffer verteilen: Trillern, Bellen, Bauchklatscher
     onSpin(point, r, hit, strong) {
+      for (const it of this.fetchItems || []) if (it.spin && !it.carried && !hit.has(it) && Math.hypot(it.x - point.x, it.z - point.z) < r + 0.6 && Math.abs(it.y - point.y) < 2) { hit.add(it); this.launch(it, point, strong ? 1.4 : 1); } // Trillern wirbelt Gemüse und Spielzeug weg
       for (const e of this.enemies) if (!e.dead && !hit.has(e) && Math.hypot(e.mesh.position.x - point.x, e.mesh.position.z - point.z) < r + (e.radius || 1) && Math.abs(e.mesh.position.y - point.y) < 2.5 + (e.radius || 1)) { hit.add(e); if (e.onSpin) e.onSpin(strong); else if (e.onBite && !e.maxHp) e.onBite(); }
       for (const t of this.spinTargets || []) if (!t.done && Math.hypot(t.x - point.x, t.z - point.z) < r + 1.4 && Math.abs(t.y - point.y) < 2.5) {
         t.done = true; t.spin = 1; t.lamp.material = t.lamp.material.clone(); t.lamp.material.color.set(0x55efc4); t.lamp.material.emissive = new THREE.Color(0x00b894);
@@ -299,8 +330,8 @@ export function installGadgets(Level) {
       for (const it of this.fetchItems || []) if (it.carried) {
         if (it.spin) { this._holdBall(it, pl); continue; }
         const f = { x: Math.sin(pl.yaw), z: Math.cos(pl.yaw) }; it.mesh.position.set(pl.pos.x + f.x * 1.15, pl.pos.y + 0.95, pl.pos.z + f.z * 1.15); it.mesh.rotation.y = pl.yaw + Math.PI / 2;
-      } else if (it.spin) this._rollBall(it, Math.min(dt, 1 / 20), pl);
-      else if (!it.done) it.mesh.rotation.y += dt;
+      } else if (it.spin && !it.planted) this._rollBall(it, Math.min(dt, 1 / 20), pl);
+      else if (!it.done && !it.spin) it.mesh.rotation.y += dt;
       for (const it of this.fetchItems || []) if (it._squish > 0) { it._squish = Math.max(0, it._squish - dt * 6); const k = it._squish; it.spin.scale.set(1 + 0.25 * k, 1 - 0.3 * k, 1 + 0.25 * k); } // Quietsch-Stauchung federt zurück
     },
   });
