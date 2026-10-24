@@ -78,8 +78,8 @@ export const HAFEN = {
     });
     // Fischmarkt innen: Stände, Kisten, hängende Lampen als Sprungweg zum Dachbalken
     const mx = 3000; l.room(mx, 0, 40, 30);
-    l.box(mx, -1, 0, 40, 1, 30, 0x7f8c8d); l.box(mx, 11, 0, 40, 1, 30, 0x34495e);
-    l.box(mx, 0, -15, 40, 11, 1, 0xbdc3c7); l.box(mx, 0, 15, 40, 11, 1, 0xbdc3c7); l.box(mx - 20, 0, 0, 1, 11, 30, 0xbdc3c7); l.box(mx + 20, 0, 0, 1, 11, 30, 0xbdc3c7);
+    l.box(mx, -1, 0, 40, 1, 30, 0x7f8c8d); l.box(mx, 12, 0, 40, 1, 30, 0x34495e); // Decke hoch genug, dass Moll (1,15) auf dem Dachbalken stehen kann
+    l.box(mx, 0, -15, 40, 12, 1, 0xbdc3c7); l.box(mx, 0, 15, 40, 12, 1, 0xbdc3c7); l.box(mx - 20, 0, 0, 1, 12, 30, 0xbdc3c7); l.box(mx + 20, 0, 0, 1, 12, 30, 0xbdc3c7);
     [[-12, -6], [-12, 4], [0, -6], [0, 4], [12, -6], [12, 4]].forEach(([x, z], i) => { l.box(mx + x, 0, z, 6, 1.1, 2.4, 0xecf0f1); l.deco(box(6.2, 0.15, 2.8, [0xe74c3c, 0x3498db, 0x27ae60][i % 3]), mx + x, 2.6, z); for (let f = 0; f < 4; f++) l.deco(box(0.7, 0.2, 0.3, 0x7fb6d8), mx + x - 2 + f * 1.3, 1.25, z); });
     [[-16, 1.2, 10], [-12, 2.6, 10], [-8, 4, 10], [-4, 5.4, 8], [0, 6.8, 6], [4, 8.2, 4]].forEach(([x, y, z]) => l.box(mx + x, y, z, 2, 0.4, 2, 0xf39c12)); // Lampen/Kisten-Treppe
     l.box(mx + 4, 9.4, -2, 30, 0.5, 1.2, 0x5d4037); // Dachbalken
@@ -126,12 +126,12 @@ export const HAFEN = {
     });
     // Laderaum innen: Kisten-Labyrinth im Halbdunkel
     const sx = 3300; l.room(sx, 0, 40, 26);
-    l.box(sx, -1, 0, 40, 1, 26, 0x2c3e50); l.box(sx, 8, 0, 40, 1, 26, 0x1e272e);
-    l.box(sx, 0, -13, 40, 8, 1, 0x34495e); l.box(sx, 0, 13, 40, 8, 1, 0x34495e); l.box(sx - 20, 0, 0, 1, 8, 26, 0x34495e); l.box(sx + 20, 0, 0, 1, 8, 26, 0x34495e);
+    l.box(sx, -1, 0, 40, 1, 26, 0x2c3e50); l.box(sx, 9, 0, 40, 1, 26, 0x1e272e); // Decke über dem höchsten Kistenstapel (7,2) mit Platz für Moll
+    l.box(sx, 0, -13, 40, 9, 1, 0x34495e); l.box(sx, 0, 13, 40, 9, 1, 0x34495e); l.box(sx - 20, 0, 0, 1, 9, 26, 0x34495e); l.box(sx + 20, 0, 0, 1, 9, 26, 0x34495e);
     [[-14, 6, 2], [-14, 0, 1], [-8, -6, 3], [-2, 4, 2], [4, -4, 2], [8, 6, 1], [12, -8, 3], [16, 2, 2], [-6, -10, 1], [2, 10, 1]].forEach(([x, z, n], i) => { for (let k = 0; k < n; k++) l.box(sx + x, k * 2.4, z, 4, 2.4, 2.4, k % 2 ? 0xc0905a : 0xa47148); });
     l.goldbone('laderaum', sx + 12, 7.8, -8);
     [[-17, -10], [17, 10], [0, 0], [-10, 10], [10, -2]].forEach(([x, z]) => l.pickup(sx + x, 0.3, z, 'crumb'));
-    for (let i = 0; i < 5; i++) l.deco(sphere(0.3, 0xfff3a0, 0, 0, 0, 6), sx - 16 + i * 8, 7.5, 0);
+    for (let i = 0; i < 5; i++) l.deco(sphere(0.3, 0xfff3a0, 0, 0, 0, 6), sx - 16 + i * 8, 8.5, 0);
     l.door(sx, 0, 12.4, { x: 47, y: 6.8, z: 92, yaw: Math.PI / 2 }, { label: 'An Deck', ry: Math.PI });
 
     l.scatter(50);

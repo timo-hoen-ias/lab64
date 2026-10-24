@@ -1,5 +1,6 @@
 // Strand-Test: alle 10 Goldknochen der Badebucht in einem Besuch, Screenshots. Server auf Port 8077.
 import { chromium } from 'playwright';
+import { frames } from './frames.mjs';
 const out = process.argv[2] || '.';
 const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
@@ -7,11 +8,11 @@ const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
+const { W, kb, draw } = await frames(p); // feste Bilder zu 1/30 s statt Echtzeit: Ergebnis unabhängig von der Last
 await p.evaluate(() => { window.game.foesOff = true; }); // Gegner ruhig stellen (Kämpfe prüft tests/gegner.mjs)
-const W = ms => p.waitForTimeout(ms);
 const tp = (x, y, z) => p.evaluate(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.hp = 3; pl.air = 15; const wy = window.game.level.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; }, [x, y, z]);
-const shot = async (name, yaw, pitch = 0.25) => { await p.evaluate(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(700); await p.screenshot({ path: `${out}/strand_${name}.png` }); };
-const bite = async () => { await p.keyboard.down('KeyE'); await W(150); await p.keyboard.up('KeyE'); await W(300); };
+const shot = async (name, yaw, pitch = 0.25) => { await p.evaluate(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(700); await draw(); await p.screenshot({ path: `${out}/strand_${name}.png` }); };
+const bite = async () => { await kb.down('KeyE'); await W(150); await kb.up('KeyE'); await W(300); };
 await p.evaluate(() => window.game.enterLevel('strand')); await W(1500);
 console.log('Spawn:', await p.evaluate(() => { const q = window.game.player.pos; return [q.x.toFixed(1), q.y.toFixed(2), q.z.toFixed(1)]; }));
 await shot('spawn', null, 0.2);
@@ -21,7 +22,7 @@ const L = () => window.game.level;
 const pos = (f, a) => p.evaluate(f, a);
 // Geheim (Dünen) mit Nase
 const gh = await pos(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; });
-await p.keyboard.down('KeyF'); await tp(gh[0] + 3, gh[1], gh[2]); await W(400); await tp(gh[0], gh[1] - 0.4, gh[2]); await W(500); await p.keyboard.up('KeyF');
+await kb.down('KeyF'); await tp(gh[0] + 3, gh[1], gh[2]); await W(400); await tp(gh[0], gh[1] - 0.4, gh[2]); await W(500); await kb.up('KeyF');
 // Riesenrad + Leuchtturm per Teleport
 for (const id of ['riesenrad', 'leuchtturm']) { const q = await pos(id => { const q = window.game.level.pickups.find(q => q.boneId === id); return [q.x, q.y, q.z]; }, id); await tp(q[0], q[1] - 0.5, q[2]); await W(500); }
 await shot('leuchtturm', 2.2, 0.35);
@@ -46,11 +47,11 @@ const fy = await pos(() => window.game.level.groundAt(86, 4, 30)); await tp(86, 
 const rn = await pos(() => { const q = window.game.level.pickups.find(q => q.boneId === 'rennen'); return q && [q.x, q.y, q.z]; }); if (rn) { await tp(rn[0], rn[1] - 0.5, rn[2]); await W(500); }
 // Alle Krümel
 for (let pass = 0; pass < 2; pass++) for (const q of await pos(() => window.game.level.pickups.filter(q => !q.goal && !q.special && q.kind !== 'goldbone' && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], q[1] - 0.3, q[2]); await W(pass ? 500 : 330); }
-await W(600); const kb = await pos(() => { const q = window.game.level.pickups.find(q => q.boneId === 'kruemel'); return q && [q.x, q.y, q.z]; }); if (kb) { await tp(kb[0], kb[1] - 0.5, kb[2]); await W(500); }
+await W(600); const kq = await pos(() => { const q = window.game.level.pickups.find(q => q.boneId === 'kruemel'); return q && [q.x, q.y, q.z]; }); if (kq) { await tp(kq[0], kq[1] - 0.5, kq[2]); await W(500); }
 // Pommes (Hauptziel, teils versteckt) → Boss
-await p.keyboard.down('KeyF');
+await kb.down('KeyF');
 for (const q of await pos(() => window.game.level.pickups.filter(q => q.goal).map(q => [q.x, q.y, q.z]))) { await tp(q[0] + 2, q[1] - 0.3, q[2]); await W(250); await tp(q[0], q[1] - 0.3, q[2]); await W(450); }
-await p.keyboard.up('KeyF');
+await kb.up('KeyF');
 console.log('Pommes:', await pos(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
 await W(2500); await tp(-40, 1, 25); await W(800);
 await shot('boss', 0, 0.3);
