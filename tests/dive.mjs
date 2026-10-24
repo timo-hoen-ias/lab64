@@ -4,7 +4,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart');
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 const W = ms => p.waitForTimeout(ms), st = () => p.evaluate(() => { const pl = window.game.player; return { y: +pl.pos.y.toFixed(2), swim: pl.swimming, dive: pl.diving, air: +(pl.air ?? 0).toFixed(1) }; });
 // Ohne Brille: Nase halten im Teich → bleibt oben
 await p.evaluate(() => { window.game.player.pos.set(-3, -0.5, 20); window.game.camYaw = 0; }); await W(500);

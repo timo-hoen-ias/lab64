@@ -4,7 +4,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshad
 const p = await b.newPage({ viewport: { width: 640, height: 360 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart');
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 const W = ms => p.waitForTimeout(ms);
 // Gelände: Hügel im Garten (rechts), Moll läuft drauf
 await p.evaluate(() => { const l = window.game.level; l.hill(36, 4, 8, 4, { flat: 0.4 }); l.ramp(36, -20, 36, -12, 3, 0, 3); l.bounds.max.x = 60; const pl = window.game.player; pl.pos.set(24, 0, 4); pl.yaw = Math.PI / 2; window.game.camYaw = -Math.PI / 2; });

@@ -8,7 +8,7 @@ const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftsha
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart'); await p.waitForTimeout(300);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(300);
 const ev = (f, a) => p.evaluate(f, a);
 await ev(() => { window.game.loop = () => { }; window.game.dialog.auto = true; }); // eigene Spielschleife anhalten, ab hier steuert der Test jedes Bild
 // n Bilder simulieren; held = gedrückte Tasten, move = Stick (x rechts, y vor), relativ zur Kamera

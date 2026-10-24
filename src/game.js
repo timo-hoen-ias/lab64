@@ -8,6 +8,7 @@ import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
 import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
+import { Intro } from './intro.js';
 import { ABILITIES, UPGRADES } from './abilities.js';
 import { Dialog } from './dialog.js';
 
@@ -46,7 +47,7 @@ export class Game {
     this.save = this.loadSave(); this.dialog = new Dialog(this); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
-    this.menu = new Menu(this);
+    this.menu = new Menu(this); this.intro = new Intro(this);
     document.getElementById('btnLeave').addEventListener('click', () => { this.enterLevel('hub', true); this.start(); });
     this.enterLevel('hub', true);
     this.loop();
@@ -294,7 +295,8 @@ export class Game {
     this.input.update(); this.dialog.update();
     if (this.dialog.open) { this.dialog.input(this.input); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
     if (this.shopOpen) { this._shopInput(); if (this.level) this.renderer.render(this.level.scene, this.camera); return; }
-    if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
+    if (this.intro.blocking()) this.intro.poll(this.input); // Intro im Startmenü: Eingaben starten/überspringen nur das Intro
+    else if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
     else if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
     else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet
     if (!this.paused && this.level) {

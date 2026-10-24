@@ -5,7 +5,7 @@ const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-requ
 const p = await b.newPage({ viewport: { width: 800, height: 450 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
-await p.click('#btnStart'); await p.waitForTimeout(1500);
+await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart'); await p.waitForTimeout(1500);
 const st = () => p.evaluate(() => { const a = window.game.audio; return { step: a.song?.step, mix: a.mix, state: a.ctx.state }; });
 console.log('Start:', await st());
 // Unter Wasser im Gartenteich → Variante water
