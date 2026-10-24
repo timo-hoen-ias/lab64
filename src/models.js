@@ -570,3 +570,149 @@ export function headTrack(u, dx, dz, yaw, on, dt, max = 1.1) {
   u.track = (u.track ?? 0) + (want - (u.track ?? 0)) * Math.min(1, dt * 5);
   return u.track;
 }
+
+// ---------- Kleine Gegner (Banjo-Kazooie-Stil) -------------------------------
+// Wenige animierte Teile (in userData), der Rest wird gebacken: pro Gegner nur 1–3 Zeichenaufrufe.
+const peepers = (g, s, x, y, z, iris = 0x111111, angry = 0.4, brow = 0x222222) => {
+  [-1, 1].forEach(k => { const w = sphere(s, 0xffffff, k * x, y, z, 6); w.scale.z = 0.6; g.add(w); g.add(sphere(s * 0.55, iris, k * x, y, z + s * 0.45, 5)); const b = box(s * 2, s * 0.45, s * 0.45, brow, k * x, y + s * 1.05, z + s * 0.3); b.rotation.z = -k * angry; g.add(b); });
+};
+export function makeSnail(shell = 0xc8875a) {
+  const g = new THREE.Group(), skin = 0xb8d27a, dark = shade(shell, 0.7);
+  g.add(box(0.5, 0.25, 1.3, skin, 0, 0.13, 0.05)); g.add(box(0.42, 0.5, 0.36, skin, 0, 0.38, 0.62));
+  const sh = sphere(0.52, shell, 0, 0.66, -0.18, 10); sh.scale.set(0.72, 1, 1); g.add(sh);
+  [-1, 1].forEach(s => { const sp = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.08, 6, 14), mat(dark)); sp.rotation.y = Math.PI / 2; sp.position.set(s * 0.36, 0.68, -0.18); g.add(sp); g.add(sphere(0.09, dark, s * 0.38, 0.68, -0.18, 6)); });
+  [-1, 1].forEach(s => { const st = cyl(0.035, 0.035, 0.45, skin, s * 0.13, 0.8, 0.7, 5); st.rotation.z = -s * 0.25; g.add(st); });
+  peepers(g, 0.085, 0.19, 1.04, 0.72, 0x111111, 0.45, 0x3b5323);
+  g.add(box(0.22, 0.04, 0.04, 0x3b5323, 0, 0.32, 0.81));
+  return compact(g);
+}
+// Fliegende Insekten: Wespe, Biene, Fliege, Bremse
+export function makeBug(kind = 'wespe') {
+  const [body, stripe, eyeC] = { wespe: [0xf5c518, 0x222222, 0x222222], biene: [0xf6b93b, 0x3d2b1f, 0x3d2b1f], fliege: [0x2f3640, 0x1e272e, 0xc0392b], bremse: [0x7f6e5d, 0x4b3f35, 0x27ae60] }[kind];
+  const g = new THREE.Group(), striped = kind === 'wespe' || kind === 'biene';
+  g.add(sphere(0.27, striped ? stripe : body, 0, 0, 0.1, 8));
+  const ab = sphere(0.34, body, 0, -0.05, -0.4, 8); ab.scale.set(0.85, 0.85, 1.25); g.add(ab);
+  if (striped) for (let i = 0; i < 2; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.29 - i * 0.04, 0.06, 4, 12), mat(stripe)); r.position.set(0, -0.05, -0.32 - i * 0.22); g.add(r); }
+  if (kind === 'wespe') g.add(cone(0.06, 0.26, stripe, 0, -0.08, -0.92).rotateX(-Math.PI / 2));
+  g.add(sphere(0.23, body, 0, 0.04, 0.42, 8));
+  [-1, 1].forEach(s => { g.add(sphere(kind === 'fliege' || kind === 'bremse' ? 0.15 : 0.11, eyeC, s * 0.14, 0.1, 0.52, 6)); g.add(sphere(0.035, 0xffffff, s * 0.17, 0.17, 0.63, 4)); const b = box(0.18, 0.04, 0.04, stripe, s * 0.12, 0.27, 0.56); b.rotation.z = -s * 0.45; g.add(b); });
+  [-1, 1].forEach(s => { const a = cyl(0.015, 0.015, 0.36, stripe, s * 0.09, 0.36, 0.56, 4); a.rotation.set(0.5, 0, -s * 0.35); g.add(a); });
+  for (let i = 0; i < 3; i++) [-1, 1].forEach(s => { const l = box(0.04, 0.3, 0.04, stripe, s * 0.12, -0.25, 0.2 - i * 0.12); l.rotation.z = s * 0.3; g.add(l); });
+  const wm = new THREE.MeshLambertMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0.55 });
+  const wings = [-1, 1].map(s => { const w = new THREE.Group(); w.position.set(s * 0.12, 0.24, 0.05); const m = new THREE.Mesh(new THREE.SphereGeometry(0.34, 8, 5), wm); m.scale.set(1, 0.08, 0.5); m.position.x = s * 0.32; w.add(m); g.add(w); return w; });
+  g.userData = { wings }; return compact(g);
+}
+// Käfer/Kakerlake/Krebs mit Panzer (o.spiral = Einsiedlerkrebs mit Schneckenhaus, o.claws = Scheren)
+export function makeBeetle(o = {}) {
+  const g = new THREE.Group(), shell = o.shell ?? 0x6b3e1f, body = o.body ?? shade(shell, 0.6);
+  if (o.spiral) {
+    const s1 = sphere(0.55, o.spiral, 0, 0.72, -0.2, 10); s1.scale.set(0.9, 1, 1.05); g.add(s1);
+    g.add(cone(0.36, 0.62, shade(o.spiral, 0.85), 0, 1.3, -0.3, 8));
+    for (let i = 0; i < 2; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.46 - i * 0.14, 0.05, 4, 14), mat(shade(o.spiral, 0.7))); r.rotation.x = Math.PI / 2; r.position.set(0, 0.95 + i * 0.3, -0.24); g.add(r); }
+  } else {
+    const sh = sphere(0.6, shell, 0, 0.45, -0.05, 10); sh.scale.set(0.9, 0.55, 1.2); g.add(sh);
+    g.add(box(0.03, 0.12, 1.3, shade(shell, 0.55), 0, 0.77, -0.05));
+    if (o.spots) [[0.25, 0.2], [-0.25, 0.2], [0.28, -0.35], [-0.28, -0.35]].forEach(([x, z]) => { const p = sphere(0.11, o.spots, x, 0.72, z, 5); p.scale.y = 0.4; g.add(p); });
+  }
+  g.add(sphere(0.27, body, 0, 0.38, 0.62, 8));
+  peepers(g, 0.08, 0.12, 0.52, 0.78, 0x111111, 0.45, shade(body, 0.6));
+  if (o.claws) [-1, 1].forEach(s => { const a = box(0.12, 0.12, 0.5, body, s * 0.45, 0.35, 0.7); a.rotation.y = -s * 0.3; g.add(a); g.add(sphere(0.19, o.clawC ?? body, s * 0.55, 0.4, 1.0, 7)); g.add(cone(0.08, 0.28, o.clawC ?? body, s * 0.52, 0.47, 1.2).rotateX(Math.PI / 2)); });
+  if (o.antenna) [-1, 1].forEach(s => { const a = box(0.03, 0.03, 0.9, body, s * 0.18, 0.62, 1.1); a.rotation.set(-0.5, s * 0.35, 0); g.add(a); });
+  const legs = [-1, 1].map(s => { const L = new THREE.Group(); L.position.set(s * 0.42, 0.32, 0); for (let i = 0; i < 3; i++) { const l = box(0.5, 0.07, 0.07, body, s * 0.2, -0.12, -0.35 + i * 0.35); l.rotation.z = -s * 0.5; L.add(l); } g.add(L); return L; });
+  g.userData = { legs }; return compact(g);
+}
+export function makeFrog(color = 0x6ab04c) {
+  const g = new THREE.Group(), belly = 0xe8f5c8, dark = shade(color, 0.7);
+  const b = sphere(0.55, color, 0, 0.45, 0, 10); b.scale.set(1.1, 0.75, 1); g.add(b);
+  const bl = sphere(0.45, belly, 0, 0.36, 0.14, 8); bl.scale.set(1, 0.6, 0.9); g.add(bl);
+  [-1, 1].forEach(s => { g.add(sphere(0.2, color, s * 0.3, 0.8, 0.3, 8)); g.add(box(0.14, 0.32, 0.14, color, s * 0.38, 0.15, 0.42)); g.add(box(0.2, 0.05, 0.22, dark, s * 0.4, 0.02, 0.5)); const sp = sphere(0.09, dark, s * 0.32, 0.72, -0.2, 5); sp.scale.y = 0.4; g.add(sp); });
+  peepers(g, 0.12, 0.3, 0.86, 0.42, 0x111111, 0.35, dark);
+  g.add(box(0.62, 0.05, 0.05, 0x3b5323, 0, 0.42, 0.56));
+  const legs = new THREE.Group(); legs.position.set(0, 0.3, -0.3); [-1, 1].forEach(s => { legs.add(box(0.26, 0.22, 0.6, color, s * 0.5, 0, 0)); legs.add(box(0.3, 0.06, 0.42, dark, s * 0.55, -0.24, 0.14)); }); g.add(legs);
+  g.userData = { legs }; return compact(g);
+}
+// Maulwurf / Gullyratte: schießt aus dem Boden
+export function makeMole(color = 0x4a3b33, nose = 0xff9aa9, ears = false) {
+  const g = new THREE.Group(), paw = 0xf0c0a8;
+  const b = sphere(0.6, color, 0, 0.6, 0, 10); b.scale.set(1, 1.15, 0.9); g.add(b);
+  g.add(sphere(0.16, nose, 0, 0.78, 0.56, 8)); g.add(sphere(0.3, shade(color, 1.3), 0, 0.68, 0.38, 8));
+  peepers(g, 0.08, 0.18, 0.98, 0.46, 0x111111, 0.5, shade(color, 0.6));
+  [-1, 1].forEach(s => { g.add(thin(0.07, 0.12, 0.04, 0xffffff, s * 0.05, 0.55, 0.62)); const c = box(0.36, 0.1, 0.3, paw, s * 0.55, 0.7, 0.32); c.rotation.z = s * 0.5; g.add(c); if (ears) { const e = sphere(0.17, nose, s * 0.34, 1.22, 0, 6); e.scale.z = 0.4; g.add(e); } });
+  return compact(g);
+}
+export function makeDustBunny() {
+  const g = new THREE.Group();
+  g.add(sphere(0.45, 0xa4b0be, 0, 0.5, 0, 8));
+  for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.26 + (i % 3) * 0.05, 0), mat(i % 2 ? 0xb2bec3 : 0x8395a7)); m.position.set(Math.cos(a) * 0.36, 0.5 + Math.sin(i * 2.3) * 0.2, Math.sin(a) * 0.36); g.add(m); }
+  for (let i = 0; i < 5; i++) { const h = box(0.03, 0.4, 0.03, 0x636e72, (i - 2) * 0.12, 1.0, -0.1); h.rotation.z = (i - 2) * 0.3; g.add(h); }
+  peepers(g, 0.13, 0.17, 0.62, 0.48, 0x111111, 0.45, 0x2d3436);
+  g.add(box(0.26, 0.05, 0.05, 0x2d3436, 0, 0.36, 0.56));
+  return compact(g);
+}
+export function makeMiniRat() {
+  const g = new THREE.Group(), c = 0x6f6f72, pink = 0xffb6c1;
+  const b = sphere(0.45, c, 0, 0.42, 0, 9); b.scale.set(0.8, 0.75, 1.3); g.add(b);
+  g.add(cone(0.28, 0.6, c, 0, 0.48, 0.7).rotateX(Math.PI / 2)); g.add(sphere(0.07, 0xff6f91, 0, 0.48, 1.0, 6));
+  [-1, 1].forEach(s => { const e = sphere(0.15, pink, s * 0.22, 0.78, 0.45, 6); e.scale.z = 0.4; g.add(e); g.add(sphere(0.055, 0xd63031, s * 0.11, 0.6, 0.72, 5)); g.add(box(0.12, 0.08, 0.18, pink, s * 0.22, 0.05, 0.35)); g.add(box(0.12, 0.08, 0.18, pink, s * 0.22, 0.05, -0.35)); const br = box(0.13, 0.03, 0.03, 0x3a3a3c, s * 0.11, 0.68, 0.73); br.rotation.z = -s * 0.5; g.add(br); });
+  g.add(thin(0.1, 0.1, 0.04, 0xfff8e0, 0, 0.36, 0.92));
+  const tail = new THREE.Group(); tail.position.set(0, 0.38, -0.55); tail.add(cyl(0.045, 0.02, 0.9, pink, 0, 0, -0.45, 4).rotateX(Math.PI / 2)); g.add(tail);
+  g.userData = { tail }; return compact(g);
+}
+// Putzroboter (Büro): flache Scheibe mit Visier und Warnlampe
+export function makeRobo() {
+  const g = new THREE.Group();
+  g.add(cyl(0.6, 0.65, 0.3, 0x2d3436, 0, 0.2, 0, 14)); g.add(cyl(0.5, 0.5, 0.06, 0x636e72, 0, 0.37, 0, 14)); g.add(box(0.9, 0.2, 0.16, 0xfdcb6e, 0, 0.16, 0.56));
+  g.add(box(0.56, 0.14, 0.05, 0x111111, 0, 0.3, 0.6)); [-1, 1].forEach(s => { g.add(box(0.12, 0.07, 0.03, 0x81ecec, s * 0.14, 0.31, 0.63)); const b = box(0.16, 0.03, 0.03, 0xfdcb6e, s * 0.14, 0.4, 0.62); b.rotation.z = -s * 0.4; g.add(b); });
+  [-1, 1].forEach(s => g.add(cyl(0.16, 0.16, 0.03, 0xb2bec3, s * 0.5, 0.05, 0.5, 8)));
+  const lamp = sphere(0.09, 0xff5252, 0, 0.46, -0.1, 6); lamp.material.emissive = new THREE.Color(0xd00000); g.add(lamp);
+  g.userData = { lamp }; return compact(g);
+}
+// Tacker: hüpft und schnappt mit dem Oberteil
+export function makeStapler() {
+  const g = new THREE.Group(), red = 0xd63031;
+  g.add(box(0.5, 0.15, 1.3, 0x2d3436, 0, 0.08, 0)); g.add(box(0.3, 0.2, 0.3, 0x636e72, 0, 0.25, -0.5));
+  const jaw = new THREE.Group(); jaw.position.set(0, 0.3, -0.55); g.add(jaw);
+  jaw.add(box(0.46, 0.28, 1.25, red, 0, 0.16, 0.6)); jaw.add(box(0.48, 0.05, 1.22, 0xb2bec3, 0, 0.0, 0.62));
+  peepers(jaw, 0.09, 0.12, 0.38, 1.1, 0x111111, 0.5, 0x2d3436);
+  for (let i = 0; i < 4; i++) jaw.add(thin(0.06, 0.08, 0.04, 0xffffff, -0.15 + i * 0.1, -0.06, 1.2));
+  g.userData = { jaw }; return compact(g);
+}
+// Überwachungsdrohne (Büro)
+export function makeDrone() {
+  const g = new THREE.Group();
+  g.add(box(0.6, 0.22, 0.6, 0xdfe6e9, 0, 0, 0)); [Math.PI / 4, -Math.PI / 4].forEach(r => { const a = box(1.5, 0.08, 0.1, 0x636e72); a.rotation.y = r; g.add(a); });
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([x, z]) => { g.add(cyl(0.07, 0.07, 0.14, 0x2d3436, x * 0.53, 0.08, z * 0.53, 6)); g.add(cyl(0.3, 0.3, 0.02, 0xc8d6e5, x * 0.53, 0.16, z * 0.53, 10)); });
+  g.add(sphere(0.15, 0x111111, 0, -0.12, 0.25, 8)); g.add(sphere(0.05, 0xffffff, 0.05, -0.08, 0.38, 4));
+  const lamp = sphere(0.06, 0xff5252, 0, 0.14, 0.25, 5); lamp.material.emissive = new THREE.Color(0xd00000); g.add(lamp);
+  g.userData = { lamp }; return compact(g);
+}
+export function makeBat() {
+  const g = new THREE.Group(), c = 0x4b3f5c, inner = 0x8e7cc3;
+  const b = sphere(0.3, c, 0, 0, 0, 8); b.scale.set(0.9, 1, 1.1); g.add(b); g.add(sphere(0.24, c, 0, 0.12, 0.26, 8));
+  [-1, 1].forEach(s => { g.add(cone(0.09, 0.26, c, s * 0.14, 0.38, 0.22, 4)); g.add(sphere(0.06, 0xffd32a, s * 0.09, 0.17, 0.46, 5)); g.add(thin(0.03, 0.08, 0.03, 0xffffff, s * 0.05, -0.02, 0.48)); });
+  const wings = [-1, 1].map(s => { const w = new THREE.Group(); w.position.set(s * 0.22, 0.05, 0); w.add(box(0.8, 0.04, 0.5, c, s * 0.42, 0, 0)); w.add(box(0.6, 0.045, 0.3, inner, s * 0.4, -0.01, -0.05)); for (let i = 0; i < 3; i++) w.add(box(0.05, 0.06, 0.55, shade(c, 0.7), s * (0.25 + i * 0.25), 0.01, -0.02)); g.add(w); return w; });
+  g.userData = { wings }; return compact(g);
+}
+// Huhn (braun) und Gans (weiß, größer, langer Hals)
+export function makeFowl(goose = false) {
+  const g = new THREE.Group(), c = goose ? 0xf5f6fa : 0xb9773a, light = goose ? 0xffffff : 0xe8c39e, beak = 0xf39c12, s = goose ? 1.25 : 1;
+  const b = sphere(0.45 * s, c, 0, 0.62 * s, 0, 9); b.scale.set(0.85, 0.8, 1.15); g.add(b);
+  const bl = sphere(0.38 * s, light, 0, 0.55 * s, 0.12 * s, 8); bl.scale.set(0.8, 0.7, 0.9); g.add(bl);
+  [-1, 1].forEach(k => { const w = box(0.1, 0.35 * s, 0.6 * s, shade(c, 0.85), k * 0.38 * s, 0.68 * s, -0.05); g.add(w); g.add(cyl(0.04, 0.04, 0.35 * s, beak, k * 0.15, 0.17 * s, 0, 4)); g.add(box(0.16, 0.04, 0.22, beak, k * 0.15, 0.02, 0.06)); });
+  [-1, 0, 1].forEach(k => { const f = box(0.1, 0.4 * s, 0.1, shade(c, 0.8), k * 0.1, 0.9 * s, -0.5 * s); f.rotation.x = -0.6; f.rotation.z = k * 0.3; g.add(f); });
+  if (goose) g.add(cyl(0.11 * s, 0.13 * s, 0.6 * s, c, 0, 0.98 * s, 0.38 * s, 7));
+  const head = new THREE.Group(); head.position.set(0, goose ? 1.32 * s : 1.0, goose ? 0.42 * s : 0.38); g.add(head);
+  head.add(sphere(0.2 * s, c, 0, 0, 0, 8)); head.add(cone(0.08 * s, 0.26 * s, beak, 0, -0.03, 0.26 * s).rotateX(Math.PI / 2));
+  peepers(head, 0.05 * s, 0.11 * s, 0.06, 0.13 * s, 0x111111, 0.55, 0x2d2d2d);
+  if (!goose) { [-0.08, 0.02, 0.12].forEach((z, i) => head.add(box(0.06, 0.14 + (i % 2) * 0.05, 0.1, 0xe74c3c, 0, 0.2, z))); head.add(sphere(0.06, 0xe74c3c, 0, -0.16, 0.18, 5)); }
+  g.userData = { head }; return compact(g);
+}
+export function makeMiniGull() {
+  const g = new THREE.Group(), c = 0xf4f4f4, wing = 0xbfc7cc, tip = 0x2d2d2d;
+  const b = sphere(0.3, c, 0, 0, 0, 8); b.scale.set(0.8, 0.8, 1.5); g.add(b); g.add(sphere(0.22, c, 0, 0.18, 0.4, 8));
+  g.add(cone(0.07, 0.3, 0xffb21c, 0, 0.14, 0.7).rotateX(Math.PI / 2)); g.add(sphere(0.035, 0xe74c3c, 0, 0.1, 0.72, 4));
+  peepers(g, 0.05, 0.11, 0.26, 0.55, 0xffe066, 0.5, tip);
+  g.add(box(0.3, 0.05, 0.3, wing, 0, 0.02, -0.5));
+  const wings = [-1, 1].map(s => { const w = new THREE.Group(); w.position.set(s * 0.18, 0.08, 0); w.add(box(0.9, 0.05, 0.42, wing, s * 0.45, 0, 0)); w.add(box(0.32, 0.055, 0.38, tip, s * 0.95, 0, -0.02)); g.add(w); return w; });
+  g.userData = { wings }; return compact(g);
+}

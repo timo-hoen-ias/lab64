@@ -7,6 +7,7 @@ const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.evaluate(() => window.game.intro.skip()); await p.click('#btnStart');
 await p.evaluate(() => { window.game.dialog.auto = true; }); // Gespräche sofort überspringen (prüft tests/dialog.mjs)
+await p.evaluate(() => { window.game.foesOff = true; }); // Gegner ruhig stellen (Kämpfe prüft tests/gegner.mjs)
 const W = ms => p.waitForTimeout(ms);
 const tp = (x, y, z) => p.evaluate(([x, y, z]) => { const pl = window.game.player; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.hp = 3; pl.air = 15; const wy = window.game.level.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; }, [x, y, z]);
 const shot = async (name, yaw, pitch = 0.25) => { await p.evaluate(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(700); await p.screenshot({ path: `${out}/strand_${name}.png` }); };
