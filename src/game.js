@@ -106,6 +106,32 @@ export class Game {
     this.toast(fresh ? `GOLDKNOCHEN! ${this.boneCount()}/${TOTAL_BONES}` : 'Den hattest du schon.', 3000);
     // Kein Rauswurf mehr: man bleibt in der Welt und sammelt weiter (zurück über Pause → Welt verlassen)
     if (fresh && id === 'boss' && key !== 'hub') this.later(3200, () => this.toast('Sammle ruhig weiter! Zurück in den Garten: Pause → Welt verlassen', 4500));
+    if (fresh && key === 'kanal' && id === 'boss') setTimeout(() => this.credits('Die Ratte ist besiegt – Moll schläft wieder ruhig.'), 2600);
+    else if (fresh && this.boneCount() === TOTAL_BONES) setTimeout(() => this.credits(`ALLE ${TOTAL_BONES} GOLDKNOCHEN! Moll ist der satteste Labrador der Welt.`), 2600);
+  }
+  // Abspann: läuft einmal durch, Klick/Taste schließt ihn
+  credits(headline) {
+    const el = document.getElementById('credits'); if (!el) return;
+    const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `${WORLD_NAMES[k]} · ${p.have}/${p.total}`; }).join('<br>');
+    el.querySelector('.roll').innerHTML = `<h2>🐕 MOLL – Der Labrador</h2><p>${headline}</p><p>Goldknochen ${this.boneCount()}/${TOTAL_BONES}</p><p style="opacity:.8">${rows}</p>
+      <h3>Mitwirkende</h3><p>Moll · der Labrador<br>Der Staubsauger · Der große Kater · Der Dosenöffner<br>Die Möwe · Die Obertaube · Kneifer die Krabbe<br>Der dicke Mann · Die Kanalratte</p>
+      <p>Idee &amp; Spieltests: timo<br>Programmierung: Claude</p><p style="font-size:40px">🦴</p><p>Danke fürs Spielen!</p>`;
+    el.classList.remove('hidden'); const roll = el.querySelector('.roll'); roll.style.animation = 'none'; void roll.offsetWidth; roll.style.animation = '';
+    this.paused = true; this.audio.sfx('win');
+    const close = () => { el.classList.add('hidden'); this.paused = false; window.removeEventListener('keydown', close); el.removeEventListener('pointerdown', close); };
+    setTimeout(() => { window.addEventListener('keydown', close); el.addEventListener('pointerdown', close); }, 1500);
+  }
+  // Kompass: zeigt zum nächsten noch nicht entdeckten Schnellreise-Punkt der Welt
+  updateCompass(dt) {
+    const el = document.getElementById('compass'); if (!el) return;
+    this._compT = (this._compT || 0) - dt; if (this._compT > 0) return; this._compT = 0.25;
+    const l = this.level, p = this.player.pos, open = (l && !l.isRunner && l.warps || []).filter(w => !w.on);
+    if (!open.length) { el.style.display = 'none'; return; }
+    let best = null, bd = Infinity; for (const w of open) { const d = Math.hypot(w.x - p.x, w.z - p.z); if (d < bd) { bd = d; best = w; } }
+    const f = new THREE.Vector3(); this.camera.getWorldDirection(f); f.y = 0; f.normalize();
+    const tx = (best.x - p.x) / bd, tz = (best.z - p.z) / bd, a = Math.atan2(tx * -f.z + tz * f.x, tx * f.x + tz * f.z);
+    const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖']; el.style.display = '';
+    el.textContent = `🧭 ${arrows[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]} ${best.name} · ${Math.round(bd)} m`;
   }
   persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } }
 
@@ -125,7 +151,9 @@ export class Game {
     document.getElementById('btnStart').textContent = 'Weiter';
     document.getElementById('btnLeave').style.display = this.level && this.level.key !== 'hub' ? '' : 'none';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
-    document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
+    const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg' };
+    const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || id[0].toUpperCase() + id.slice(1)}`).join(' · ')}</span>` : '';
+    document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();
   }
 
@@ -210,7 +238,7 @@ export class Game {
     else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet
     if (!this.paused && this.level) {
       if (this.level.isRunner) this.level.update(dt);
-      else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); }
+      else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); this.updateCompass(dt); }
     }
     if (!this.paused) this.fx.update(dt);
     // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird

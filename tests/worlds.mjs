@@ -16,6 +16,22 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async hub() {
+    await ev(() => window.game.unlock('tauchen', 'Taucherbrille (Test)')); await W(300);
+    await tp(0, 1, 40); await W(300); await shot('hub_start', Math.PI, 0.3);
+    await grabBone('huegel'); await grabBone('baumhaus'); await shot('hub_baumhaus', -1.6, 0.3);
+    await grabBone('vogelhaus'); await grabBone('gewaechshaus'); await shot('hub_gewaechshaus', 1.6, 0.35);
+    await grabBone('aussicht'); await shot('hub_aussicht', 0, 0.25);
+    await tp(0, 0.2, -56.0); await W(900); console.log('  im Schuppen:', await ev(() => window.game.player.pos.x > 1900));
+    await shot('hub_schuppen', null, 0.3); await grabBone('schuppen');
+    await grabAll("q.x > 1900 && q.kind !== 'goldbone'");
+    await tp(2000, 0.2, 8.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    await grabAll('q.special'); console.log('  Zwerge:', await ev(() => window.game.level.zwerge)); await W(600); await grabBone('zwerge');
+    await grabBone('teich');
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 2, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await grabAll("!q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    console.log('  Kompass:', await ev(() => document.getElementById('compass').textContent));
+  },
   async kanal() {
     await shot('kanal_start', null, 0.25);
     await grabBone('kletter'); await grabBone('pumpe'); await shot('kanal_pumpwerk', 2.6, 0.3);
