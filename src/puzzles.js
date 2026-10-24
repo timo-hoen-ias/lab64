@@ -271,7 +271,7 @@ export function installPuzzles(Level) {
         [-1, 1].forEach(s => g.add(box(0.18, 0.06, 0.25, 0xffe0bd, s * 0.32, 0.25, 0.3)));
         return { x: hx, y: hy + 0.3, z: hz, g, hy, up: 0, t: 0 };
       });
-      const zz = this.pzAdd(id, 'moles', { moles: ms, need, bone: p });
+      const zz = this.pzAdd(id, 'moles', { moles: ms, count: need, bone: p });
       let run = false, hits = 0, next = 0;
       ms.forEach(m => {
         const e = { x: m.x, y: m.y, z: m.z, r: 0.7 };
@@ -561,13 +561,13 @@ export const WORLDS = {
   // ---------------------------------------------------------------- Kanal
   kanal(l) {
     // Pumpwerk-Ventile: Lautsprecher beißen, dann die Ventile in der Reihenfolge trillern
-    const pts = [[32, -14], [40, -16], [48, -14], [40, -6]], vs = pts.map(([x, z], i) => {
+    const pts = [[37, -15], [43, -17], [49, -15], [43, -9]], vs = pts.map(([x, z], i) => {
       const y = G(l, x, z); l.box(x, y, z, 0.4, 1.2, 0.4, 0x636e72);
       const g = new THREE.Group(); const w = glow(new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.12, 6, 14), new THREE.MeshToonMaterial({ color: [0xd63031, 0x0984e3, 0x00b894, 0xfdcb6e][i] })), 0, 0); w.rotation.x = Math.PI / 2; g.add(w); g.add(box(1.2, 0.1, 0.1, 0x636e72)); l.deco(g, x, y + 1.4, z);
       return { x, y: y + 0.2, z, mesh: g, note: [0, 3, 7, 10][i], r: 0.8 };
     });
     l.box(40, 0, 6, 1.2, 1.4, 1.2, 0x2d3436); l.deco(cone(0.5, 0.6, 0xb2bec3, 0, 0, 0, 8), 40, 1.7, 6).userData.merge = true;
-    const vp = l.pzBone('ventile', 40, 1.2, -11);
+    const vp = l.pzBone('ventile', 43, 1.2, -12.5);
     l.melody('ventile', vs, { by: 'spin', len: 5, inst: 'steeldrum', start: { x: 40, y: 0, z: 6 }, startHint: 'BISS = Lautsprecher', first: 'Erst den Lautsprecher beißen!', go: 'Jetzt die Ventile in derselben Reihenfolge TRILLERN!', win: 'Die Pumpe läuft wieder! 🦴' }, vp);
     hintSign(l, 'ventile', 45, 8, 'Ventil-Folge', 'Beiß den Lautsprecher, hör zu und triller die Ventile in derselben Reihenfolge!');
     // Rohrpost-Wettlauf im Südgang

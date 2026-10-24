@@ -42,7 +42,7 @@ const stomp = async (x, y, z) => { await air(x, y + 3, z); await sim(3); await p
 const step = async (x, y, z) => { await tp(x, y + 0.6, z); await sim(4); };
 const act = { bite, bark, spin, stomp };
 const res = {};
-const ok = (name, v, ...info) => { res[name] = !!v; console.log(`  ${v ? '✓' : '✗'} ${name}`, ...info); };
+let world = ''; const ok = (name, v, ...info) => { res[world + ':' + name] = !!v; console.log(`  ${v ? '✓' : '✗'} ${name}`, ...info); };
 
 // ---- Löser je Rätselart
 async function memory(id) {
@@ -84,7 +84,7 @@ async function moles(id) {
   const st = await ev(() => { const it = window.game.level.interact.find(it => it.hintText === 'BISS = Spiel starten'); return [it.x, it.y, it.z]; });
   await bite(st[0], st[1], st[2]);
   for (let i = 0; i < 160 && !(await has(id)) && !(await Z(id, 'z.won')); i++) { const m = await Z(id, '(m => m && [m.x, m.y, m.z])(z.moles.find(m => m.t > 0.5))'); if (m) await bite(m[0], m[1] - 0.3, m[2]); else await sim(5); }
-  await sim(20); ok(`${id}: ${await Z(id, 'z.need')} Maulwürfe in der Zeit → Knochen`, await grab(id));
+  await sim(20); ok(`${id}: ${await Z(id, 'z.count')} Maulwürfe in der Zeit → Knochen`, await grab(id));
 }
 async function candles(id) {
   const cs = await Z(id, 'z.candles.map(c => [c.x, c.y, c.z])'), ohne = await Z(id, 'z.won');
@@ -141,7 +141,7 @@ const W = {
   async kanal() { await melody('ventile'); await shot('rz_kanal_ventile'); await race('rohrpost', 'stomp'); await flip('gitter'); await shot('rz_kanal_gitter'); },
 };
 for (const k of only) {
-  await enter(k); console.log(k + ':', await ev(() => window.game.level.puzzles.map(z => z.id + (z.need ? `(${z.need})` : '')).join(' ')));
+  world = k; await enter(k); console.log(k + ':', await ev(() => window.game.level.puzzles.map(z => z.id + (z.need ? `(${z.need})` : '')).join(' ')));
   await W[k](); const n = await ev(k => window.game.level.puzzles.filter(z => window.game.hasBone(k, z.id)).length + '/' + window.game.level.puzzles.length, k);
   console.log(`  Rätsel-Knochen ${n}`);
 }
