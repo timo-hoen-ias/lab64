@@ -30,7 +30,7 @@ const tag = id => id === 'boss' ? '👑' : id === 'geheim' ? '👃' : ABILITY_BO
 // Rückkehr-Knochen: brauchen eine Fähigkeit aus einer späteren Welt (oder ein Upgrade aus Opas Laden)
 function backTile(g, key, id) {
   const need = BACKTRACK[key][id], a = ABILITIES[need] || UPGRADES.find(u => u.id === need), ok = g.hasBone(key, id), can = g.has(need);
-  return `<div class="bt back ${ok ? 'ok' : can ? 'can' : ''}">${ICON.bone(ok)}<span>${ok ? 'Geholt' : can ? 'Jetzt holen!' : 'Braucht'} ${a.name}</span><i>${can || ok ? a.icon : '🔒'}</i></div>`;
+  return `<div class="bt back ${ok ? 'ok' : can ? 'can' : ''}">${ICON.bone(ok)}<span>${can && !ok ? 'Jetzt: ' : ''}${a.name}</span><i>${can || ok ? a.icon : '🔒'}</i></div>`;
 }
 function boneTile(g, key, id) {
   const ok = g.hasBone(key, id), t = tag(id);
