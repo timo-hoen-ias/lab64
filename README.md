@@ -81,6 +81,23 @@ Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, a
 | Dorf | Marktplatz, Windmühle, Burgruine, Bauernhof mit Hühnern, Dorfteich, Bäckerei |
 | Kanalsystem | Haupthalle, Pumpwerk, Rohr-Labyrinth, Klärbecken, Gully-Schacht, Rattennest |
 
+### Rätsel
+Wie in Banjo-Kazooie hat jede Welt eigene Knobeleien mit einem Goldknochen als Belohnung (27 Stück, `src/puzzles.js`). Ein Holzschild steht an jedem Rätsel und gibt beim Näherkommen einen Tipp. Eins je Welt ist ein **Rückkehr-Rätsel**: Es braucht eine Fähigkeit aus einer späteren Welt (Schild mit Symbol) – wer zu früh kommt, erfährt, wo man sie lernt.
+
+| Welt | Rätsel | Rückkehr mit … |
+|---|---|---|
+| Garten | Garten-Memory (Platten betreten, Paare finden), Wettlauf (Hahn beißen, 10 s bis zum Käfig) | 💥 Bauchklatscher: morscher Brunnendeckel |
+| Erdgeschoss | Festtafel (6 Kerzen gleichzeitig austrillern), Gläser-Konzert (Melodie der Spieluhr nachbeißen) | 🧱 Wandsprung: Kaminschacht |
+| Einkaufsstraße | Klingel-Konzert (Leierkasten-Melodie anbellen), Alarm-Wettlauf (Trichter anbellen, 9 s zum Container) | 🚁 Gleiten: Aufwind zum Werbeballon |
+| Das Büro | Antrag 27b (A-K-T-E mit Bauchklatschern stempeln), Rohrpost (15 s schwebende Ordner bis aufs Regal) | 🌪️ Tornado: Lüftungsturm auf dem Dach |
+| Grillpark | Hau den Maulwurf (8 in 30 s), Hüpfkästchen (Umdreh-Fliesen: alle gelb) | 🤿 Tauchen: Truhe am Seegrund |
+| Strand | Muschel-Memory, Rettungsturm (Glocke beißen, 12 s Stufen) | 🚁 Gleiten: Aufwind zum Drachen |
+| Hafen | Schiffsglocken (Nebelhorn-Melodie anbellen), Kran-Wettlauf (12 s quer übers Terminal) | 🧱 Wandsprung: alter Speicher |
+| Dorf | Zauberpflaster (Umdreh-Fliesen), Kuhglocken (Melodie nachbeißen) | 🌪️ Tornado: Taubenschlag |
+| Kanal | Ventil-Folge (Melodie nachtrillern), Rohrpost (Bauchklatscher, 9 s zum Käfig), Gitter-Rätsel (Umdreh-Fliesen) | – |
+
+Bausteine für neue Rätsel (an `Level`): `memory`, `melody`, `flipTiles`, `moles`, `candles`, `letters`, `cage` + `button` + `pzTimer` (Zeitschalter), `tempPlats` (Plattformen auf Zeit), `shaft`, `chest`. Test: `node tests/raetsel.mjs` spielt alle Rätsel mit echten Tasten durch, Rückkehr-Rätsel einmal ohne und einmal mit Fähigkeit.
+
 ### Gegner
 Wie bei Banjo-Kazooie wimmelt jede Welt von kleinen Gegnern in Gruppen (rund 270 im ganzen Spiel), passend zur Welt:
 

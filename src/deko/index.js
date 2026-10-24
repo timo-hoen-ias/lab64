@@ -31,6 +31,7 @@ export class Deko {
     for (const f of [...(l.fetchItems || []), ...(l.fetchGoals || [])]) if (f.x !== undefined) K(f.x, f.z, 3);
     for (const e of l.enemies) if (e.mesh) K(e.mesh.position.x, e.mesh.position.z, 3.5);
     if (l.bruno) K(l.bruno.x, l.bruno.z, 4);
+    for (const k of l.pzKeep || []) K(k.x, k.z, k.r); // Rätsel (src/puzzles.js)
     K(l.spawn.x, l.spawn.z, 6);
     this.size = (l.def.size || 40) - 2.5;
   }

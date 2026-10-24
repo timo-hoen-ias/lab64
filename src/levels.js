@@ -12,6 +12,7 @@ import { KUECHE } from './worlds/kueche.js';
 import { BUERO } from './worlds/buero.js';
 import { KANAL } from './worlds/kanal.js';
 import { GARTEN } from './worlds/garten.js';
+import { PUZZLES, NEEDS } from './puzzles.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -42,6 +43,8 @@ export const BACKTRACK = {
   kanal: { r_nase: 'supernase', r_nase2: 'supernase' },
 };
 for (const k in BACKTRACK) BONES[k].push(...Object.keys(BACKTRACK[k]));
+for (const [k, ids] of Object.entries(PUZZLES)) BONES[k].push(...ids); // Rätsel-Knochen (src/puzzles.js)
+for (const [key, ab] of Object.entries(NEEDS)) { const [k, id] = key.split(':'); BACKTRACK[k][id] = ab; } // Rückkehr-Rätsel zählen wie Rückkehr-Knochen
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
 export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Das Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
 
