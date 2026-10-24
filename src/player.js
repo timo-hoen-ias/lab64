@@ -65,7 +65,7 @@ export class Player {
 
     // Biss
     if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
-      this.bite = 1; this.biteCd = 0.45; this.game.audio.sfx('bark');
+      this.bite = 1; this.biteCd = 0.45; this.game.audio.sfx('chomp'); if (Math.random() < 0.25) this.game.audio.sfx('bark');
       const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
       this.vel.x += fwd.x * 4; this.vel.z += fwd.z * 4;
       const at = this.pos.clone().addScaledVector(fwd, 1.2); at.y += 1; FX.bite(this.game.fx, at); at.y -= 1;

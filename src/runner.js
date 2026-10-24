@@ -17,8 +17,8 @@ export class RunnerLevel {
     this.scene.add(new THREE.HemisphereLight(dream ? 0xfff0b0 : 0xffffff, 0x5a4010, 0.9));
     const sun = new THREE.DirectionalLight(0xffe08a, 1); sun.position.set(5, 20, -10); this.scene.add(sun);
     this.def = dream
-      ? { name: 'Albtraum: Emmentaler-Höhlen', music: { scale: 'spooky', root: 262, bpm: 150, seed: 99 } }
-      : { name: 'Rattenrennen: Hinterhofgasse', music: { scale: 'mixo', root: 294, bpm: 160, seed: 31 } };
+      ? { name: 'Albtraum: Emmentaler-Höhlen', music: { scale: 'spooky', root: 262, bpm: 150, seed: 99, style: 'nightmare' } }
+      : { name: 'Rattenrennen: Hinterhofgasse', music: { scale: 'mixo', root: 294, bpm: 160, seed: 31, style: 'chase' } };
     this.ratLead = 0; this.ratY = 0; this.ratVy = 0;
     this.pickups = []; this.solids = []; this.bounds = { min: { x: -1e9, z: -1e9 }, max: { x: 1e9, z: 1e9 } };
     this.dog = makeDog(); this.scene.add(this.dog);

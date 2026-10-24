@@ -62,13 +62,13 @@ export class Game {
     document.getElementById('btnStart').textContent = 'Weiter';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
     document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
-    this.audio.stopMusic();
+    this.audio.stopMusic(); this.audio.stopLoops();
   }
 
   enterLevel(key, silent = false) {
     this.fx.detach(); if (this.player.shadow.parent) this.player.shadow.parent.remove(this.player.shadow);
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    this.hideBoss(); this.suspicion(0);
+    this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
     else { this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0; }
     this.fx.attach(this.level.scene); this.fade();

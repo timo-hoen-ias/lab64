@@ -24,7 +24,7 @@ export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufs
 export const LEVELS = {
   // ------------------------------------------------------------------ HUB
   hub: {
-    name: 'Molls Garten', sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7 },
+    name: 'Molls Garten', sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
     build(l) {
       l.spawn.set(0, 1, 6);
       // Haus
@@ -55,7 +55,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- KÜCHE
   kueche: {
-    name: 'Die Küche', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 18, need: 8, goalKind: 'ham', music: { scale: 'mixo', root: 294, bpm: 132, seed: 3 },
+    name: 'Die Küche', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 18, need: 8, goalKind: 'ham', music: { scale: 'mixo', root: 294, bpm: 132, seed: 3, style: 'kitchen' },
     build(l) {
       l.spawn.set(0, 1, 12); l.wallRing(18, 7, 0xfdf4e3);
       // Fliesenmuster
@@ -82,7 +82,7 @@ export const LEVELS = {
 
   // -------------------------------------------------------- EINKAUFSSTRASSE
   strasse: {
-    name: 'Die Einkaufsstraße', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 36, need: 12, goalKind: 'bread', music: { scale: 'major', root: 330, bpm: 140, seed: 11 },
+    name: 'Die Einkaufsstraße', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 36, need: 12, goalKind: 'bread', music: { scale: 'major', root: 330, bpm: 140, seed: 11, style: 'street' },
     build(l) {
       l.spawn.set(0, 1, 30); l.wallRing(36, 10, 0xc7c7c7);
       // Straße & Bürgersteige
@@ -111,7 +111,7 @@ export const LEVELS = {
 
   // ----------------------------------------------------------------- BÜRO
   buero: {
-    name: 'Das Büro', indoor: true, sky: 0xdfe6e9, ground: 0x636e72, size: 26, need: 6, goalKind: 'treat', music: { scale: 'dorian', root: 247, bpm: 112, seed: 21 },
+    name: 'Das Büro', indoor: true, sky: 0xdfe6e9, ground: 0x636e72, size: 26, need: 6, goalKind: 'treat', music: { scale: 'dorian', root: 247, bpm: 112, seed: 21, style: 'office' },
     build(l) {
       l.spawn.set(0, 1, 18); l.wallRing(26, 6, 0xf5f6fa);
       // Teppich
@@ -148,7 +148,7 @@ export const LEVELS = {
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
   park: {
-    name: 'Der Grillpark', sky: 0xa7e8ff, ground: 0x58b04f, size: 36, need: 10, goalKind: 'sausage', music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1 },
+    name: 'Der Grillpark', sky: 0xa7e8ff, ground: 0x58b04f, size: 36, need: 10, goalKind: 'sausage', music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1, style: 'bbq' },
     build(l) {
       l.spawn.set(-28, 1, 28); l.wallRing(36, 4, 0x6b8e23);
       // Weg
@@ -171,7 +171,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- HAFEN
   hafen: {
-    name: 'Der Hafen', water: true, sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42 },
+    name: 'Der Hafen', water: true, sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42, style: 'harbor' },
     build(l) {
       l.spawn.set(0, 2.5, 26);
       // Kai (Holz) – alles darunter ist Wasser
@@ -208,7 +208,7 @@ export const LEVELS = {
 
   // ----------------------------------------------------------------- DORF
   dorf: {
-    name: 'Das Dorf', sky: 0xffe0a3, ground: 0x9ccc65, size: 36, need: 8, goalKind: 'bread', music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09 },
+    name: 'Das Dorf', sky: 0xffe0a3, ground: 0x9ccc65, size: 36, need: 8, goalKind: 'bread', music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09, style: 'village' },
     build(l) {
       l.spawn.set(0, 1, 28); l.wallRing(36, 5, 0xa1887f);
       // Marktplatz
@@ -238,7 +238,7 @@ export const LEVELS = {
 
   // ---------------------------------------------------------------- KANAL
   kanal: {
-    name: 'Der Kanal', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13 },
+    name: 'Der Kanal', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13, style: 'sewer' },
     build(l) {
       l.spawn.set(-12, 2, 20); l.wallRing(26, 8, 0x57606f);
       // Abwasserrinne in der Mitte, Gehwege links/rechts
