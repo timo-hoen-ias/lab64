@@ -65,13 +65,32 @@ export class AudioEngine {
   // theme: { style } aus der Leveldefinition; style wählt das Stück in music.js.
   playTheme(theme) {
     if (!this.ctx) return;
+    const key = SONGS[theme.style] ? theme.style : 'garden', bl = this.blend; this.blend = null;
+    // Wurde das Stück schon am Portal hereingeblendet, läuft es einfach weiter und übernimmt (kein Neustart beim Weltwechsel)
+    if (bl && bl.key === key) { this.stopMusic(); this.song = bl.song; this._fade(bl.song, 1); return; }
+    if (bl) this._stopSong(bl.song);
     this.stopMusic();
-    const key = SONGS[theme.style] ? theme.style : 'garden', def = SONGS[key];
+    this.song = this._startSong(key);
+  }
+  // Hub: nah an einem Portal klingt schon das Stück der Zielwelt herein. k = 0..1 nach Entfernung, Überblendung mit gleicher Lautheit.
+  setBlend(style, k) {
+    if (!this.ctx || !this.song) return;
+    const key = style && SONGS[style] && SONGS[style] !== this.song.def ? style : null;
+    if (!key || k <= 0.01) { if (this.blend) { this._stopSong(this.blend.song); this.blend = null; this._fade(this.song, 1); } return; }
+    if (this.blend?.key !== key) { if (this.blend) this._stopSong(this.blend.song); this.blend = { key, k: -1, song: this._startSong(key, 0) }; }
+    if (Math.abs(this.blend.k - k) < 0.02) return; this.blend.k = k;
+    this._fade(this.song, Math.cos(k * Math.PI / 2)); this._fade(this.blend.song, Math.sin(k * Math.PI / 2));
+  }
+  _fade(song, v) { const g = song.fader.gain, t = this.ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.setTargetAtTime(v, t, 0.15); }
+  // Stück starten und zurückgeben. level = Anfangswert des Überblendreglers (0 = stumm, für das Portal-Stück)
+  _startSong(key, level = 1) {
+    const def = SONGS[key];
     const S = (this._compiled ||= {})[key] ||= compile(def);
     const step = 60 / def.bpm / 2;
     // Eigener Lautstärkeregler je Stück: weich einblenden, beim Wechsel ausblenden (Crossfade statt hartem Schnitt)
     const out = this.ctx.createGain(), t0 = this.ctx.currentTime;
-    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(1, t0 + 0.6); out.connect(this.musicGain);
+    out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(1, t0 + 0.6);
+    const fader = this.ctx.createGain(); fader.gain.value = level; out.connect(fader); fader.connect(this.musicGain);
     let dest = out;
     if (def.echo) { // Hall/Echo für Kanal und Albtraum
       const dl = this.ctx.createDelay(1), fb = this.ctx.createGain(), wet = this.ctx.createGain(), inp = this.ctx.createGain();
@@ -81,8 +100,7 @@ export class AudioEngine {
     // Jede Ebene hat einen eigenen Regler; Varianten blenden nur die Regler um, die Noten laufen im selben Takt weiter
     const mix = MIXES[this.mix] || MIXES.normal, layers = {};
     for (const k of Object.keys(MIXES.normal)) { const g = this.ctx.createGain(); g.gain.value = mix[k]; g.connect(k === 'drums' || k === 'boss' ? out : dest); layers[k] = g; }
-    const song = { stop: false, step: 0, gain: out, layers, def, S, stepLen: step, start: 0, nodes: [dest, out, ...Object.values(layers)] };
-    this.song = song;
+    const song = { stop: false, step: 0, gain: out, fader, layers, def, S, stepLen: step, start: 0, nodes: [dest, out, fader, ...Object.values(layers)] };
     song.start = this.ctx.currentTime + 0.05;
     const schedule = () => {
       if (song.stop) return;
@@ -94,18 +112,22 @@ export class AudioEngine {
       if (!(def.once && song.step >= S.len)) song.timer = setTimeout(schedule, 100); // once: Stück (Intro) läuft nur einmal
     };
     schedule();
+    return song;
   }
   // Variante umschalten (normal, inside, water, boss). Ebenen, die neu dazukommen, werden für die schon geplante Sekunde nachgetragen.
   setMix(name) {
     if (!MIXES[name] || this.mix === name) return;
     const prev = MIXES[this.mix] || MIXES.normal; this.mix = name;
-    const sg = this.song; if (!sg || !this.ctx) return;
-    const t = this.ctx.currentTime, mix = MIXES[name], added = new Set();
-    for (const [k, g] of Object.entries(sg.layers)) {
-      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(mix[k], t, 0.15);
-      if (mix[k] > 0 && !(prev[k] > 0)) added.add(k);
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, mix = MIXES[name];
+    for (const sg of [this.song, this.blend?.song]) {
+      if (!sg) continue; const added = new Set();
+      for (const [k, g] of Object.entries(sg.layers)) {
+        g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(mix[k], t, 0.15);
+        if (mix[k] > 0 && !(prev[k] > 0)) added.add(k);
+      }
+      if (added.size) for (let n = Math.max(0, Math.ceil((t + 0.03 - sg.start) / sg.stepLen)); n < sg.step; n++) this._playStep(sg, n, added);
     }
-    if (added.size) for (let n = Math.max(0, Math.ceil((t + 0.03 - sg.start) / sg.stepLen)); n < sg.step; n++) this._playStep(sg, n, added);
   }
   // Ein Achtel planen. Stücke mit A-, B- und C-Teil laufen nach FORM (music.js): jede Wiederholung ist anders arrangiert –
   // wechselnde Melodie-Instrumente, Zweitstimme, Gegenmelodie in den Pausen, Schlagzeug-Fills, C-Teil als Bridge, Finale mit Glockenspiel.
@@ -226,8 +248,12 @@ export class AudioEngine {
   }
   stopLoops() { (this.loops || []).forEach(l => l.stop()); this.loops = []; }
   stopMusic() {
+    if (this.blend) { this._stopSong(this.blend.song); this.blend = null; }
     if (!this.song) return;
-    const sg = this.song, t = this.ctx.currentTime; sg.stop = true; clearTimeout(sg.timer); this.song = null;
+    this._stopSong(this.song); this.song = null;
+  }
+  _stopSong(sg) {
+    const t = this.ctx.currentTime; sg.stop = true; clearTimeout(sg.timer);
     sg.gain.gain.cancelScheduledValues(t); sg.gain.gain.setValueAtTime(sg.gain.gain.value, t); sg.gain.gain.linearRampToValueAtTime(0, t + 0.5); // ausblenden, bereits geplante Noten verklingen leise
     setTimeout(() => sg.nodes.forEach(n => n.disconnect()), 1600);
   }
