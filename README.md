@@ -2,7 +2,7 @@
 
 Low-Poly-3D-Jump'n'Run im Stil von Mario 64 / Banjo-Kazooie, gebaut mit Three.js. Man spielt Moll, einen braunen Labrador, und frisst sich durch Küche, Einkaufsstraße, Büro, Grillpark, Hafen, Dorf und Kanal. Die Bosse: Staubsauger, Kater, Dosenöffner, Möwe, Obertaube und die Ratte, die Moll in einen Albtraum aus Emmentaler schickt.
 
-![Übersicht](docs/screenshots/uebersicht.png)
+![Molls Garten](docs/screenshots/garten.png)
 
 ## Starten
 Ohne Build-Schritt. Irgendeinen statischen Webserver im Repo-Ordner starten:

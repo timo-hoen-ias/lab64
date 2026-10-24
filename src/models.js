@@ -57,8 +57,16 @@ export function makeDog() {
 }
 
 // Hundeanimation: speed (0..1), airborne, dt, bite (0..1), vy (Fallgeschwindigkeit), turn (Drehrate)
-export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0) {
+export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0, swim = false) {
   const u = dog.userData; u.t += dt * (4 + speed * 10);
+  if (swim) { // Hundepaddeln: Kopf hoch, Beine strampeln, Schwanz als Ruder
+    u.t += dt * 6; u.idle = 0;
+    u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t * 1.5 + (i % 2 ? Math.PI : 0) + (i > 1 ? 1 : 0)) * 0.7 - 0.3; });
+    u.rig.position.y = Math.sin(u.t * 0.8) * 0.05; u.rig.rotation.x = -0.18; u.rig.rotation.z = Math.sin(u.t * 0.4) * 0.05;
+    u.head.rotation.set(-0.25, 0, 0); u.tail.rotation.y = Math.sin(u.t * 0.9) * 0.6; u.tail.rotation.x = 0.4;
+    u.earL.rotation.z = -0.6; u.earR.rotation.z = 0.6; u.tongue.visible = false; u.body.scale.y = 1; u.head.position.z = 0.95;
+    return;
+  }
   const s = airborne ? 0 : speed;
   // Galopp: Vorder- und Hinterbeine versetzt, dazu Körper-Wippen
   u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t + (i % 2 ? 0.5 : 0) + (i > 1 ? Math.PI : 0)) * 0.9 * s; });
@@ -228,5 +236,47 @@ export function makeTree(scale = 1) {
 export function makeBush(w = 2) {
   const g = new THREE.Group();
   for (let i = 0; i < 4; i++) g.add(sphere(w * 0.45, i % 2 ? 0x3d9a3d : 0x4fb24f, (Math.random() - 0.5) * w * 0.6, 0.5 + Math.random() * 0.3, (Math.random() - 0.5) * w * 0.6, 6));
+  return g;
+}
+
+// Laubbaum mit runder Krone (optional mit Äpfeln)
+export function makeRoundTree(scale = 1, apples = false) {
+  const g = new THREE.Group();
+  g.add(cyl(0.3 * scale, 0.4 * scale, 2 * scale, 0x7a4a1f, 0, scale, 0, 7));
+  const leaf = [0x4caa4c, 0x5fc25f, 0x3d9a3d];
+  [[0, 3, 0, 1.6], [0.9, 2.6, 0.3, 1.1], [-0.8, 2.7, -0.4, 1.2], [0.2, 3.8, -0.3, 1.1]].forEach(([x, y, z, r], i) => {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r * scale, 0), mat(leaf[i % 3], { flatShading: true })); m.position.set(x * scale, y * scale, z * scale); m.castShadow = true; g.add(m);
+  });
+  if (apples) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; g.add(sphere(0.16 * scale, 0xe53935, Math.cos(a) * 1.45 * scale, (2.6 + (i % 3) * 0.5) * scale, Math.sin(a) * 1.45 * scale, 6)); }
+  return g;
+}
+
+// Blumenbeet: bunte Blüten auf Stielen
+export function makeFlowers(w = 3, d = 1, n = 12) {
+  const g = new THREE.Group(), cols = [0xff6b9d, 0xffd93d, 0xffffff, 0xa29bfe, 0xff7675, 0xfd9644];
+  g.add(box(w, 0.25, d, 0x6d4c2f, 0, 0.12, 0));
+  for (let i = 0; i < n; i++) {
+    const x = (Math.random() - 0.5) * (w - 0.3), z = (Math.random() - 0.5) * (d - 0.2), h = 0.45 + Math.random() * 0.35;
+    g.add(cyl(0.03, 0.03, h, 0x3d9a3d, x, 0.25 + h / 2, z, 4));
+    const c = cols[Math.floor(Math.random() * cols.length)], f = sphere(0.13, c, x, 0.3 + h, z, 6); f.scale.y = 0.6; g.add(f);
+    g.add(sphere(0.05, 0xffd93d, x, 0.36 + h, z, 4));
+  }
+  return g;
+}
+
+// Schmetterling: zwei Flügel an Gelenken
+export function makeButterfly(color = 0xff9ff3) {
+  const g = new THREE.Group();
+  g.add(box(0.05, 0.05, 0.25, 0x333333));
+  const wings = [1, -1].map(sx => { const p = new THREE.Group(); const w = new THREE.Mesh(new THREE.CircleGeometry(0.18, 6), mat(color, { side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; w.position.x = sx * 0.17; p.add(w); g.add(p); return p; });
+  g.userData = { wings, t: Math.random() * 10 };
+  return g;
+}
+
+// Gartenzwerg
+export function makeGnome() {
+  const g = new THREE.Group();
+  g.add(cyl(0.25, 0.3, 0.5, 0x2e86de, 0, 0.25, 0, 8)); g.add(sphere(0.2, 0xf5c9a2, 0, 0.65, 0, 8));
+  g.add(cone(0.22, 0.5, 0xe74c3c, 0, 1.0, 0, 8)); const beard = cone(0.18, 0.35, 0xffffff, 0, 0.5, 0.12, 6); beard.rotation.x = Math.PI; g.add(beard);
   return g;
 }

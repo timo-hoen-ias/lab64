@@ -50,18 +50,26 @@ export class Player {
       if (len <= 0.05) this.turn = 0;
       this.speedFrac = len;
     } else this.speedFrac = 0;
-    const accel = this.onGround ? 40 : 18;
-    this.vel.x += (mx * RUN - this.vel.x) * Math.min(1, accel * dt);
-    this.vel.z += (mz * RUN - this.vel.z) * Math.min(1, accel * dt);
+    // Schwimmen: im Teich treibt Moll an der Oberfläche, paddelt langsamer und kann jederzeit rausspringen
+    const wy = level.waterAt ? level.waterAt(this.pos.x, this.pos.z) : null;
+    const swim = wy !== null && this.pos.y < wy - 0.45;
+    if (swim && !this.swimming) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.spinT = 0; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
+    this.swimming = swim;
+    const accel = this.onGround || swim ? 40 : 18, top = swim ? RUN * 0.55 : RUN;
+    this.vel.x += (mx * top - this.vel.x) * Math.min(1, accel * dt);
+    this.vel.z += (mz * top - this.vel.z) * Math.min(1, accel * dt);
 
     // Springen
-    if (this.onGround) { this.coyote = 0.12; this.canDouble = true; } else this.coyote -= dt;
+    if (this.onGround || swim) { this.coyote = 0.12; this.canDouble = true; } else this.coyote -= dt;
     if (!this.frozen && input.pressed('jump')) {
       if (this.coyote > 0) { this.vel.y = JUMP; this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
       else if (this.canDouble) { this.vel.y = JUMP2; this.canDouble = false; this.game.audio.sfx('jump2'); this.spinT = 0.5; this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 0.3, z: this.pos.z }, { n: 10, color: [0xffffff, 0xfff3a0], speed: 4, up: -1, life: 0.4, size: 0.18, gravity: 0, flat: true }); }
     }
-    if (!this.frozen && !input.held('jump') && this.vel.y > 4) this.vel.y -= 40 * dt; // kurzer Sprung bei Loslassen
-    this.vel.y += GRAVITY * dt;
+    if (this.vel.y <= 0) this.autoHop = false;
+    if (!this.frozen && !this.autoHop && !input.held('jump') && this.vel.y > 4) this.vel.y -= 40 * dt; // kurzer Sprung bei Loslassen
+    if (swim && this.vel.y < 4) { this.vel.y += ((wy - 0.8 - this.pos.y) * 40 - this.vel.y * 6) * dt; } // Auftrieb
+    else this.vel.y += GRAVITY * dt;
+    if (swim && this.speedFrac > 0.1) { this._rip = (this._rip || 0) - dt; if (this._rip <= 0) { this._rip = 0.15; this.game.fx.burst({ x: this.pos.x, y: wy + 0.02, z: this.pos.z }, { n: 3, color: 0xffffff, speed: 1.6, up: 0, life: 0.6, size: 0.14, gravity: 0, flat: true, drag: 3 }); } }
 
     // Biss
     if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
@@ -82,8 +90,13 @@ export class Player {
     if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); }
     this._lastVy = this.vel.y;
     // Laufstaub
-    if (this.onGround && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
+    if (this.onGround && !swim && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
     if (this.pos.y < -25) { this.hurt(1); this.respawn(); }
+    // Am Ufer: schwimmt Moll gegen den Rand, hüpft sie automatisch raus
+    if (swim && this.speedFrac > 0.3 && this.vel.y < 4) {
+      const fx = this.pos.x + Math.sin(this.yaw) * 0.8, fz = this.pos.z + Math.cos(this.yaw) * 0.8;
+      for (const s of solids) if (s.active && fx > s.min.x && fx < s.max.x && fz > s.min.z && fz < s.max.z && s.max.y > this.pos.y + 0.3 && s.max.y <= wy + 0.8) { this.vel.y = 10; this.autoHop = true; this.game.audio.sfx('jump'); FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); break; }
+    }
 
     // Level-Grenzen
     const b = level.bounds;
@@ -97,11 +110,11 @@ export class Player {
     else if (this.stretch > 0) { this.stretch -= dt; const s = 1 + this.stretch * 1.2; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
-    animateDog(this.mesh, this.speedFrac, !this.onGround, dt, this.bite, this.vel.y, this.turn);
+    animateDog(this.mesh, this.speedFrac, !this.onGround && !swim, dt, this.bite, this.vel.y, this.turn, swim);
     // Blob-Schatten auf dem höchsten Boden unter Moll
     let gy = -Infinity;
     for (const s of solids) if (s.active && this.pos.x > s.min.x && this.pos.x < s.max.x && this.pos.z > s.min.z && this.pos.z < s.max.z && s.max.y <= this.pos.y + 0.05) gy = Math.max(gy, s.max.y);
-    this.shadow.visible = gy > -Infinity;
+    this.shadow.visible = gy > -Infinity && !swim;
     if (this.shadow.visible) { const h = this.pos.y - gy, k = Math.max(0.35, 1 - h * 0.08); this.shadow.position.set(this.pos.x, gy + 0.03, this.pos.z); this.shadow.scale.setScalar(k); this.shadow.material.opacity = k; }
   }
 
