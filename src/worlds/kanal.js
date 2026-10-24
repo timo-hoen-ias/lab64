@@ -27,6 +27,10 @@ export const KANAL = {
     [[-18, -20], [18, -20], [-18, 0], [18, 0], [-18, 20], [18, 20]].forEach(([x, z]) => { l.box(x, 1, z, 0.4, 5, 0.4, 0x2f3542); lamp(x, 6.2, z); });
     l.box(22, 1, -10, 3, 1.5, 3, WALL); l.box(22, 1, -14, 3, 3, 3, WALL); l.box(22, 1, -18, 3, 4.5, 3, WALL);
     l.goldbone('kletter', 22, 6.8, -18);
+    // ---- Fähigkeit dieser Welt: Tornado-Trillern. Der Lüftungsschacht über dem Gehweg ist zu hoch zum Springen
+    l.teacher(-16, 23, 'tornado', { say: 'Opa Bruno: „Über dir hängt ein Lüftungsschacht. Lad das Trillern auf und schieß als Tornado hoch!“' });
+    l.box(-12, 6.6, 6, 4, 0.5, 3, RUST); l.deco(box(4, 2.6, 0.3, 0x2f3542), -12, 8.4, 4.6);
+    l.goldbone('tornado', -12, 7.9, 6);
     l.goldbone('geheim', -24, 1.6, 24, { hidden: true });
     [[-16, 1.3, -22], [16, 1.3, -22], [0, 2.4, 4]].forEach(([x, y, z]) => l.pickup(x, y, z, 'cheese', { goal: true }));
     // Notlampen-Rätsel: 4 Schalter in den Seitengängen, dann leuchtet die Halle und gibt etwas frei

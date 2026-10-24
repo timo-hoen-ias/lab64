@@ -8,16 +8,19 @@ const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m
 await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
 await p.click('#btnStart');
 const W = ms => p.waitForTimeout(ms), ev = (f, a) => p.evaluate(f, a);
-const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const pl = window.game.player, l = window.game.level; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.hp = 3; pl.air = 15; if (yaw !== undefined && yaw !== null) pl.yaw = yaw; l.bounds = l.areaAt(x, z); const wy = l.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; window.game.snapCam = true; }, [x, y, z, yaw]);
+const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const pl = window.game.player, l = window.game.level; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.coyote = 0.3; pl.hp = 3; pl.air = 15; if (yaw !== undefined && yaw !== null) pl.yaw = yaw; l.bounds = l.areaAt(x, z); const wy = l.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; window.game.snapCam = true; }, [x, y, z, yaw]);
 const bite = async () => { await p.keyboard.down('KeyE'); await W(150); await p.keyboard.up('KeyE'); await W(350); };
 const shot = async (name, yaw, pitch = 0.3) => { await ev(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(800); await p.screenshot({ path: `${out}/${name}.png` }); };
 const grabBone = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], q[1] - 0.5, q[2]); await W(600); } return !!q; };
 const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pass++) for (const q of await ev(f => window.game.level.pickups.filter(q => !q.taken && new Function('q', 'return ' + f)(q)).map(q => [q.x, q.y, q.z]), filter)) { await tp(q[0] + (pass ? 0 : 0), q[1] - 0.3, q[2]); await W(pass ? wait + 200 : wait); } };
+// Fähigkeit der Welt bei Opa Bruno lernen und das Rätsel dazu direkt auslösen (die Steuerung selbst prüft tests/abilities.mjs)
+const bruno = async () => { const br = await ev(() => { const b = window.game.level.bruno; return [b.x, b.y, b.z, b.ability]; }); await tp(br[0] + 2.5, br[1] + 0.2, br[2]); await W(600); console.log(`  Opa Bruno: ${br[3]}`, await ev(a => window.game.has(a), br[3])); };
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
   async hub() {
     await ev(() => window.game.unlock('tauchen', 'Taucherbrille (Test)')); await W(300);
+    await bruno(); await ev(() => { const l = window.game.level, it = l.fetchItems[0]; l.dropItem(it, { x: -13, y: 0.2, z: 12.3 }); }); await W(300); await grabBone('apport');
     await tp(0, 1, 40); await W(300); await shot('hub_start', Math.PI, 0.3);
     await grabBone('huegel'); await grabBone('baumhaus'); await shot('hub_baumhaus', -1.6, 0.3);
     await grabBone('vogelhaus'); await grabBone('gewaechshaus'); await shot('hub_gewaechshaus', 1.6, 0.35);
@@ -34,6 +37,7 @@ const STEPS = {
   },
   async kanal() {
     await shot('kanal_start', null, 0.25);
+    await bruno(); await grabBone('tornado');
     await grabBone('kletter'); await grabBone('pumpe'); await shot('kanal_pumpwerk', 2.6, 0.3);
     await grabBone('rohre'); await shot('kanal_rohre', 1.0, 0.35);
     await grabBone('becken'); await shot('kanal_becken', -1.6, 0.3);
@@ -53,6 +57,8 @@ const STEPS = {
   },
   async buero() {
     await shot('buero_start', null, 0.25);
+    await bruno(); for (const [x, z] of [[-10, 24], [8, 27], [-22, 6]]) await ev(([x, z]) => window.game.level.onStomp({ x, y: 0.2, z }), [x, z]); await W(300); await grabBone('stampfen');
+    for (const c of await ev(() => window.game.level.crates.map(c => [c.x, c.y, c.z]))) await ev(c => window.game.level.onStomp({ x: c[0], y: c[1], z: c[2] + 1.5 }), c);
     // Schubladen aufbeißen
     for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const x = -14 + c * 14 + 1.8, z = -12 + r * 11 + 3.2; await tp(x, 0.2, z, Math.PI); await W(150); await bite(); }
     await grabAll('q.goal'); console.log('  Leckerli:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
@@ -72,6 +78,7 @@ const STEPS = {
   },
   async kueche() {
     await shot('kueche_start', null, 0.25);
+    await bruno(); await ev(() => window.game.level.onSpin({ x: 6, y: 0, z: -10.6 }, 2.2, new Set(), false)); await W(300); await grabBone('trillern');
     await grabBone('kletter'); await grabBone('vorrat'); await shot('kueche_vorrat', 2.8, 0.3);
     await grabBone('regal'); await shot('kueche_wohnzimmer', 1.2, 0.35);
     await grabBone('treppe'); await grabBone('uhr'); await shot('kueche_flur', -2.4, 0.35);
@@ -90,6 +97,7 @@ const STEPS = {
   },
   async strasse() {
     await shot('strasse_start', null, 0.25);
+    await bruno(); for (const [x, z] of [[-4, -2], [4, 12], [-4, -20]]) await ev(([x, z]) => window.game.level.onBark({ x, y: 0.2, z: z + 6 }, { x: 0, z: -1 }, 11), [x, z]); await W(300); await grabBone('bellen');
     await grabBone('kletter');
     for (const [x, y, z] of [[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]]) { await tp(x, y - 1.1, z); await W(400); }
     await W(500); await grabBone('daecher'); await shot('strasse_daecher', 0.5, 0.3);
@@ -113,6 +121,7 @@ const STEPS = {
   },
   async dorf() {
     await shot('dorf_start', null, 0.25);
+    await bruno(); await grabBone('wand');
     await grabBone('kletter'); await grabBone('muehle'); await shot('dorf_muehle', 0.3, 0.3);
     await grabBone('burg'); await shot('dorf_burg', 2.6, 0.35);
     await grabBone('teich'); await shot('dorf_teich', -1.2, 0.3);
@@ -140,6 +149,7 @@ const STEPS = {
   },
   async hafen() {
     await shot('hafen_start', null, 0.25);
+    await bruno(); await grabBone('gleiten');
     await tp(5, 2.6, 22); await W(600); console.log('  tauchen:', await ev(() => window.game.has('tauchen')));
     await grabBone('kletter'); await grabBone('kran'); await shot('hafen_kran', -1.2, 0.35);
     await grabBone('mole'); await shot('hafen_mole', 0.4, 0.3);
@@ -168,6 +178,7 @@ const STEPS = {
   },
   async park() {
     await shot('park_start', null, 0.25);
+    await bruno(); await ev(() => window.game.level.digSpots.forEach(d => window.game.level.dig(d))); await W(300); await grabBone('buddeln');
     await grabBone('kletter'); await grabBone('turm'); await shot('park_turm', 0.6, 0.35);
     await grabBone('insel'); await grabBone('baumkrone'); await shot('park_wald', 1.2, 0.3);
     // Dachsbau über die Tür

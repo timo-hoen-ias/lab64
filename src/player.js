@@ -1,4 +1,5 @@
 // Moll – Spielerfigur: Bewegung, Sprung/Doppelsprung, Biss, Schnüffeln, AABB-Kollision gegen Level-Solids.
+// Fähigkeiten (sobald gelernt): Trillern, Gleiten, Tornado, Bellen, Bauchklatscher, Apportieren, Zoomies, Wandsprung.
 import * as THREE from 'three';
 import { makeDog, animateDog, compact } from './models.js';
 import { animateIdle } from './idle.js';
@@ -15,10 +16,11 @@ export class Player {
     this.yaw = 0; this.onGround = false; this.canDouble = true; this.coyote = 0;
     this.bite = 0; this.biteCd = 0; this.hurtT = 0; this.hp = 3; this.sniffing = false;
     this.hidden = false; this.speedFrac = 0; this.frozen = false; this.idleT = 0;
+    this.whirlT = 0; this.tornadoT = 0; this.charge = 0; this.glideFuel = 0; this.spinCd = 0; this.barkCd = 0; this.zoomT = 0; this.carry = null;
     this.checkpoint = new THREE.Vector3(0, 1, 0);
   }
 
-  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = 3; this.hurtT = 0; this.frozen = false; this.diving = false; this.air = undefined; this.idleT = 0; }
+  reset(pos) { this.pos.copy(pos); this.checkpoint.copy(pos); this.vel.set(0, 0, 0); this.hp = this.game.maxHp(); this.carry = null; this.whirlT = 0; this.tornadoT = 0; this.charge = 0; this.gliding = false; this.stomp = false; this.zoomT = 0; this.hurtT = 0; this.frozen = false; this.diving = false; this.air = undefined; this.idleT = 0; }
   respawn() { this.pos.copy(this.checkpoint); this.pos.y += 0.5; this.vel.set(0, 0, 0); }
 
   hurt(amount = 1) {
@@ -34,6 +36,8 @@ export class Player {
     if (this.hurtT > 0) this.hurtT -= dt;
     if (this.biteCd > 0) this.biteCd -= dt;
     if (this.bite > 0) this.bite = Math.max(0, this.bite - dt * 4);
+    if (this.spinCd > 0) this.spinCd -= dt; if (this.barkCd > 0) this.barkCd -= dt; if (this.wallLock > 0) this.wallLock -= dt;
+    const has = a => this.game.has(a);
 
     // Bewegung relativ zur Kamera
     let mx = 0, mz = 0;
@@ -59,17 +63,25 @@ export class Player {
     else if (!this.diving && !this.frozen && this.game.has('tauchen') && (input.held('sniff') || (!this.swimming && this.vel.y < -12))) { this.diving = true; this.vel.y = Math.min(this.vel.y, -3); this.game.audio.sfx('splash'); } // Abtauchen oder Kopfsprung
     if (this.diving && this.pos.y > wy - 0.95 && this.vel.y > 0 && !input.held('sniff')) this.diving = false; // wieder oben
     const swim = wet && !this.diving, dive = this.diving;
-    if (wet && !this._wet) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.spinT = 0; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
+    if (wet && !this._wet) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.flipT = 0; this.stomp = false; this.gliding = false; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
     this._wet = wet; this.swimming = swim;
-    const accel = dive ? 8 : this.onGround || swim ? 40 : 18, top = dive ? RUN * 0.62 : swim ? RUN * 0.55 : RUN;
+    // Zoomies: nach einem Moment Vollgas am Boden rast Moll los (bleibt im Sprung erhalten)
+    if (has('zoomies') && this.onGround && !wet && this.speedFrac > 0.92) this.zoomT = Math.min(1.5, (this.zoomT || 0) + dt);
+    else if (this.onGround || wet) this.zoomT = Math.max(0, (this.zoomT || 0) - dt * 4);
+    const zoom = this.zoomT > 0.7; if (zoom && !this.zoom) { this.game.audio.sfx('jump2'); FX.dust(this.game.fx, this.pos, 10); } this.zoom = zoom;
+    const accel = dive ? 8 : this.onGround || swim ? 40 : this.wallLock > 0 ? 0 : 18, top = dive ? RUN * 0.62 : swim ? RUN * 0.55 : RUN * (zoom ? 1.6 : 1) * (this.whirlT > 0 && this.onGround ? 0.75 : 1) * (this.charge > 0 ? 0.3 : 1);
     this.vel.x += (mx * top - this.vel.x) * Math.min(1, accel * dt);
     this.vel.z += (mz * top - this.vel.z) * Math.min(1, accel * dt);
 
     // Springen
     if (this.onGround || swim) { this.coyote = 0.12; this.canDouble = true; } else this.coyote -= dt;
     if (!this.frozen && !dive && input.pressed('jump')) {
-      if (this.coyote > 0) { this.vel.y = JUMP; this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
-      else if (this.canDouble) { this.vel.y = JUMP2; this.canDouble = false; this.game.audio.sfx('jump2'); this.spinT = 0.5; this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 0.3, z: this.pos.z }, { n: 10, color: [0xffffff, 0xfff3a0], speed: 4, up: -1, life: 0.4, size: 0.18, gravity: 0, flat: true }); }
+      if (this.coyote > 0) { this.vel.y = JUMP * (this.zoom ? 1.08 : 1); this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
+      else if (has('wandsprung') && (this._wall = this._wallNear(level))) { // Wandsprung: von der Backsteinwand abstoßen
+        const w = this._wall; this.vel.y = JUMP; this.vel.x = w.nx * 8.5; this.vel.z = w.nz * 8.5; this.yaw = Math.atan2(w.nx, w.nz); this.wallLock = 0.35; this.autoHop = true; this.canDouble = true; this.gliding = false;
+        this.game.audio.sfx('jump'); FX.dust(this.game.fx, { x: this.pos.x - w.nx * 0.4, y: this.pos.y + 0.6, z: this.pos.z - w.nz * 0.4 }, 8);
+      }
+      else if (this.canDouble) { this.vel.y = JUMP2; this.canDouble = false; this.game.audio.sfx('jump2'); this.flipT = 0.5; this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 0.3, z: this.pos.z }, { n: 10, color: [0xffffff, 0xfff3a0], speed: 4, up: -1, life: 0.4, size: 0.18, gravity: 0, flat: true }); }
     }
     if (this.vel.y <= 0) this.autoHop = false;
     if (dive) { // unter Wasser schweben
@@ -80,6 +92,7 @@ export class Player {
       if (swim && this.vel.y < 4) { this.vel.y += ((wy - 0.8 - this.pos.y) * 40 - this.vel.y * 6) * dt; } // Auftrieb
       else this.vel.y += GRAVITY * dt;
     }
+    this._abilities(dt, level, input, wet, dive, has);
     if (swim && this.speedFrac > 0.1) { this._rip = (this._rip || 0) - dt; if (this._rip <= 0) { this._rip = 0.15; this.game.fx.burst({ x: this.pos.x, y: wy + 0.02, z: this.pos.z }, { n: 3, color: 0xffffff, speed: 1.6, up: 0, life: 0.6, size: 0.14, gravity: 0, flat: true, drag: 3 }); } }
     // Luft: unter Wasser zählt sie runter, an der Oberfläche oder an Luftblasen füllt sie sich wieder
     this.airMax = this.game.has('grosseLunge') ? 25 : 15; if (this.air === undefined) this.air = this.airMax;
@@ -92,7 +105,16 @@ export class Player {
     this.game.updateAir(this.air / this.airMax, under || this.air < this.airMax - 0.01);
 
     // Biss
-    if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
+    const airborne = !this.onGround && !wet && this.coyote <= 0;
+    if (!this.frozen && input.pressed('act') && this.biteCd <= 0 && airborne && !this.stomp && has('bauchklatscher')) { // Bauchklatscher
+      this.stomp = true; this.gliding = false; this.vel.set(0, 6, 0); this.flipT = 0.35; this.game.audio.sfx('jump2');
+    }
+    else if (!this.frozen && input.pressed('act') && this.biteCd <= 0 && (this.carry || (has('apportieren') && level.fetchNear(this.pos)))) { // Apportieren
+      this.biteCd = 0.3; this.bite = 0.6;
+      if (this.carry) { const it = this.carry; this.carry = null; level.dropItem(it, { x: this.pos.x + Math.sin(this.yaw) * 1.1, y: this.pos.y, z: this.pos.z + Math.cos(this.yaw) * 1.1 }); this.game.audio.sfx('land'); }
+      else { this.carry = level.fetchNear(this.pos); this.carry.carried = true; this.game.audio.sfx('chomp'); }
+    }
+    else if (!this.frozen && input.pressed('act') && this.biteCd <= 0) {
       this.bite = 1; this.biteCd = 0.45; this.game.audio.sfx('chomp'); if (Math.random() < 0.25) this.game.audio.sfx('bark');
       const fwd = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
       const push = this.diving ? 7 : 4; this.vel.x += fwd.x * push; this.vel.z += fwd.z * push; // unter Wasser: Schwimmstoß
@@ -106,7 +128,10 @@ export class Player {
     const wasGround = this.onGround; this.onGround = false;
     this.pos.x += this.vel.x * dt; this._resolve(solids, 'x'); this._terrainSide(level, 'x', this.vel.x * dt);
     this.pos.z += this.vel.z * dt; this._resolve(solids, 'z'); this._terrainSide(level, 'z', this.vel.z * dt);
-    this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
+    this._dt = dt; this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
+    if (this.stomp && (this.onGround || wet)) { // Bauchklatscher gelandet
+      this.stomp = false; if (!wet) { level.onStomp(this.pos); this.game.audio.sfx('stomp'); this.game.shake(0.35); this.game.input.vibrate(200); this.squash = 0.4; }
+    }
     if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); if (this._lastVy < -12) FX.land(this.game.fx, this.pos, Math.min(2, -this._lastVy / 14)); }
     this._lastVy = this.vel.y;
     // Laufstaub
@@ -131,8 +156,8 @@ export class Player {
     this.pos.x = Math.max(b.min.x, Math.min(b.max.x, this.pos.x)); this.pos.z = Math.max(b.min.z, Math.min(b.max.z, this.pos.z));
 
     // Mesh
-    this.mesh.position.copy(this.pos); this.mesh.rotation.y = this.yaw;
-    if (this.spinT > 0) { this.spinT -= dt; this.mesh.rotation.x = -this.spinT * Math.PI * 4; }
+    this.mesh.position.copy(this.pos); this.mesh.rotation.y = this.yaw + (this.whirlA || 0);
+    if (this.flipT > 0) { this.flipT -= dt; this.mesh.rotation.x = -this.flipT * Math.PI * 4; }
     else this.mesh.rotation.x = this.diving ? THREE.MathUtils.clamp(-this.vel.y * 0.12, -0.7, 0.7) : 0; // Kopf voran tauchen
     // Squash beim Landen, Stretch beim Absprung (Volumen bleibt ungefähr gleich)
     if (this.squash > 0) { this.squash -= dt; const s = 1 - this.squash * 0.8; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
@@ -140,15 +165,83 @@ export class Player {
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
     animateDog(this.mesh, this.speedFrac, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet);
+    const u = this.mesh.userData; if (this.gliding) { u.earL.rotation.set(0, 0, -1.4); u.earR.rotation.set(0, 0, 1.4); u.head.rotation.y = 0; u.earsSpin = (u.earsSpin || 0) + dt * 30; u.head.children.forEach(c => { if (c === u.earL || c === u.earR) c.rotation.y = u.earsSpin; }); } else { u.earL.rotation.y = 0; u.earR.rotation.y = 0; }
     // Leerlauf: nur wenn Moll still am Boden steht und keine Taste gedrückt ist; jede Eingabe weckt sie sofort
     const busy = this.frozen || wet || !this.onGround || this.hurtT > 0 || this.bite > 0 || Math.hypot(this.vel.x, this.vel.z) > 0.5
-      || Math.hypot(input.move.x, input.move.y) > 0.05 || ['jump', 'act', 'sniff'].some(k => input.held(k));
+      || Math.hypot(input.move.x, input.move.y) > 0.05 || ['jump', 'act', 'sniff', 'spin', 'bark'].some(k => input.held(k)) || this.whirlT > 0 || this.charge > 0;
     this.idleT = busy ? 0 : this.idleT + dt;
     animateIdle(this.mesh, this.idleT, dt);
     // Blob-Schatten auf dem höchsten Boden unter Moll
     const gy = level.groundAt ? level.groundAt(this.pos.x, this.pos.z, this.pos.y) : -Infinity;
     this.shadow.visible = gy > -Infinity && !wet;
     if (this.shadow.visible) { const h = this.pos.y - gy, k = Math.max(0.35, 1 - h * 0.08); this.shadow.position.set(this.pos.x, gy + 0.03, this.pos.z); this.shadow.scale.setScalar(k); this.shadow.material.opacity = k; }
+  }
+
+  // ---- Fähigkeiten pro Frame: Trillern, Tornado aufladen, Gleiten, Bellen, Bauchklatscher-Sturz
+  _abilities(dt, level, input, wet, dive, has) {
+    const fx = this.game.fx, spinP = !this.frozen && input.pressed('spin'), spinH = !this.frozen && input.held('spin');
+    if (this.onGround || wet) { this.glideFuel = has('langeOhren') ? 3.5 : 2; this.gliding = false; }
+    // Gleiten: in der Luft TRILLER drücken/halten
+    if (spinP && !this.onGround && !wet && has('gleiten') && this.glideFuel > 0 && !this.stomp) { this.gliding = true; this.game.audio.sfx('whirl'); }
+    if (spinP && has('trillern') && this.spinCd <= 0 && !dive && !this.carry) { // Trillern (in der Luft zusammen mit dem Gleiten)
+      this.whirlT = 0.6; this.spinCd = has('trillernPlus') ? 0.6 : 1.2; this.whirlHit = new Set(); this.game.audio.sfx('whirl'); FX.dust(fx, this.pos, 10);
+    }
+    else if (spinP && !['trillern', 'gleiten', 'tornado'].some(has) && !this._noSpinHint) { this._noSpinHint = true; this.game.toast('Das kann Moll noch nicht – Opa Bruno bringt es ihr bei!'); }
+    if (this.gliding && (!spinH || this.glideFuel <= 0 || this.onGround || wet)) this.gliding = false;
+    if (this.gliding) {
+      const up = level.updraftAt && level.updraftAt(this.pos);
+      if (up) { this.vel.y += (7 - this.vel.y) * Math.min(1, dt * 3) - GRAVITY * dt; this.glideFuel = Math.max(this.glideFuel, 0.6); } // Aufwind trägt nach oben
+      else if (this.vel.y <= 0) { this.glideFuel -= dt; if (this.vel.y < -2.2) this.vel.y = Math.min(-2.2, this.vel.y + 45 * dt); } // Ausdauer zählt erst beim Sinken
+      if (Math.random() < dt * 20) fx.burst({ x: this.pos.x, y: this.pos.y + 1.6, z: this.pos.z }, { n: 1, color: 0xffffff, speed: 2, up: 0, life: 0.3, size: 0.12, gravity: 0, flat: true });
+    }
+    // Tornado: nach dem Trillern TRILLER gedrückt halten, bis es funkelt, dann loslassen
+    if (has('tornado') && this.onGround && !wet && spinH && this.whirlT <= 0.05 && this.tornadoT <= 0) {
+      this.charge += dt; if (this.charge >= 0.6 && !this._charged) { this._charged = true; this.game.audio.sfx('click'); }
+      if (Math.random() < dt * (this._charged ? 40 : 15)) fx.burst({ x: this.pos.x + (Math.random() - 0.5) * 2, y: this.pos.y + 0.2, z: this.pos.z + (Math.random() - 0.5) * 2 }, { n: 1, color: this._charged ? [0xfff3a0, 0xffffff] : 0xe8dcc8, speed: 1, up: 3, life: 0.5, size: 0.16, gravity: 0 });
+    } else if (this.charge > 0) {
+      if (this._charged && this.onGround) {
+        this.vel.y = 17; this.onGround = false; this.coyote = 0; this.canDouble = true; this.autoHop = true; this.tornadoT = 0.9; this.whirlHit = new Set();
+        this.game.audio.sfx('tornado'); this.game.shake(0.3); fx.burst({ x: this.pos.x, y: this.pos.y + 0.2, z: this.pos.z }, { n: 30, color: [0xffffff, 0xdff9fb, 0xe8dcc8], speed: 6, up: 1, life: 0.7, size: 0.3, gravity: 0, flat: true });
+      }
+      this.charge = 0; this._charged = false;
+    }
+    // Drehung + Treffer
+    const spinning = this.whirlT > 0 || this.tornadoT > 0 || this.charge > 0.05;
+    if (this.whirlT > 0) this.whirlT -= dt; if (this.tornadoT > 0) this.tornadoT -= dt;
+    if (spinning) {
+      this.whirlA = (this.whirlA || 0) + dt * (this.tornadoT > 0 ? 34 : this.charge > 0 ? 14 + this.charge * 20 : 26);
+      if (this.whirlT > 0 || this.tornadoT > 0) {
+        const strong = this.tornadoT > 0, r = strong ? 4.2 : has('trillernPlus') ? 3.2 : 2.2;
+        level.onSpin(this.pos, r, this.whirlHit, strong); level.attract(this.pos, strong ? 7 : 4.5, dt);
+        if (Math.random() < dt * 30) { const a = Math.random() * 6.28; fx.burst({ x: this.pos.x + Math.cos(a) * r * 0.6, y: this.pos.y + 0.4 + Math.random(), z: this.pos.z + Math.sin(a) * r * 0.6 }, { n: 1, color: strong ? [0xffffff, 0xdff9fb] : [0xe8dcc8, 0xffffff], speed: 3, up: 1, life: 0.35, size: 0.18, gravity: 0 }); }
+      }
+    } else this.whirlA = 0;
+    // Bellen
+    if (!this.frozen && input.pressed('bark')) {
+      if (has('bellen') && this.barkCd <= 0) {
+        this.barkCd = 0.7; this.bite = 0.7; this.game.audio.sfx('woof'); this.game.input.vibrate(80);
+        const fwd = { x: Math.sin(this.yaw), z: Math.cos(this.yaw) };
+        for (let k = 1; k <= 3; k++) fx.burst({ x: this.pos.x + fwd.x * k * 1.6, y: this.pos.y + 1.2, z: this.pos.z + fwd.z * k * 1.6 }, { n: 6, color: [0xffffff, 0xffeaa7], speed: 2.5 + k, up: 0.5, life: 0.3, size: 0.2, gravity: 0 });
+        level.onBark(this.pos, fwd, 11);
+      } else if (!has('bellen') && !this._noBarkHint) { this._noBarkHint = true; this.game.toast('Moll räuspert sich … richtig bellen lernt sie noch!'); }
+    }
+    // Bauchklatscher: kurz in der Luft stehen, dann senkrecht runter
+    if (this.stomp) { this.vel.x = 0; this.vel.z = 0; if (this.vel.y > 0) this.vel.y -= 60 * dt; else this.vel.y = -30; }
+    // Wandrutschen: an einer Backsteinwand fällt Moll langsamer (Zeichen: hier geht der Wandsprung)
+    if (has('wandsprung') && !this.onGround && !wet && this.vel.y < -3 && !this.stomp && this._wallNear(level)) { this.vel.y = Math.max(this.vel.y, -3.5); if (Math.random() < dt * 15) FX.dust(this.game.fx, { x: this.pos.x, y: this.pos.y + 0.5, z: this.pos.z }, 1); }
+  }
+  // Backsteinwand direkt neben Moll? Liefert die Richtung von der Wand weg.
+  _wallNear(level) {
+    const p = this.pos, g = 0.3;
+    for (const s of level.solids) {
+      if (!s.climb || !s.active || p.y + HEIGHT < s.min.y + 0.2 || p.y > s.max.y - 0.3) continue;
+      const inX = p.x + HALF > s.min.x && p.x - HALF < s.max.x, inZ = p.z + HALF > s.min.z && p.z - HALF < s.max.z;
+      if (inZ && p.x + HALF <= s.min.x + 0.01 && s.min.x - (p.x + HALF) < g) return { nx: -1, nz: 0 };
+      if (inZ && p.x - HALF >= s.max.x - 0.01 && p.x - HALF - s.max.x < g) return { nx: 1, nz: 0 };
+      if (inX && p.z + HALF <= s.min.z + 0.01 && s.min.z - (p.z + HALF) < g) return { nx: 0, nz: -1 };
+      if (inX && p.z - HALF >= s.max.z - 0.01 && p.z - HALF - s.max.z < g) return { nx: 0, nz: 1 };
+    }
+    return null;
   }
 
   // Gelände seitlich: zu steiler Anstieg wirkt wie eine Wand, sanfte Hänge läuft Moll einfach hoch
@@ -171,7 +264,7 @@ export class Player {
       const mn = s.min, mx = s.max;
       if (p.x + HALF <= mn.x || p.x - HALF >= mx.x || p.z + HALF <= mn.z || p.z - HALF >= mx.z || p.y >= mx.y || p.y + HEIGHT <= mn.y) continue;
       if (axis === 'y') {
-        if (this.vel.y <= 0 && p.y - this.vel.y * 0.02 >= mx.y - 0.3) { p.y = mx.y; this.vel.y = 0; this.onGround = true; if (s.onStand) s.onStand(); }
+        if (this.vel.y <= 0 && p.y - this.vel.y * Math.max(0.02, this._dt || 0) >= mx.y - 0.3) { p.y = mx.y; this.vel.y = 0; this.onGround = true; if (s.onStand) s.onStand(); }
         else if (this.vel.y > 0) { p.y = mn.y - HEIGHT; this.vel.y = 0; }
       } else if (axis === 'x') {
         if (this.vel.x > 0) p.x = mn.x - HALF; else if (this.vel.x < 0) p.x = mx.x + HALF; this.vel.x = 0;

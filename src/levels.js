@@ -17,16 +17,16 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 // Goldknochen je Welt (IDs). Summe = Gesamtziel des Spiels.
 export const BONES = {
-  hub: ['huegel', 'geheim', 'kruemel', 'teich', 'baumhaus', 'vogelhaus', 'gewaechshaus', 'schuppen', 'aussicht', 'zwerge'],
-  kueche: ['boss', 'kruemel', 'geheim', 'kletter', 'vorrat', 'regal', 'treppe', 'uhr', 'keller', 'socken'],
-  strasse: ['boss', 'kruemel', 'geheim', 'kletter', 'daecher', 'kaufhaus', 'baustelle', 'brunnen', 'eisdiele', 'bahnhof'],
-  buero: ['boss', 'kruemel', 'geheim', 'kletter', 'kopierer', 'chef', 'server', 'fenster', 'tassen', 'antenne'],
-  park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
+  hub: ['huegel', 'geheim', 'kruemel', 'teich', 'baumhaus', 'vogelhaus', 'gewaechshaus', 'schuppen', 'aussicht', 'zwerge', 'apport'],
+  kueche: ['boss', 'kruemel', 'geheim', 'kletter', 'vorrat', 'regal', 'treppe', 'uhr', 'keller', 'socken', 'trillern'],
+  strasse: ['boss', 'kruemel', 'geheim', 'kletter', 'daecher', 'kaufhaus', 'baustelle', 'brunnen', 'eisdiele', 'bahnhof', 'bellen'],
+  buero: ['boss', 'kruemel', 'geheim', 'kletter', 'kopierer', 'chef', 'server', 'fenster', 'tassen', 'antenne', 'stampfen'],
+  park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick', 'buddeln'],
   rattenrennen: ['sieg', 'gierig'],
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
-  hafen: ['boss', 'kruemel', 'geheim', 'kletter', 'kran', 'markt', 'mole', 'laderaum', 'anker', 'bojen'],
-  dorf: ['boss', 'kruemel', 'geheim', 'kletter', 'muehle', 'scheune', 'huehner', 'burg', 'teich', 'baecker'],
-  kanal: ['boss', 'kruemel', 'geheim', 'kletter', 'pumpe', 'rohre', 'becken', 'gully', 'nest', 'lampen'],
+  hafen: ['boss', 'kruemel', 'geheim', 'kletter', 'kran', 'markt', 'mole', 'laderaum', 'anker', 'bojen', 'gleiten'],
+  dorf: ['boss', 'kruemel', 'geheim', 'kletter', 'muehle', 'scheune', 'huehner', 'burg', 'teich', 'baecker', 'wand'],
+  kanal: ['boss', 'kruemel', 'geheim', 'kletter', 'pumpe', 'rohre', 'becken', 'gully', 'nest', 'lampen', 'tornado'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
 export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Hochhaus', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere } from './models.js';
+import { installGadgets } from './abilities.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam } from './fx.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
@@ -333,9 +334,9 @@ export class Level {
   // Sammelobjekt. goal=true zählt für das Levelziel. hidden=true: nur per Schnüffeln auffindbar (unsichtbar bis nah).
   pickup(x, y, z, kind = 'crumb', opts = {}) {
     const m = makeFood(kind); m.position.set(x, y, z); this.group.add(m);
-    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, special: !!opts.special, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id, idx: this.pickups.length };
+    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, buried: false, special: !!opts.special, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id, idx: this.pickups.length };
     if (p.hidden) m.visible = false;
-    this.pickups.push(p); return p;
+    this.pickups.push(p); if (opts.buried) this.bury(p); return p;
   }
 
   // Portal: Steinsockel, zwei Säulen, Runenring mit Strudel; verschlossen = grau mit Vorhängeschloss
@@ -411,6 +412,7 @@ export class Level {
     for (const b of this.bubbles || []) b.mesh.userData.update(dt, this.t);
     for (const tr of this.triggers || []) { if (tr.done) continue; const ins = Math.hypot(tr.x - pp.x, tr.z - pp.z) < tr.r && Math.abs(tr.y - pp.y) < tr.r + 1.5; if (ins && !tr.inside) { tr.fn(tr); if (tr.once) tr.done = true; } tr.inside = ins; }
     this._updateCourses(dt, pp);
+    this.updateGadgets(dt);
     for (const it of this.abilityItems || []) {
       if (it.taken) continue; it.mesh.rotation.y += dt * 2; it.mesh.position.y = it.y + Math.sin(this.t * 3) * 0.15;
       if (Math.random() < dt * 10) FX.sparkle(this.game.fx, { x: it.x, y: it.y + 0.3, z: it.z });
@@ -422,7 +424,7 @@ export class Level {
     // Sammeln
     let nearestHidden = null, nd = 1e9;
     for (const p of this.pickups) {
-      if (p.taken) continue;
+      if (p.taken || p.buried) continue;
       p.mesh.rotation.y += dt * (p.kind === 'goldbone' ? 2.5 : 2); p.mesh.position.y = p.y + Math.sin(this.t * 3 + p.mesh.userData.spin) * 0.12;
       if (p.mesh.userData.halo) { const h = p.mesh.userData.halo; h.scale.setScalar(1 + Math.sin(this.t * 4) * 0.12); h.material.opacity = 0.3 + Math.sin(this.t * 4) * 0.15; }
       if (p.kind === 'goldbone' && p.mesh.visible && Math.random() < dt * 8) FX.sparkle(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z });
@@ -431,7 +433,7 @@ export class Level {
       const d = Math.hypot(p.x - pp.x, p.z - pp.z), dy = Math.abs(p.y - pp.y);
       if (p.hidden) {
         if (d < nd) { nd = d; nearestHidden = p; }
-        if (pl.sniffing && d < 6 && !p.mesh.visible) { p.mesh.visible = true; p.appear = 0; FX.crumb(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z }); }
+        if (pl.sniffing && d < (this.game.has('supernase') ? 11 : 6) && !p.mesh.visible) { p.mesh.visible = true; p.appear = 0; FX.crumb(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z }); }
         if (!p.mesh.visible) continue;
       }
       if (d < 1.2 && dy < 1.8) {
@@ -491,7 +493,7 @@ export class Level {
   // Goldknochen mit fester ID je Welt. Schon gesammelte erscheinen als Geist und zählen nicht doppelt.
   goldbone(id, x, y, z, opts = {}) {
     const owned = this.game.hasBone(this.key, id);
-    const p = this.pickup(x, y, z, 'goldbone', { hidden: opts.hidden, onTake: () => this.game.awardBone(this, id, opts.exit) });
+    const p = this.pickup(x, y, z, 'goldbone', { hidden: opts.hidden, buried: opts.buried, onTake: () => this.game.awardBone(this, id, opts.exit) });
     p.boneId = id;
     if (owned) p.mesh.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; } });
     return p;
@@ -534,3 +536,4 @@ export class Level {
     }
   }
 }
+installGadgets(Level);

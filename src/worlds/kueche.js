@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { Vacuum } from '../bosses.js';
 import { box, cyl, sphere, makeLabel, makeNpcDog, makeRoundTree } from '../models.js';
+import { AntSwarm } from '../abilities.js';
 
 const WALL = 0xfdf4e3, WOOD = 0xa0522d, H = 16;
 
@@ -32,6 +33,17 @@ export const KUECHE = {
     l.deco(cyl(1.2, 1.0, 0.6, 0xd63031, 6, 1.8, -14, 14), 6, 1.8, -14);
     l.box(-6, 3.5, -16.5, 4, 0.3, 2, 0xf5f5f5); l.box(2, 5.5, -16.5, 4, 0.3, 2, 0xf5f5f5);
     l.goldbone('kletter', 2, 6.3, -16.5);
+    // ---- Fähigkeit dieser Welt: Trillern. Opa Bruno am Eingang, Übungskreisel neben ihm
+    l.teacher(-8, 13, 'trillern', { say: 'Opa Bruno: „Am Herd sind drei Drehknöpfe – dreh sie alle mit Trillern auf!“' });
+    l.spinTarget(-10.5, 0.7, 15, () => g.toast('Opa Bruno: „Genau so! Ameisen mögen das übrigens gar nicht.“'));
+    // Herd: drei Drehknöpfe vorne – alle aufgetrillert, kocht im Topf ein Goldknochen hoch
+    l.herd = 0;
+    [3, 6, 9].forEach(x => l.spinTarget(x, 0.9, -11.75, () => {
+      l.herd++; if (l.herd < 3) { g.toast(`Herdknopf ${l.herd}/3`); return; }
+      if (!g.hasBone(l.key, 'trillern')) { g.toast('Alle Platten an! Im Topf blubbert etwas Goldenes hoch …'); l.spawnGoldbone(6, 2.6, -13, 'trillern'); }
+    }));
+    // Ameisenstraßen: versperren die Wege zur Speisekammer, zum Bücherregal und zur Treppe – nur Trillern hilft
+    [[-14, -50], [-53, 4], [28, 53]].forEach(([x, z]) => l.addEnemy(new AntSwarm(g, x, 0.05, z, 2.4)));
     l.goldbone('geheim', 17, 0.6, -10, { hidden: true });
     [[-12, 1.5, -16], [6, 1.9, -14], [14, 4.4, -10], [0, 1.7, 2]].forEach(([x, y, z]) => l.pickup(x, y, z, 'ham', { goal: true }));
 

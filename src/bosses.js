@@ -28,6 +28,9 @@ class Boss {
     if (this.hp <= 0) this.die();
   }
   onBite() { if (this.stun > 0 && !this.dead) { this.damage(1); this.stun = 0; } else if (!this.dead) this.game.toast('Nur angreifbar, wenn er benommen ist!'); }
+  // Trillern trifft benommene Bosse genauso wie ein Biss; manche Bosse reagieren außerdem auf ihre Welt-Fähigkeit
+  onSpin() { if (this.stun > 0 && !this.dead) { this.damage(1); this.stun = 0; } }
+  daze(t, text) { if (this.dead || this.stun > 0) return; this.stun = t; this.game.audio.sfx('hit'); this.game.shake(0.3); if (text) this.game.toast(text); }
   die() {
     this.dead = true; this.game.audio.sfx('win'); this.game.hideBoss(); this.game.shake(0.6);
     this.game.fx.burst({ x: this.pos.x, y: this.pos.y + 1, z: this.pos.z }, { n: 40, color: [0xffffff, 0xdddddd, 0xffe066], speed: 9, up: 6, life: 1, size: 0.35, gravity: -10 });
@@ -65,6 +68,7 @@ export class Vacuum extends Boss {
     this.hum.set(0.22 * near * (this.stun > 0 ? 0.6 : 1), pitch);
   }
   die() { if (this.hum) this.hum.stop(); this.game.audio.sfx('ko'); super.die(); }
+  onSpin() { if (this.stun > 0) return super.onSpin(); if (this.dist() < 5.5) { this.state = 'hunt'; this.timer = 0; this.daze(2.4, 'Staubwolke weggewirbelt – der Sauger hustet. BEISSEN!'); } }
   update(dt, lvl) {
     this.motor();
     if (this.state === 'hunt' && Math.random() < dt * 10) this.game.fx.burst({ x: this.pos.x, y: 0.3, z: this.pos.z }, { n: 1, color: [0xcfcfcf, 0xa8a8a8], speed: 1.5, up: 0.8, life: 0.6, size: 0.25, gravity: 0, flat: true }); // Staubwolke
@@ -96,6 +100,7 @@ export class Cat extends Boss {
     super(game, makeCat(0x3b3b3b), 'Der große Kater', 3, 1.3); this.cx = cx; this.cz = cz; this.arena = arena;
     this.pos.set(cx, 0, cz); this.state = 'prowl'; this.timer = 0;
   }
+  onBark() { if (this.state === 'pounce' || this.dist() > 13) return; this.state = 'prowl'; this.timer = 0; this.mesh.scale.y = 1; this.daze(2.4, 'WUFF! Der Kater macht einen Buckel vor Schreck – BEISSEN!'); }
   update(dt) {
     const u = this.mesh.userData; u.t += dt * 8;
     if (this.baseUpdate(dt)) return;
@@ -150,6 +155,7 @@ export class CanOpener extends Boss {
     }
     this.clampArena(10);
   }
+  onStomp() { if (this.state !== 'hover' || this.stun > 0) return; this.pos.y = 0; this.timer = 0; this.daze(2.6, 'Die Druckwelle haut den Dosenöffner um – BEISSEN!'); }
   die() { super.die(); this.can.scale.y = 0.5; this.game.toast('Die Dose ist offen! Thunfisch für alle!'); }
 }
 
@@ -159,6 +165,8 @@ export class BirdBoss extends Boss {
     super(game, makeBird(kind), name, 3, kind === 'seagull' ? 1.6 : 1.1); this.cx = cx; this.cz = cz; this.kind = kind;
     this.pos.set(cx, 6, cz); this.state = 'circle'; this.timer = 0; this.ang = 0;
   }
+  // In der Luft erwischt (Trillern/Gleiten): der Vogel trudelt zu Boden
+  onSpin() { if (this.stun > 0) return super.onSpin(); if (this.player.onGround) return; this.restY = Math.max(0, this.game.level.groundAt(this.pos.x, this.pos.z, this.pos.y)); this.pos.y = this.restY; this.state = 'rest'; this.daze(2.6, `${this.name} ist vom Wirbel ganz schwindelig – beißen!`); }
   update(dt) {
     const u = this.mesh.userData; u.t += dt;
     if (this.baseUpdate(dt)) { u.wings.forEach(w => w.rotation.z = 0); this.pos.y = this.restY || 0; return; }
@@ -223,6 +231,7 @@ export class FatMan {
     }
   }
   onBite() { this.game.toast('Lieber nicht beißen. Leise bleiben!'); }
+  onSpin() { }
 }
 
 // Ratte (Kanal-Boss): wird nicht besiegt – nach 3 Bissen schlägt sie Moll k.o. → Albtraum.
@@ -243,6 +252,7 @@ export class RatBoss extends Boss {
     this.clampArena(10);
     this.pos.y = Math.abs(this.pos.x) > 5 ? 1 : 0; // Gehweg oder Rinne
   }
+  onSpin(strong) { if (this.stun > 0) return super.onSpin(); if (strong) { this.state = 'dash'; this.timer = 0; this.daze(2.2, 'Der Tornado wirbelt die Ratte durch die Luft – BEISSEN!'); } }
   die() {
     // Kein Sieg: Die Ratte holt zum K.o. aus.
     this.dead = true; this.game.hideBoss(); this.game.audio.sfx('ko');
@@ -330,4 +340,5 @@ export class Jelly {
     const pl = this.game.player; if (Math.hypot(p.x - pl.pos.x, p.z - pl.pos.z) < 1.1 && pl.pos.y + 0.6 > p.y - 1.4 && pl.pos.y < p.y + 0.6) pl.hurt(1);
   }
   onBite() { this.game.toast('Autsch – Quallen beißt man nicht!'); }
+  onSpin() { }
 }

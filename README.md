@@ -23,11 +23,29 @@ Moll64 ist eine PWA: In Chrome auf Android die Seite öffnen und im Menü auf **
 | Sprung / Doppelsprung | Leertaste | A | SPRUNG |
 | Biss | Shift / E | X | BISS |
 | Nase (halten) | F | Y | NASE |
+| Trillern / Gleiten / Tornado | C | B | 🌀 |
+| Bellen | V | RB | 📢 |
 | Pause | Esc | Start | II |
 
 ![Welten](docs/screenshots/welten-v2.png)
 
-**Stand:** 92 Goldknochen. Jede Welt hat 10, alle in **einem Besuch** zu holen (Boss, alle Krümel, Geheimversteck und Knochen in jedem Bereich), dazu 10 im Garten und 2 im Rattenrennen.
+**Stand:** 100 Goldknochen. Jede Welt hat 11 (die Badebucht 10), alle in **einem Besuch** zu holen (Boss, alle Krümel, Geheimversteck, Knochen in jedem Bereich und eine Fähigkeiten-Prüfung), dazu 11 im Garten und 2 im Rattenrennen.
+
+### Fähigkeiten
+Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt Moll die Fähigkeit dieser Welt bei. Die Welt ist darum gebaut, man muss nie zurück. Im Garten verkauft Opa Bruno im **Leckerli-Laden** Upgrades gegen Krümel (4. und 5. Herz, Trillern+, Lange Ohren, Supernase) – nett, aber für keinen Goldknochen nötig.
+
+| Welt | Fähigkeit | Was sie tut | Prüfung |
+|---|---|---|---|
+| Garten | Apportieren | Ball/Stock mit BISS tragen und ablegen | Ball zur Hundehütte bringen |
+| Erdgeschoss | Trillern | Drehung um die eigene Achse, trifft alles ringsum, zieht Krümel an | Drei Herdknöpfe, Ameisenstraßen, Staubsauger benommen wirbeln |
+| Einkaufsstraße | Bellen | WUFF nach vorn: verscheucht Tauben, löst Dinge aus | Drei Autos mit Alarmanlage, Kater erschrecken |
+| Hochhaus | Bauchklatscher | In der Luft BISS: senkrecht runter und stampfen | Drei Not-Aus-Knöpfe, Kartons, Dosenöffner umhauen |
+| Grillpark | Buddeln | BISS an Erdhügeln | Fünf Erdhügel, in einem ein Goldknochen |
+| Rattenrennen | Zoomies | Nach Vollgas-Anlauf schneller und weiter springen | Belohnung für den Sieg |
+| Badebucht | Tauchen | Taucherbrille | (wie bisher) |
+| Hafen | Helikopter-Ohren | In der Luft TRILLER halten = gleiten, Aufwinde tragen nach oben | Vom Ausguck zum Möwennest, Möwe aus der Luft holen |
+| Dorf | Wandsprung | An Backsteinwänden abstoßen | Alter Schornstein im Zickzack hoch |
+| Kanal | Tornado-Trillern | TRILLER halten bis es funkelt, loslassen: Wirbelsturm nach oben | Lüftungsschacht, Kanalratte aus der Rinne wirbeln |
 
 | Welt | Bereiche |
 |---|---|
@@ -41,8 +59,8 @@ Moll64 ist eine PWA: In Chrome auf Android die Seite öffnen und im Menü auf **
 | Dorf | Marktplatz, Windmühle, Burgruine, Bauernhof mit Hühnern, Dorfteich, Bäckerei |
 | Kanalsystem | Haupthalle, Pumpwerk, Rohr-Labyrinth, Klärbecken, Gully-Schacht, Rattennest |
 
-Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 92/92 läuft ein Abspann.
+Schnellreise-Punkte in jeder Welt, ein Kompass zeigt zum nächsten unentdeckten Punkt, die Pause zeigt alle Knochen der aktuellen Welt. Nach der Kanalratte und bei 100/100 läuft ein Abspann.
 
-Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 10/10, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten.
+Tests (Server auf Port 8077, Playwright nötig): `node tests/worlds.mjs <ordner> hub,kueche,strasse,buero,park,hafen,dorf,kanal` spielt jede Welt in einem Besuch auf 11/11, `node tests/abilities.mjs` lernt jede Fähigkeit bei Opa Bruno und spielt sie mit und ohne durch, `node tests/strand.mjs` die Badebucht, `node tests/playtest.mjs` Rattenrennen, Albtraum und Garten.
 
 Spieldesign, Welten und Roadmap stehen in [docs/GDD.md](docs/GDD.md).
