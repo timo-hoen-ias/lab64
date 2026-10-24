@@ -31,6 +31,8 @@ export const DORF = {
     l.warp(-4, 0, 24, 'Marktplatz', bench());
     // ---- Fähigkeit dieser Welt: Wandsprung. Alter Backstein-Schornstein: zwischen den Wänden im Zickzack hoch
     l.teacher(5, 26, 'wandsprung');
+    // Rückkehr-Knochen (später mit dem Tornado aus dem Kanal wiederkommen)
+    l.backbone('r_tornado', 'tornado', 'ledge', 27, 47); l.backbone('r_ventil', 'tornado', 'spin', -81, 35, { strong: true });
     l.climbWall(-16, 0, 14, 2, 14, 4); l.climbWall(-10.5, 0, 14, 1, 14, 4);
     l.box(-18.5, 13.6, 14, 3, 0.4, 4, 0x8d4a3b); l.goldbone('wand', -18, 14.8, 14); // oben links vom Schornstein: Nest mit Goldknochen
     l.label('Schornstein', -13, 17, 14);

@@ -178,6 +178,8 @@ export const STRAND = {
     l.trigger(86, H(86, 4), 4, 3, () => { if (l.rex.state === 'race') { l.rex.state = 'lost'; g.toast('Gewonnen!'); g.talk('rex.verloren', { mesh: rex }); l.spawnGoldbone(86, H(86, 4) + 1, 6, 'rennen'); } }, false);
 
     // Krümel an Land
+    // Rückkehr-Knochen (später mit Helikopter-Ohren bzw. Wandsprung wiederkommen)
+    l.backbone('r_gleiten', 'gleiten', 'glide', -5, -73); l.backbone('r_wand', 'wandsprung', 'wall', 23, -105);
     l.scatter(45);
     l.label('Kneifer, die Riesenkrabbe, hat 8 Pommes geklaut! Hol dir zuerst die Taucherbrille bei Rex.', 0, 9, -120);
   },

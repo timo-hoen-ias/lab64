@@ -40,6 +40,8 @@ export const HAFEN = {
     l.warp(-6, 2, 24, 'Holzkai', bollard());
     // ---- Fähigkeit dieser Welt: Gleiten. Vom Ausguck übers Wasser zum Möwennest, ein Aufwind hilft
     l.teacher(-11, 25, 'gleiten');
+    // Rückkehr-Knochen (später mit Wandsprung bzw. Tornado wiederkommen)
+    l.backbone('r_wand', 'wandsprung', 'wall', -17, -1); l.backbone('r_tornado', 'tornado', 'ledge', -53, 15, { y: 2 });
     [[16, 22, 3.6], [18.5, 22, 5.2], [18.5, 24.5, 6.8], [16, 24.5, 8.4], [13.5, 24.5, 10]].forEach(([x, z, top]) => l.box(x, 2, z, 2.5, top - 2, 2.5, 0x8d6e4a));
     l.label('Ausguck', 13.5, 12, 24.5);
     l.box(13.5, BED, 45, 4, 8 - BED, 4, 0x7f8c8d); l.deco(cyl(1.6, 1.2, 0.6, 0xc49a6c, 0, 0.3, 0, 10), 13.5, 8, 45); // Pfahl mit Möwennest

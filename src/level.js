@@ -596,7 +596,10 @@ export class Level {
       const d = Math.hypot(p.x - pp.x, p.z - pp.z), dy = Math.abs(p.y - pp.y);
       if (p.hidden) {
         if (d < nd) { nd = d; nearestHidden = p; }
-        if (pl.sniffing && d < (this.game.has('supernase') ? 11 : 6) && !p.mesh.visible) { p.mesh.visible = true; p.appear = 0; FX.crumb(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z }); }
+        if (pl.sniffing && d < (this.game.has('supernase') ? 11 : 6) && !p.mesh.visible) {
+          if (p.nose && !this.game.has('supernase')) { if (d < 4 && !p.noseSaid) { p.noseSaid = true; this.game.toast('Hier riecht es ganz schwach nach Gold … mit einer Supernase fände Moll es!', 4000); } } // Rückkehr-Knochen: nur mit Supernase
+          else { p.mesh.visible = true; p.appear = 0; FX.crumb(this.game.fx, { x: p.x, y: p.y + 0.3, z: p.z }); }
+        }
         if (!p.mesh.visible) continue;
       }
       if (d < 1.2 && dy < 1.8) {

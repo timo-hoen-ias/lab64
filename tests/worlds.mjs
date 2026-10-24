@@ -209,8 +209,23 @@ const STEPS = {
 for (const key of only) {
   await ev(k => window.game.enterLevel(k), key); await W(1500);
   console.log(key + ':'); await STEPS[key]();
-  for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], await feet(q, 0.5), q[2]); await W(700); } // Nachlese
+  for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken && !q.backtrack).map(q => [q.x, q.y, q.z]))) { await tp(q[0], await feet(q, 0.5), q[2]); await W(700); } // Nachlese (ohne Rückkehr-Knochen)
   const res = await ev(k => window.game.levelProgress(k), key);
   console.log(`  Knochen ${res.have}/${res.total}`, await ev(k => Object.keys(window.game.save.bones).filter(b => b.startsWith(k + ':')).map(b => b.split(':')[1]).join(' '), key));
+}
+// Rückkehr: mit allen Fähigkeiten (und Supernase) noch einmal in jede Welt und die Rückkehr-Knochen holen
+await ev(() => { for (const a of ['apportieren', 'trillern', 'bellen', 'bauchklatscher', 'buddeln', 'zoomies', 'tauchen', 'gleiten', 'wandsprung', 'tornado', 'supernase']) window.game.save.abilities[a] = true; });
+await W(2000); await p.keyboard.press('KeyF'); await W(300); // Abspann nach der Kanalratte schließen
+console.log('Rückkehr:');
+for (const key of [...new Set([...only, ...(only.length > 1 ? ['strand'] : [])])].filter(k => k !== 'rattenrennen')) {
+  await ev(k => window.game.enterLevel(k), key); await W(1500);
+  for (const bb of await ev(() => window.game.level.backbones.map(bb => ({ id: bb.id, kind: bb.kind, x: bb.x, y: bb.y, z: bb.z })))) {
+    if (bb.kind === 'nose') { await tp(bb.x + 2, bb.y + 0.2, bb.z); await kb.down('KeyF'); await W(900); await kb.up('KeyF'); }
+    else { await tp(bb.x, bb.y + 0.2, bb.z - 2.5, 0); await ev(id => { const b = window.game.level.backbones.find(b => b.id === id); b.act && b.act(); }, bb.id); await W(900); }
+    const q = await ev(id => { const p = window.game.level.pickups.find(q => q.boneId === id && !q.taken && q.mesh.visible); return p && [p.x, p.y, p.z]; }, bb.id);
+    if (q) { await tp(q[0], q[1] - 0.5, q[2]); await W(700); }
+  }
+  const res = await ev(k => window.game.levelProgress(k), key);
+  console.log(`  ${key}: Knochen ${res.have}/${res.total}`, await ev(k => Object.keys(window.game.save.bones).filter(b => b.startsWith(k + ':r_')).map(b => b.split(':')[1]).join(' '), key));
 }
 console.log('ERR', JSON.stringify(errs)); await b.close();

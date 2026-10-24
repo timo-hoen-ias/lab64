@@ -4,7 +4,7 @@ import { Input } from './input.js';
 import { AudioEngine } from './audio.js';
 import { Player } from './player.js';
 import { Level } from './level.js';
-import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
+import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES, BACKTRACK } from './levels.js';
 import { RunnerLevel } from './runner.js';
 import { Particles, Rings, Prints, makeLightShafts, setOutlines, SEE_THROUGH } from './fx.js';
 import { Menu } from './menu.js';
@@ -79,13 +79,18 @@ export class Game {
   learn(ability, fromBruno, mesh) {
     const a = ABILITIES[ability]; if (!a) return; const fresh = !this.has(ability);
     if (fresh) { this.save.abilities[ability] = true; if (ability === 'tornado') this.save.abilities.trillern = true; this.persist(); this.updateAbilityButtons(); }
-    const card = () => { if (fresh) { this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); } this._learnCard(a, fresh, fromBruno); };
+    const card = () => { if (fresh) { this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); } this._learnCard(a, fresh, fromBruno); if (fresh) this.later(7000, () => this.backtrackHint(ability)); };
     if (fromBruno) this.talk('bruno.' + ability, { mesh, onDone: card }); else card();
   }
   _learnCard(a, fresh, fromBruno) {
     const el = document.getElementById('learn'); if (!el) return;
     el.innerHTML = `<div class="ic">${a.icon}</div><small>${fresh ? 'Neue Fähigkeit' : 'Fähigkeit'}${fromBruno ? ' · von Opa Bruno' : ''}</small><h3>${a.name}</h3><p>${a.how}</p>`;
     el.classList.add('show'); clearTimeout(this._lt); this._lt = setTimeout(() => el.classList.remove('show'), 6500);
+  }
+  // Nach neuer Fähigkeit: in welchen schon besuchten Welten jetzt Rückkehr-Knochen erreichbar sind
+  backtrackHint(ability) {
+    const worlds = Object.keys(BACKTRACK).filter(k => k !== this.level?.key && (k === 'hub' || Object.keys(this.save.bones).some(b => b.startsWith(k + ':'))) && Object.entries(BACKTRACK[k]).some(([id, need]) => need === ability && !this.hasBone(k, id)));
+    if (worlds.length) this.toast(`Mit ${(ABILITIES[ability] || UPGRADES.find(u => u.id === ability)).name} kommst du jetzt an neue Goldknochen: ${worlds.map(k => WORLD_NAMES[k]).join(', ')}!`, 5500);
   }
   updateAbilityButtons() {
     const b = document.body.classList; b.toggle('can-spin', ['trillern', 'gleiten', 'tornado'].some(a => this.has(a))); b.toggle('can-bark', this.has('bellen'));
@@ -110,7 +115,7 @@ export class Game {
   buy() {
     const u = this.shopItems()[this.shopSel]; if (!u) return;
     if (u.owned) this.toast('Hast du schon!'); else if (u.locked) this.toast('Dafür musst du erst etwas anderes lernen.'); else if (this.save.crumbs < u.price) this.talk('bruno.pleite', { vars: { n: u.price - this.save.crumbs } });
-    else { this.save.crumbs -= u.price; this.save.abilities[u.id] = true; this.persist(); this.audio.sfx('big'); this.toast(`${u.icon} ${u.name}!`); this.talk('bruno.gekauft'); if (u.id.startsWith('herz')) { this.player.hp = this.maxHp(); this.updateHearts(); } this.updateAbilityButtons(); }
+    else { this.save.crumbs -= u.price; this.save.abilities[u.id] = true; this.persist(); this.audio.sfx('big'); this.toast(`${u.icon} ${u.name}!`); this.talk('bruno.gekauft'); if (u.id.startsWith('herz')) { this.player.hp = this.maxHp(); this.updateHearts(); } this.updateAbilityButtons(); this.later(1500, () => this.backtrackHint(u.id)); }
     this.renderShop();
   }
   _shopInput() {
@@ -240,7 +245,7 @@ export class Game {
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
     const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg', apport: 'Apportieren', trillern: 'Trillern', bellen: 'Bellen', stampfen: 'Bauchklatscher', buddeln: 'Buddeln', gleiten: 'Gleiten', wand: 'Wandsprung', tornado: 'Tornado', server: 'Aktenarchiv', chef: 'Amtsleiter', antenne: 'Antennenmast', tassen: 'Kaffeetassen' };
     const fo = k && this.level.foes?.length ? ` · Gegner besiegt ${this.level.foesDown}/${this.level.foes.length - this.level.foesGone}` : '';
-    const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || id[0].toUpperCase() + id.slice(1)}`).join(' · ')}</span>` : '';
+    const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || (BACKTRACK[k]?.[id] ? `Rückkehr ${(ABILITIES[BACKTRACK[k][id]] || UPGRADES.find(u => u.id === BACKTRACK[k][id])).icon}` : id[0].toUpperCase() + id.slice(1))}`).join(' · ')}</span>` : '';
     document.getElementById('menuText').innerHTML = `<b>⏸ Pause</b>Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${fo}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();
   }
