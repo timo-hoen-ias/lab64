@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { Cat, Pigeon } from '../bosses.js';
 import { box, cyl, cone, sphere, makeSign, makeNpcDog, makeRoundTree } from '../models.js';
+import { placeAsset } from '../assets.js';
 
 const WALK = 0xbdbdbd, ROAD = 0x5a5a5a, STEEL = 0x95a5a6, WOOD = 0x7a4a1f;
 
@@ -27,7 +28,11 @@ export const STRASSE = {
     l.goldbone('kletter', 24, 7.2, -8);
     l.goldbone('geheim', -33, 0.6, 1, { hidden: true });
     [[-10, 0], [10, 0]].forEach(([x, z]) => l.deco(cyl(0.7, 0.6, 1.4, 0x2d3436, x, 0.7, z, 10), x, 0.7, z));
-    [[-4, -20, 0xd63031], [4, 12, 0x0984e3], [-4, -2, 0xfdcb6e]].forEach(([x, z, c]) => { l.box(x, 0, z, 4, 1.4, 7, c); l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412); });
+    // Autos (GLB-Modelle, src/assets.js): drei mit Alarmanlage, der Lieferwagen, eine Streife; ohne Modell die alten Kisten-Autos
+    const car = (x, z, kind, ry = 0, o = {}) => placeAsset(l, kind, x, 0, z, ry, { solid: 'car', ...o })?.top
+      ?? (l.box(x, 0, z, 4, 1.4, 7, o.color ?? 0xb2bec3), l.box(x, 1.4, z, 3.2, 1.1, 4, 0x3b2412), 2.5);
+    const roof = [car(-4, -20, 'auto-rot', 0, { color: 0xd63031 }), car(4, 12, 'auto-blau', Math.PI, { color: 0x0984e3 }), car(-4, -2, 'auto-gelb', 0, { color: 0xfdcb6e })];
+    placeAsset(l, 'lieferwagen', 4.6, 0, -9, Math.PI, { solid: 'car' }); placeAsset(l, 'police', 4.6, 0, -27, Math.PI, { size: 6.6, solid: 'car' });
     // ---- Fähigkeit dieser Welt: Bellen. Drei Autos mit Alarmanlage – jedes einmal anbellen
     l.teacher(6, 28, 'bellen');
     l.alarms = 0;
@@ -43,7 +48,7 @@ export const STRASSE = {
     l.ringCourse([[24, 7.6, -24], [24, 7.6, 10], [0, 7.6, 10], [-24, 7.6, 10], [-24, 7.6, -24]], 'daecher', 30, 0x74b9ff);
     [[-12, 0], [12, 12], [0, -14]].forEach(([x, z]) => l.addEnemy(new Pigeon(g, x, z)));
     l.warp(-6, 0, 26, 'Hauptstraße', bench());
-    [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, 2.7, -20, 'bread'], [4, 2.7, 12, 'sausage'], [15.5, 3.3, -8, 'sausage'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
+    [[-24, 3.3, -24, 'sausage'], [-24, 3.3, -8, 'bread'], [-12, 1.2, 20, 'bread'], [12, 1.2, 20, 'sausage'], [-4, roof[0] + 0.2, -20, 'bread'], [4, roof[1] + 0.2, 12, 'sausage'], [15.5, 3.3, -8, 'sausage'], [0, 0.3, -32, 'sausage']].forEach(([x, y, z, k]) => l.pickup(x, y, z, k, { goal: true }));
     // Straßen in die Viertel
     [[0, -66, 12, 60], [0, 66, 12, 60], [66, 0, 60, 12], [-66, 0, 60, 12]].forEach(([x, z, w, d]) => l.group.add(box(w, 0.04, d, ROAD, x, 0.02, z))); // etwas flacher als die Plätze, sonst flackert die Überlappung
 
@@ -90,6 +95,7 @@ export const STRASSE = {
       l.hill(bx - 4, bz + 22, 5, 2.4, { flat: 0.2, color: 0xe0b872, side: 0xc8a165 });
       l.deco(cyl(1.2, 0.8, 2, 0xf39c12, 0, 1.6, 0, 10).rotateZ(0.5), bx + 14, 0, bz + 16);
       for (let i = 0; i < 8; i++) l.deco(box(2, 1, 0.2, i % 2 ? 0xffffff : 0xe74c3c, 0, 0.8, 0), bx - 24, 0, bz - 18 + i * 4.5, Math.PI / 2);
+      [[-26, -20], [-26, 18], [-20, 24], [-14, 24], [16, 20]].forEach(([dx, dz], i) => placeAsset(l, i < 4 ? 'cone' : 'carton', bx + dx, 0, bz + dz, i * 0.4, { scale: 2.2 })); // Pylonen, Karton
       l.pickup(bx, 9.8, bz, 'sausage', { goal: true });
       l.pickup(bx - 4, 2.7, bz + 22, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });
       const worker = makeNpcDog(0xd35400, 0xf1c40f); l.deco(worker, bx - 18, 0, bz + 10, Math.PI / 2);
@@ -148,6 +154,7 @@ export const STRASSE = {
       const cond = makeNpcDog(0x2d3436, 0x0984e3); l.deco(cond, -10, 1.2, 101, 0);
       l.trigger(-10, 1.2, 101, 4, () => g.talk('schorsch', { mesh: cond }), false);
       l.warp(-6, 1.2, 100, 'Bahnhof', bench());
+      [85, 93].forEach(z => placeAsset(l, 'taxi', -3.2, 0, z, 0, { size: 6.6, solid: 'car' })); // Taxistand vor dem Bahnsteig
     });
     l.pickup(60, 0.3, -60, 'ice', { special: true, onTake: () => l.eis(), onRestore: () => l.kugeln++ });
     l.eis = () => { l.kugeln++; g.toast(`Eiskugel ${l.kugeln}/3 – zurück zur Eisdiele am Brunnenplatz!`); };
