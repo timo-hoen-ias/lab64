@@ -148,6 +148,14 @@ export class Game {
       const p = this.player.pos; let a = 0; (L.zones || []).forEach((z, k) => { if (Math.hypot(z.x - p.x, z.z - p.z) < z.r) a = k + 1; });
       this.audio.setArea(a);
     }
+    // Hub: je näher Moll einem Portal kommt, desto mehr blendet die Musik ins Stück der Zielwelt über (ab 24 m, voll bei 6 m)
+    let style = null, k = 0;
+    if (L.key === 'hub' && !L.isRunner) {
+      const p = this.player.pos; let best = null, bd = Infinity;
+      for (const po of L.portals) { const d = Math.hypot(po.x - p.x, (po.y - p.y) * 1.5, po.z - p.z); if (d < bd) { bd = d; best = po; } }
+      if (best) { style = best.target === 'rattenrennen' ? 'chase' : LEVELS[best.target]?.music?.style; k = Math.min(0.9, Math.max(0, (24 - bd) / 18)); }
+    }
+    this.audio.setBlend(style, k);
   }
   worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; w[key].special ||= []; return w[key]; }
   applyQuality() {
