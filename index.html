@@ -135,7 +135,47 @@
   #menu .deco{position:absolute;bottom:-60px;font-size:34px;opacity:.55;animation:float 9s linear infinite;pointer-events:none}
   #menu.paused .deco{display:none}
   #menu.paused #dogIcon,#menu.paused h1{display:none}
-  #menu.paused #menuText>b:first-child{display:block;font-family:var(--fun);text-transform:uppercase;font-weight:400;letter-spacing:.04em;font-size:34px;margin-bottom:4px;color:var(--accent);-webkit-text-stroke:.14em var(--ink);paint-order:stroke fill}
+  #menuText{margin:10px 0;font-size:15px;line-height:1.45}
+  /* Pausemenü: Fortschritt der aktuellen Welt (Futter, Krümel, Gegner, Fähigkeit, Goldknochen) und aller Welten */
+  #menu.paused .card{max-width:1060px;grid-template-columns:minmax(0,1fr) 230px;align-items:start}
+  #menu.paused .title{text-align:left}
+  body.is-paused #hud,body.is-paused #touch{visibility:hidden}
+  #menu.paused #menuText{margin:0;font-size:14px}
+  .pz .ico{width:1.5em;height:1.5em;filter:none}
+  .pz .ico.off{opacity:.55}
+  .pzHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .pzTitle{font-family:var(--fun);text-transform:uppercase;letter-spacing:.04em;font-size:34px;line-height:1;color:var(--accent);-webkit-text-stroke:.14em var(--ink);paint-order:stroke fill;margin-right:auto;padding-top:4px}
+  .pill{display:inline-flex;align-items:center;gap:4px;background:#f1e2c4;border:3px solid var(--ink);border-radius:999px;padding:2px 12px 2px 6px;box-shadow:0 3px 0 var(--ink);font-weight:600}
+  .pill b,.pzWorld h4 span,.chip b{font-family:var(--fun);font-weight:400;letter-spacing:.03em;font-size:1.25em;padding-top:.15em}
+  .pzWorld{background:#fff1cf;border:3px solid var(--ink);border-radius:18px;padding:8px 12px 10px;margin-bottom:6px}
+  .pzWorld h4{margin:0 0 6px;display:flex;align-items:center;justify-content:space-between;font-family:var(--fun);font-weight:400;text-transform:uppercase;letter-spacing:.04em;font-size:22px}
+  .pzWorld h4 span{display:inline-flex;align-items:center;gap:4px;font-size:20px}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--ui);border:2px solid rgba(59,36,18,.35);border-radius:12px;padding:4px 8px}
+  .chip span{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+  .chip small{font-size:11px;font-weight:600;color:#8a6a4a;white-space:nowrap}
+  .chip b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip.ok{border-color:var(--good);background:#eefbe6} .chip.ok b::after{content:" ✔";color:#3a9a2c}
+  .pz .lbl{margin:8px 0 4px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#a0561b}
+  .bones{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px}
+  .bt{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 4px;border-radius:10px;background:rgba(59,36,18,.07);font-weight:600;font-size:13px;color:#8a6a4a}
+  .bt span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bt i{font-style:normal;font-size:13px}
+  .bt.ok{background:#ffe9a8;color:var(--ink);box-shadow:inset 0 0 0 2px #e6b93c}
+  .bt.can{background:#e3f6ff;color:var(--ink);box-shadow:inset 0 0 0 2px #5fb7e8;animation:blink 1.6s ease-in-out infinite}
+  .worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px}
+  .wc{background:var(--ui);border:3px solid var(--ink);border-radius:14px;padding:5px 9px 6px;box-shadow:0 3px 0 var(--ink);font-size:13px;line-height:1.25}
+  .wc b{display:block;font-size:14px}
+  .wc small{display:flex;align-items:center;gap:3px;flex-wrap:wrap;font-size:12px;font-weight:600;color:#6b4a2b}
+  .wc .ico{width:1.35em;height:1.35em}
+  .wc .ico.badge{border-width:2px;font-size:.85em}
+  .wc .bar{height:8px;border:2px solid var(--ink);border-radius:6px;background:#e6d5b4;overflow:hidden;margin:3px 0}
+  .wc .bar i{display:block;height:100%;background:linear-gradient(#ffe066,#f4a52a)}
+  .wc.here{background:#fff1cf;outline:3px solid var(--accent);outline-offset:1px}
+  .wc.ok{background:#eefbe6} .wc.ok b::after{content:" ⭐"}
+  .wc.lock{opacity:.6;box-shadow:none;border-style:dashed}
+  @media (max-height:430px){#menu.paused .card{grid-template-columns:minmax(0,1fr) 170px;gap:8px 14px} .pzTitle{font-size:26px} .pzWorld h4{font-size:18px} .chips{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))} .bones{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))} .bt{font-size:12px} .worlds{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+  @media (max-aspect-ratio:1/1){#menu.paused .card{grid-template-columns:1fr}}
   @keyframes float{to{transform:translateY(calc(-100vh - 120px)) rotate(360deg)}}
   #menu .card{position:relative;animation:cardIn .5s cubic-bezier(.34,1.56,.64,1);background:var(--ui);color:var(--ink);border-radius:26px;padding:22px 26px;max-width:800px;width:100%;max-height:100%;overflow-y:auto;box-shadow:0 10px 0 var(--ink);text-align:center;border:5px solid var(--ink);display:grid;grid-template-columns:1.15fr 1fr;gap:10px 26px;align-items:center;touch-action:pan-y}
   #menu .card.opts .title,#menu .card.opts #vMain{display:none}
@@ -263,7 +303,7 @@
     <div class="title">
       <canvas id="dogIcon"></canvas>
       <h1><span class="l">M</span><span class="l">O</span><span class="l">L</span><span class="l">L</span><small>Der Labrador</small></h1>
-      <p id="menuText">Ein brauner Labrador. Eine Welt voller Schinken. Und ein Staubsauger, der alles kaputt macht.</p>
+      <div id="menuText">Ein brauner Labrador. Eine Welt voller Schinken. Und ein Staubsauger, der alles kaputt macht.</div>
     </div>
     <div id="vMain">
       <button id="btnStart" class="primary">▶ Spielen</button>
