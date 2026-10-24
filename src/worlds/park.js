@@ -11,7 +11,7 @@ function bench() { const g = new THREE.Group(); g.add(box(2.4, 0.15, 0.7, WOOD, 
 function blanket(c) { const g = new THREE.Group(); g.add(box(3, 0.04, 3, c, 0, 0.02, 0)); for (let i = 0; i < 3; i++) g.add(box(3, 0.045, 0.4, 0xffffff, 0, 0.025, -1 + i)); g.add(box(0.8, 0.5, 0.5, 0xb5651d, 0.8, 0.25, 0.6)); return g; }
 
 export const PARK = {
-  name: 'Der Grillpark', time: 'nachmittag', backdrop: 'wald', grass: true, sky: 0xa7e8ff, ground: 0x58b04f, size: 150, need: 10, goalKind: 'sausage',
+  name: 'Der Grillpark', surface: 'grass', time: 'nachmittag', backdrop: 'wald', grass: true, sky: 0xa7e8ff, ground: 0x58b04f, size: 150, need: 10, goalKind: 'sausage',
   music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1, style: 'bbq' },
   build(l) {
     const g = l.game, T = (x, z) => l.top(x, z);
@@ -53,7 +53,7 @@ export const PARK = {
 
     // ---- Dachsbau (Innenraum abseits der Karte): Gänge, Krümel, Knochen
     const dx = 2000; l.room(dx, 0, 44, 40);
-    l.box(dx, -1, 0, 44, 1, 40, 0x6b4a2b); l.box(dx, 5, 0, 44, 1, 40, 0x4a3420); // Boden, Decke
+    l.box(dx, -1, 0, 44, 1, 40, 0x6b4a2b, { surface: 'dirt' }); l.box(dx, 5, 0, 44, 1, 40, 0x4a3420); // Boden, Decke
     l.box(dx, 0, -20, 44, 5, 1, 0x5a3d22); l.box(dx, 0, 20, 44, 5, 1, 0x5a3d22); l.box(dx - 22, 0, 0, 1, 5, 40, 0x5a3d22); l.box(dx + 22, 0, 0, 1, 5, 40, 0x5a3d22);
     // Labyrinth-Gänge
     [[-10, 10, 24, 1], [6, 4, 1, 12], [-4, -2, 20, 1], [-14, -10, 1, 14], [10, -10, 16, 1], [0, -15, 1, 8]].forEach(([x, z, w, d]) => l.box(dx + x, 0, z, w, 5, d, 0x5a3d22));

@@ -11,7 +11,7 @@ function wallZ(l, z, x0, x1, gaps = []) { let a = x0; for (const [g0, g1] of [..
 function wallX(l, x, z0, z1, gaps = []) { let a = z0; for (const [g0, g1] of [...gaps, [z1, z1]]) { if (g0 > a) l.box(x, 0, (a + g0) / 2, 1, H, g0 - a, WALL); a = g1; } }
 
 export const KANAL = {
-  name: 'Das Kanalsystem', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 60, hazard: (x, z) => Math.abs(x) < 5.6 && Math.abs(z) < 26, need: 6, goalKind: 'cheese', fogNear: 18, fogFar: 70,
+  name: 'Das Kanalsystem', surface: 'stone', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 60, hazard: (x, z) => Math.abs(x) < 5.6 && Math.abs(z) < 26, need: 6, goalKind: 'cheese', fogNear: 18, fogFar: 70,
   music: { scale: 'minor', root: 196, bpm: 120, seed: 13, style: 'sewer' },
   build(l) {
     const g = l.game;
@@ -101,7 +101,7 @@ export const KANAL = {
 
     // ---- Rattennest (Raum): Käseberg
     const rx = 2000; l.room(rx, 0, 32, 22);
-    l.box(rx, -1, 0, 32, 1, 22, 0x3d2b1f); l.box(rx, 8, 0, 32, 1, 22, 0x2d1f16);
+    l.box(rx, -1, 0, 32, 1, 22, 0x3d2b1f, { surface: 'dirt' }); l.box(rx, 8, 0, 32, 1, 22, 0x2d1f16);
     l.box(rx, 0, -11, 32, 8, 1, 0x4e3626); l.box(rx, 0, 11, 32, 8, 1, 0x4e3626); l.box(rx - 16, 0, 0, 1, 8, 22, 0x4e3626); l.box(rx + 16, 0, 0, 1, 8, 22, 0x4e3626);
     [[-8, -4, 1.4], [-4, -6, 2.8], [0, -8, 4.2], [4, -6, 5.6]].forEach(([x, z, h]) => l.box(rx + x, 0, z, 3.4, h, 3.4, 0xffd94a));
     l.goldbone('nest', rx + 4, 6.4, -6);

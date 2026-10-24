@@ -37,6 +37,9 @@ Am Eingang jeder Welt wartet **Opa Bruno** (Molls alter Labrador-Opa) und bringt
 ### Dialoge
 Alle Figuren sprechen mit Moll – und brabbeln dabei wie in Banjo-Kazooie: Der Text erscheint Buchstabe für Buchstabe, und an jeder Silbe blubbert die eigene Stimme der Figur (tiefes Opa-Brummeln, piepsiger Zwergenkönig, Roboter-Kaffeemaschine …), alles live aus Oszillatoren, Lautstärke über den Effekte-Regler. Beim ersten Treffen gibt es ein ganzes Gespräch (Spiel hält an, SPRUNG/BISS/Tippen blättert weiter, Pause überspringt), danach nur noch kurze Sprüche nebenbei. Bosse stellen sich in Reimen vor. Texte und Stimmen: `src/dialog.js`.
 
+### Pfoten-Geräusche
+Molls Schritte klingen je nach Untergrund – Gras raschelt, Holz klopft hohl, auf Fliesen und Stein klicken die Krallen, Sand knirscht, Teppich dämpft, Blech klingt nach, in Pfützen platscht es. Die Schritte sitzen genau auf den Pfotenaufsätzen der Trab-/Galopp-Animation; Absprung und Landung (je tiefer der Sturz, desto wuchtiger) klingen ebenso nach dem Boden. Alles aus Oszillatoren und gefiltertem Rauschen (`src/audio.js`), Lautstärke über den Effekte-Regler. Den Untergrund setzen Welten mit `surface: '…'` (Welt, Raum, Kiste, Hügel, Rampe) oder `l.surface(x, z, w, d, 'tile')`; was nichts angibt, wird aus der Farbe geraten (`src/surface.js`). Test: `tests/pfoten.mjs`.
+
 | Welt | Fähigkeit | Was sie tut | Prüfung |
 |---|---|---|---|
 | Garten | Apportieren | Ball/Stock mit BISS tragen und ablegen | Ball zur Hundehütte bringen |

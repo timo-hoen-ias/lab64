@@ -9,7 +9,7 @@ const WALK = 0xbdbdbd, ROAD = 0x5a5a5a, STEEL = 0x95a5a6, WOOD = 0x7a4a1f;
 function bench() { const g = new THREE.Group(); g.add(box(2.4, 0.15, 0.7, WOOD, 0, 0.55, 0)); g.add(box(2.4, 0.6, 0.12, WOOD, 0, 0.95, -0.3)); [-1, 1].forEach(s => g.add(box(0.12, 0.55, 0.6, 0x2d3436, s, 0.27, 0))); return g; }
 
 export const STRASSE = {
-  name: 'Die Einkaufsstraße', time: 'mittag', backdrop: 'stadt', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 150, need: 12, goalKind: 'bread',
+  name: 'Die Einkaufsstraße', surface: 'stone', time: 'mittag', backdrop: 'stadt', sky: 0x8fd3ff, ground: 0x9a9a9a, size: 150, need: 12, goalKind: 'bread',
   music: { scale: 'major', root: 330, bpm: 140, seed: 11, style: 'street' },
   build(l) {
     const g = l.game;

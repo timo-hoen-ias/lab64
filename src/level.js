@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { BONES } from './levels.js';
 import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
+import { collectPatches, surfaceAt } from './surface.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex } from './fx.js';
 import { Critters } from './critters.js';
 
@@ -48,6 +49,7 @@ export class Level {
     this.group = new THREE.Group(); this.scene.add(this.group);
     def.build(this);
     this._placeScatter();
+    this.patches = (this.patches || []).concat(collectPatches(this, [this.group, ...this.zones.map(z => z.group)]));
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
     CAUSTIC.uSeaY.value = this.seaY ?? -1e9;
@@ -112,9 +114,13 @@ export class Level {
     for (let i = 0; i < p.count; i++) { const k = 1 + patch(p.getX(i), -p.getY(i)) * (indoor ? 0.025 : 0.055); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); return geo;
   }
+  // Untergrund unter Moll (Gras, Holz, Fliesen …) – siehe surface.js
+  surfaceAt(x, y, z) { return surfaceAt(this, x, y, z); }
+  // Untergrund von Hand festlegen: Rechteck um (x,z), Oberkante y (z. B. Fliesen in der Küche, Pfütze, Blechdach)
+  surface(x, z, w, d, surface, y = 0) { (this.patches ||= []).push({ min: { x: x - w / 2, z: z - d / 2 }, max: { x: x + w / 2, z: z + d / 2 }, y, surface, explicit: true }); }
   waterAt(x, z) {
     for (const p of this.ponds || []) if (((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2 < 1) return p.y;
-    if (this.seaY !== undefined && this.groundAt(x, z, this.seaY) < this.seaY - 0.3) return this.seaY;
+    if (this.seaY !== undefined && !this.areaAt(x, z).room && this.groundAt(x, z, this.seaY) < this.seaY - 0.3) return this.seaY; // Innenräume (Fischmarkt, Laderaum) liegen nicht im Meer
     return null;
   }
   // Meer: Wasser überall dort, wo der Boden unter y liegt (Strand: Grund bei floorY, Land = Hügel darüber)
@@ -215,13 +221,13 @@ export class Level {
   // ---- Gelände: Hügel (rund/elliptisch, flacher Gipfel) und Rampen. Liegt über dem Boden, Kisten kommen obendrauf.
   // hill: o.flat = Anteil Gipfelplateau (0..1), o.rz = Radius in z, o.y0 = Fußhöhe (für Stufen auf Plateaus), o.color/o.side
   hill(x, z, r, h, o = {}) {
-    const t = { kind: 'hill', x, z, rx: r, rz: o.rz || r, h, flat: o.flat ?? 0.35, y0: o.y0 || 0 };
+    const t = { kind: 'hill', x, z, rx: r, rz: o.rz || r, h, flat: o.flat ?? 0.35, y0: o.y0 || 0, color: o.color, surface: o.surface };
     t.min = { x: x - t.rx, z: z - t.rz }; t.max = { x: x + t.rx, z: z + t.rz };
     this.terrain.push(t); this.group.add(this._hillMesh(t, o.color ?? this.def.ground ?? 0x6bbf59, o.side ?? 0x9b7b4f)); return t;
   }
   // Rampe von (x0,z0) nach (x1,z1), Breite w, Höhe h0 → h1 (z.B. Weg auf ein Plateau)
   ramp(x0, z0, x1, z1, w, h0, h1, color = 0xc8b48a, o = {}) {
-    const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz), t = { kind: 'ramp', x0, z0, ux: dx / len, uz: dz / len, len, w, h0, h1, y0: o.bridge ? Math.min(h0, h1) - 0.35 : o.y0 || 0, bridge: !!o.bridge };
+    const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz), t = { kind: 'ramp', x0, z0, ux: dx / len, uz: dz / len, len, w, h0, h1, y0: o.bridge ? Math.min(h0, h1) - 0.35 : o.y0 || 0, bridge: !!o.bridge, color, surface: o.surface };
     const hw = w / 2 + 0.01, ex = Math.abs(t.uz) * hw, ez = Math.abs(t.ux) * hw;
     t.min = { x: Math.min(x0, x1) - ex, z: Math.min(z0, z1) - ez }; t.max = { x: Math.max(x0, x1) + ex, z: Math.max(z0, z1) + ez };
     this.terrain.push(t); this.group.add(this._rampMesh(t, color)); return t;
@@ -277,7 +283,7 @@ export class Level {
     const zo = { x, z, r, group: zg }; this.zones.push(zo); return zo;
   }
   // ---- Innenräume abseits der Hauptkarte (eigene Begrenzung). Rückgabe: Mittelpunkt + Fläche
-  room(x, z, w, d) { const a = { min: { x: x - w / 2, z: z - d / 2 }, max: { x: x + w / 2, z: z + d / 2 }, room: true }; this.areas.push(a); return a; }
+  room(x, z, w, d, o = {}) { const a = { min: { x: x - w / 2, z: z - d / 2 }, max: { x: x + w / 2, z: z + d / 2 }, room: true, surface: o.surface }; this.areas.push(a); return a; } // o.surface = Boden im Raum (sonst def.surface)
   // Tür: Berühren bringt Moll zum Ziel (to = {x,y,z,yaw?}). o.label = Schild über der Tür, o.color
   door(x, y, z, to, o = {}) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry || 0;
