@@ -162,3 +162,23 @@ export const tvStand = glb('tvStand'), plantBox = glb('plantBox'), toys = glb('t
 export const sack = glb('sack'), jarShelf = glb('jarShelf'), waterCooler = glb('waterCooler'), officeChair = glb('officeChair'), cabinet = glb('cabinet'), acUnit = glb('acUnit');
 export const solarPanel = glb('solarPanel'), pipeStack = glb('pipeStack'), toxicBarrel = glb('toxicBarrel'), junk = glb('junk'), trashBags = glb('trashBags'), glowShrooms = glb('glowShrooms');
 export const rubberDuck = glb('rubberDuck'), tire = glb('tire'), cart2 = glb('cart2');
+
+// ---- Extra-Requisiten je Welt (assets/extras/<welt>/<name>.glb, Maße in Metern wie hier; drinnen mit s skalieren)
+// Bewegliche Knoten: [knoten, Art, Achse, Stärke, Tempo]. spin = dreht sich (Stärke = rad/s), swing = pendelt ±Stärke,
+// lift = fährt um Stärke hoch und runter. deko/index.js (animateDeko) bewegt sie, der Rest wird mit verbacken.
+const MOVES = {
+  'garten/windrad': [['rad', 'spin', 'z', 3]], 'garten/hollywoodschaukel': [['schaukel', 'swing', 'x', 0.12, 1.1]],
+  'buero/ventilator': [['fluegel', 'spin', 'z', 10]],
+  'park/schaukel': [['schaukel1', 'swing', 'x', 0.35, 1.6], ['schaukel2', 'swing', 'x', 0.25, 1.75]], 'park/karussell': [['dreh', 'spin', 'y', 0.6]], 'park/wippe': [['brett', 'swing', 'z', 0.22, 1.3]],
+  'dorf/wetterhahn': [['hahn', 'swing', 'y', 0.9, 0.25]], 'dorf/schwengelpumpe': [['schwengel', 'swing', 'x', 0.25, 2.2]],
+  'hafen/steuerrad': [['rad', 'swing', 'z', 0.7, 0.5]], 'hafen/schiffsglocke': [['glocke', 'swing', 'x', 0.2, 1.4]], 'hafen/seilwinde': [['winde', 'spin', 'y', 0.4]], 'hafen/gabelstapler': [['gabel', 'lift', 'y', 1.2, 0.35]],
+  'kanal/ventilrad': [['rad', 'swing', 'y', 1.5, 0.3]], 'kanal/manometer': [['zeiger', 'swing', 'z', 0.12, 6]], 'kanal/warnleuchte': [['licht', 'spin', 'y', 5]],
+};
+export function X(name) {
+  const mv = MOVES[name] || [], g = propAsset(name, { keep: mv.map(m => '=' + m[0]) }); if (!g) return null; g.userData.extra = name;
+  if (mv.length) {
+    const nodes = {}; g.children.forEach(c => { if (c.name) nodes[c.name] = c; });
+    g.userData.moves = mv.map(([n, kind, axis, amp, f]) => ({ n: nodes[n], kind, axis, amp, f, y: nodes[n].position.y })).filter(m => m.n);
+  }
+  return g;
+}

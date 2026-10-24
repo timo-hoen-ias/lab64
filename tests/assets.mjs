@@ -35,6 +35,12 @@ ok('Requisiten als GLB', q.glb === q.all - 1, `${q.glb}/${q.all} (glowShrooms bl
 ok('Farbparameter färbt um (blaues Auto)', q.blue);
 ok('andere Länge → altes Modell', q.fence);
 ok('Windrad dreht, Fahne weht', q.spin && q.wave);
+const x = await p.evaluate(async () => {
+  const { X } = await import('./src/requisiten.js'), A = await import('./src/assets.js'), sw = X('park/schaukel'), pu = X('dorf/schwengelpumpe');
+  return { all: A.EXTRAS.every(k => A.hasAsset('prop-' + k)), n: A.EXTRAS.length, swing: sw.userData.moves.length, body: pu.userData.body.geometry.attributes.position.count > 100 && pu.userData.moves[0].n.name === 'schwengel' };
+});
+ok('Extra-Requisiten je Welt geladen', x.all, `${x.n}`);
+ok('bewegliche Teile (Schaukel 2 Sitze, Pumpenschwengel)', x.swing === 2 && x.body);
 ok('Requisiten der Welt zusammengefasst', q.merged >= 1, `${q.merged} Mesh(es)`);
 console.log(errs.length ? 'ERR ' + JSON.stringify(errs) : 'ERR []');
 console.log(bad ? `${bad} FEHLER` : 'alles ok');

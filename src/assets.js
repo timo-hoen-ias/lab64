@@ -11,6 +11,9 @@ import { toonGradient, addSway } from './fx.js';
 // Requisiten unter assets/requisiten/<Funktionsname aus src/props.js>.glb
 export const PROPS = ['acUnit', 'anchorDeco', 'armchair', 'awningShop', 'barrel', 'beachHut', 'beehive', 'bench', 'bigPlant', 'bike', 'bikeRack', 'billboard', 'bin', 'birch', 'birdbath', 'bollard', 'boxes', 'buoyBob', 'busStop', 'cabinet', 'cactus', 'cafeTable', 'campfire', 'car', 'cart', 'cart2', 'chair', 'cityBlock', 'coatRack', 'cone3', 'cottage', 'crate', 'crates', 'deckChair', 'diningSet', 'fence', 'field', 'fishNet', 'fishingBoat', 'flagPole', 'floorLamp', 'flowerPatch', 'fountainSmall', 'glowShrooms', 'hayBale', 'hedge', 'hydrant', 'iceCart', 'jarShelf', 'junk', 'kiosk', 'lantern', 'lifebuoyStand', 'lifeguardTower', 'lobsterPot', 'log', 'logPile', 'marketStall', 'mushrooms', 'officeChair', 'pallet', 'palletStack', 'palmTree', 'picnicTable', 'pinwheel', 'pipeStack', 'plantBox', 'planterTree', 'pot', 'pumpkin', 'reeds', 'rock', 'rocks', 'ropeCoil', 'rowboat', 'rubberDuck', 'rug', 'sack', 'sailboat', 'sandcastle', 'scarecrow', 'shed', 'shelf', 'shoeRack', 'signpost', 'sofa', 'solarPanel', 'starfish', 'steppingStones', 'streetLamp', 'stump', 'surfboard', 'table', 'tallGrass', 'tent', 'tire', 'towel', 'toxicBarrel', 'toys', 'trashBags', 'tvStand', 'umbrella', 'van', 'veggieRow', 'volleyNet', 'warehouse', 'waterCooler', 'wateringCan', 'well', 'wheelbarrow', 'woodFence'];
 
+// Extra-Requisiten je Welt unter assets/extras/<welt>/<name>.glb (src/requisiten.js: X('park/wippe'))
+export const EXTRAS = ['buero/aktenstapel', 'buero/computer', 'buero/drucker', 'buero/kaffeemaschine', 'buero/kopierer', 'buero/pinnwand', 'buero/schreibtischlampe', 'buero/ventilator', 'dorf/hackklotz', 'dorf/hofladen', 'dorf/huehnerstall', 'dorf/milchkannen', 'dorf/schwengelpumpe', 'dorf/wassertrog', 'dorf/wetterhahn', 'garten/hollywoodschaukel', 'garten/insektenhotel', 'garten/pflanztisch', 'garten/rasenmaeher', 'garten/rosenbogen', 'garten/schlauchwagen', 'garten/vogelhaus', 'garten/windrad', 'hafen/container', 'hafen/fischkiste', 'hafen/gabelstapler', 'hafen/schiffsglocke', 'hafen/seesack', 'hafen/seilwinde', 'hafen/steuerrad', 'kanal/absperrbake', 'kanal/manometer', 'kanal/mausefalle', 'kanal/stromkasten', 'kanal/ventilrad', 'kanal/wandleiter', 'kanal/warnleuchte', 'kueche/brotkasten', 'kueche/kochtopf', 'kueche/mixer', 'kueche/obstschale', 'kueche/salz-pfeffer', 'kueche/schneidebrett', 'kueche/toaster', 'kueche/wasserkocher', 'park/karussell', 'park/kugelgrill', 'park/picknickkorb', 'park/rutsche', 'park/schaukel', 'park/trinkbrunnen', 'park/wippe', 'strand/kuehlbox', 'strand/sandeimer', 'strand/schwimmring', 'strand/strandkorb', 'strand/strandusche', 'strand/treibholz', 'strand/windschutz', 'strasse/ampel', 'strasse/briefkasten', 'strasse/kaugummiautomat', 'strasse/litfasssaeule', 'strasse/parkuhr', 'strasse/telefonzelle', 'strasse/verkehrsschild'];
+
 // name → Datei unter assets/ (ohne .glb). Neue Modelle hier eintragen und in CREDITS.md nennen.
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
@@ -20,7 +23,7 @@ export const ASSETS = {
   ...Object.fromEntries(['taucherbrille', 'flammen', 'portal-rahmen', 'schild', 'schild-pfosten'].map(k => [k, 'deko/' + k])), // Blender (Glas, Glut, Leuchtteile bekommen ihr Material im Code) // Kleintiere, Deko (details.js, critters.js)
   ...Object.fromEntries(['schnecke', 'wespe', 'biene', 'fliege', 'bremse', 'frosch', 'kroete', 'maulwurf', 'gullyratte', 'wollmaus', 'kakerlake', 'kaefer', 'einsiedler', 'krebs', 'ratte', 'saugi', 'tacker', 'drohne', 'fledermaus', 'huhn', 'gans', 'moewe'].map(k => ['foe-' + k, 'gegner/' + ({ ratte: 'miniratte', saugi: 'putzroboter', moewe: 'minimoewe' }[k] ?? k)])), // kleine Gegner (enemies.js)
   tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
-  ...Object.fromEntries(PROPS.map(k => ['prop-' + k, 'requisiten/' + k])), // Deko-Requisiten aus Blender (src/requisiten.js)
+  ...Object.fromEntries(PROPS.map(k => ['prop-' + k, 'requisiten/' + k])), ...Object.fromEntries(EXTRAS.map(k => ['prop-' + k, 'extras/' + k])), // Deko-Requisiten aus Blender (src/requisiten.js)
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
 
@@ -50,14 +53,14 @@ function flat(o, matrix) {
 }
 
 // Geometrie je Modell (und Lackfarbe) nur einmal bauen: alle Teile außer o.keep zu einem Mesh zusammengefasst.
-// Teile in o.keep (Knotennamen-Anfänge) bleiben einzeln, mit ihrem Knoten-Ursprung als Drehpunkt.
+// Teile in o.keep (Knotennamen-Anfänge, '=name' = genau dieser Knoten) bleiben einzeln, mit ihrem Knoten-Ursprung als Drehpunkt.
 function parts(name, paint, keep) {
   const key = `${name}|${paint ?? ''}|${keep.join()}`;
   if (geos.has(key)) return geos.get(key);
   const scene = src.get(name); scene.updateMatrixWorld(true);
   const body = [], sep = [], inv = new THREE.Matrix4();
   const walk = o => {
-    if (o !== scene && keep.some(k => o.name.startsWith(k))) {
+    if (o !== scene && keep.some(k => k[0] === '=' ? o.name === k.slice(1) : o.name.startsWith(k))) {
       inv.copy(o.matrixWorld).invert(); const list = [];
       o.traverse(m => { if (m.isMesh) list.push(flat(m, inv.clone().multiply(m.matrixWorld))); });
       if (list.length) sep.push({ name: o.name, geo: list.length > 1 ? mergeGeometries(list) : list[0], pos: new THREE.Vector3().setFromMatrixPosition(o.matrixWorld), quat: new THREE.Quaternion().setFromRotationMatrix(o.matrixWorld) });
@@ -233,7 +236,7 @@ export function propAsset(name, o = {}) {
   }
   const { body, sep } = propGeos.get(key), g = new THREE.Group();
   const mesh = (geo, mt) => { const m = new THREE.Mesh(geo, mt); m.castShadow = true; m.receiveShadow = true; return m; };
-  g.add(mesh(body, toonMaterial())).children[0].scale.setScalar(s);
+  g.add(mesh(body, toonMaterial())).children[0].scale.setScalar(s); g.userData.body = g.children[0];
   for (const q of sep) {
     const k = Object.keys(sway).find(k => q.name.startsWith(k)), n = new THREE.Group(); n.name = q.name.replace(/-m$/, '');
     n.position.copy(q.pos).multiplyScalar(s); n.quaternion.copy(q.quat); n.scale.setScalar(s);
