@@ -11,6 +11,7 @@ import { toonGradient } from './fx.js';
 // name → Datei unter assets/ (ohne .glb). Neue Modelle hier eintragen und in CREDITS.md nennen.
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
+  ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (texturiert, makeFood)
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
 
@@ -117,4 +118,19 @@ export function placeAsset(l, name, x, y, z, ry = 0, o = {}) {
   if (o.solid === 'car') { const low = box.clone(); low.max.y = top.min.y; low.min.y = 0; add(low, surface); add(top, surface); }
   else if (o.solid !== false) add(box, surface);
   return { mesh: m, top: y + box.max.y };
+}
+
+// Texturierte Modelle (z. B. die Sammelobjekte): Textur bleibt, Material wird Toon mit derselben Textur. Geometrie und
+// Material je Modell nur einmal, jede Kopie ist ein Zeichenaufruf je Teil. o.emissive = Leuchtfarbe (Goldknochen).
+const texMats = new Map();
+export function texturedAsset(name, o = {}) {
+  if (!src.has(name)) return null;
+  const g = new THREE.Group(); src.get(name).updateMatrixWorld(true);
+  src.get(name).traverse(m => {
+    if (!m.isMesh) return;
+    const sm = [].concat(m.material)[0], key = `${name}|${sm.uuid}|${o.emissive ?? ''}`;
+    if (!texMats.has(key)) texMats.set(key, new THREE.MeshToonMaterial({ color: sm.color, map: sm.map, gradientMap: toonGradient(), ...(o.emissive !== undefined && { emissive: new THREE.Color(o.emissive) }) }));
+    const q = new THREE.Mesh(m.geometry, texMats.get(key)); q.applyMatrix4(m.matrixWorld); q.castShadow = true; g.add(q);
+  });
+  return g;
 }
