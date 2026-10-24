@@ -21,7 +21,7 @@ function makeDisplay(text, w = 3, color = '#ff4d3d') {
   draw(text);
   const g = new THREE.Group(), h = w / 4, mat = new THREE.MeshBasicMaterial({ map: tex });
   g.add(box(w + 0.16, h + 0.16, 0.14, 0x2d3436));
-  [1, -1].forEach(s => { const f = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); f.position.z = s * 0.075; if (s < 0) f.rotation.y = Math.PI; g.add(f); });
+  [1, -1].forEach(s => { const f = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); f.position.z = s * 0.1; if (s < 0) f.rotation.y = Math.PI; g.add(f); });
   g.userData.setText = draw; return g;
 }
 
@@ -32,9 +32,39 @@ export const BUERO = {
     const g = l.game, slab = (x0, x1, z0, z1, y, c = SLAB) => { const s = l.box((x0 + x1) / 2, y - 0.6, (z0 + z1) / 2, x1 - x0, 0.6, z1 - z0, c, { cam: true, dynamic: true }); s.mesh.castShadow = false; }; // Decken werfen keinen Schatten, sonst wäre es drinnen stockdunkel
     const md = (m, x, y, z, ry = 0) => { l.deco(m, x, y, z, ry); m.userData.merge = true; }; // Deko ohne Kollision, wird zu wenigen Meshes verbacken
     const crumbs = (y, pts) => pts.forEach(([x, z]) => l.pickup(x, y + 0.3, z, 'crumb'));
-    l.spawn.set(0, 1, 18); l.wallRing(S, ROOF + 1.2, WALL); l.solids.slice(-4).forEach(w => w.mesh.castShadow = false);
+    l.spawn.set(0, 1, 18); l.wallRing(S, ROOF + 1.2, WALL);
+    l.solids.slice(-4).forEach(w => { w.mesh.visible = false; w.mesh.userData.merge = false; }); // nur Kollision; sichtbar sind die Wände mit Fensterlöchern unten
     for (const y of [0, F1, F2]) for (const [x, z] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) l.deco(box(4, 0.15, 1, 0xfffbe6), x, y + 11.25, z); // Deckenlampen
-    for (let f = 0; f < 3; f++) for (let i = -3; i <= 3; i++) [[i * 8, -S + 0.6, 0], [i * 8, S - 0.6, 0], [-S + 0.6, i * 8, 1], [S - 0.6, i * 8, 1]].forEach(([a, b, r]) => l.deco(box(r ? 0.2 : 5, 6, r ? 5 : 0.2, 0x74b9ff), r ? a : a, f * 12 + 3, r ? b : b));
+    // Außenwände mit echten Glasfenstern: Pfeiler zwischen den Fenstern, Brüstung darüber, Scheiben aus durchsichtigem Glas.
+    // Hinter Whiteboard und Amtsleitungs-Tür (Nordwand, 1. Stock) bleibt die Wand zu.
+    const shut = (side, f, i) => side === 0 && f === 1 && (i === 0 || i === 1);
+    const wallPiece = (side, a0, a1, y0, y1) => { const len = a1 - a0, c = (a0 + a1) / 2, h = y1 - y0, m = side < 2 ? box(len, h, 1, WALL) : box(1, h, len, WALL); m.castShadow = false; md(m, side < 2 ? c : (side === 2 ? -S : S), y0 + h / 2, side < 2 ? (side === 0 ? -S : S) : c); };
+    const panes = [];
+    for (let side = 0; side < 4; side++) {
+      const e = side < 2 ? S + 0.5 : S - 0.5; // Nord/Süd laufen über die Ecken, Ost/West stoßen innen an
+      for (let f = 0; f < 3; f++) {
+        const y = f * 12; let a = -e;
+        for (let i = -3; i <= 3; i++) {
+          if (shut(side, f, i)) continue;
+          wallPiece(side, a, i * 8 - 2.5, y, y + 6); a = i * 8 + 2.5;
+          const fx = side < 2 ? i * 8 : (side === 2 ? -S : S), fz = side < 2 ? (side === 0 ? -S : S) : i * 8, r = side < 2 ? 0 : Math.PI / 2;
+          panes.push([fx, y + 3, fz, r]);
+          md(box(5.2, 0.25, 1.1, 0xb2bec3), fx, y + 0.12, fz, r); md(box(5.2, 0.2, 1.1, 0xb2bec3), fx, y + 5.9, fz, r); md(box(0.18, 6, 0.3, 0xb2bec3), fx, y + 3, fz, r); // Rahmen, Sprosse
+        }
+        wallPiece(side, a, e, y, y + 6); wallPiece(side, -e, e, y + 6, y + 12.3); // ragt etwas in die Ebene darüber, damit keine Fläche mit der Decke zusammenfällt
+      }
+      wallPiece(side, -e, e, ROOF, ROOF + 1.2);
+    }
+    const glass = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 5.6, 0.06), new THREE.MeshBasicMaterial({ color: 0xcfeeff, transparent: true, opacity: 0.16, depthWrite: false }), panes.length), o = new THREE.Object3D();
+    panes.forEach(([x, y, z, r], k) => { o.position.set(x, y, z); o.rotation.set(0, r, 0); o.updateMatrix(); glass.setMatrixAt(k, o.matrix); });
+    glass.renderOrder = 2; l.group.add(glass);
+    // Draußen: Straße und Nachbarhäuser, damit man durch die Fenster in die Stadt schaut
+    md(box(400, 0.2, 400, 0x7b7f84), 0, -0.2, 0); md(box(400, 0.05, 6, 0xdcdde1), 0, -0.07, 48); md(box(6, 0.05, 400, 0xdcdde1), 48, -0.07, 0);
+    for (let k = 0; k < 16; k++) {
+      const a = k / 16 * Math.PI * 2 + 0.2, d = 62 + (k * 37) % 25, w = 14 + (k * 7) % 10, h = 14 + (k * 23) % 44, x = Math.cos(a) * d, z = Math.sin(a) * d;
+      const hb = box(w, h, w, [0xb8a99a, 0xa4b0be, 0xd1ccc0, 0x8395a7][k % 4]); hb.castShadow = false; md(hb, x, h / 2, z, a);
+      for (let y = 4; y < h - 2; y += 5) { const st = box(w + 0.1, 1.6, w + 0.1, k % 3 ? 0x34495e : 0xf6e58d); st.castShadow = false; md(st, x, y, z, a); } // Fensterreihen
+    }
     // Treppen: Ost EG→1, West 1→2, Ost 2→Dach (dünne Rampen, man kann drunter durch)
     l.ramp(28.5, 22, 28.5, -28, 4.5, 0, F1, STAIR, { bridge: true });
     l.ramp(-28.5, -28, -28.5, 28, 4.5, F1, F2, STAIR, { bridge: true });
@@ -46,7 +76,7 @@ export const BUERO = {
 
     // ---- EG: Wartehalle mit Schaltern (Schubladen = Hauptziel), Aktenschrank, Kantine
     l.group.add(box(50, 0.04, 60, 0x9aa57a, 0, 0.02, 0)); // Linoleum, amtsgrün
-    for (let i = -2; i <= 2; i++) md(box(50, 0.045, 0.3, 0x7f8c5e), 0, 0.022, i * 12); // Fugen im Linoleum
+    for (let i = -2; i <= 2; i++) md(box(50, 0.045, 0.3, 0x7f8c5e), 0, 0.05, i * 12); // Fugen im Linoleum
     const desks = [];
     for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
       const x = -14 + c * 14, z = -12 + r * 11;
