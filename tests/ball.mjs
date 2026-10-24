@@ -94,6 +94,19 @@ await tp(k0[0] + 1.2, 0.8, k0[2]); await sim(2); await sim(1, { spin: true }); a
 res.kuerbis = await ev(([x, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'kuerbis' && i.home.x === x && i.home.z === z); return !it.planted && Math.hypot(it.x - x, it.z - z) > 1; }, [k0[0], k0[2]]);
 console.log('  Kürbis weggetrillert:', res.kuerbis);
 
+// 7) Heribert spielt mit: Ball neben ihm → er stupst ihn zu Moll zurück; Kauknochen direkt vor der Nase → behält ihn
+await ev(() => { window.game.player.carry = null; });
+const hb = await ev(() => { const b = window.game.level.bruno; return [b.mesh.position.x, b.y, b.mesh.position.z]; });
+await tp(hb[0] + 9, hb[1] + 0.2, hb[2]);
+await ev(([x, y, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'ball'); Object.assign(it, { x, y, z, vx: 0, vy: 0, vz: 0, carried: false, _kicked: -9 }); }, [hb[0] + 1.9, hb[1], hb[2]]);
+const dB = () => ev(() => { const it = window.game.level.fetchItems.find(i => i.kind === 'ball'), p = window.game.player.pos; return Math.hypot(it.x - p.x, it.z - p.z); });
+const d0 = await dB(); let hmax = 0; for (let i = 0; i < 12; i++) { await sim(5); hmax = Math.max(hmax, await ev(() => window.game.level.fetchItems.find(i => i.kind === 'ball').y)); }
+const d1 = await dB(); res.zurueck = d1 < d0 - 3 && hmax > hb[1] + 0.8; console.log('  Heribert schießt Ball zurück: Abstand zu Moll', d0.toFixed(1), '→', d1.toFixed(1), '| Flughöhe', hmax.toFixed(1), res.zurueck);
+await ev(([x, y, z]) => { const it = window.game.level.fetchItems.find(i => i.kind === 'quietsch' && !i.carried); Object.assign(it, { x, y, z, vx: 0, vy: 0, vz: 0, _kicked: -9 }); }, [hb[0] + 1.1, hb[1], hb[2]]);
+await sim(20); await tp(hb[0] + 2.2, hb[1] + 0.2, hb[2], -Math.PI / 2); await sim(2); await sim(1, { act: true }); await sim(30);
+res.meins = await ev(() => { const h = window.game.level.bruno; return !!h.bone && h.bone.heldBy === h && window.game.player.carry !== h.bone; });
+console.log('  Kauknochen bei Heribert: behält ihn trotz Biss:', res.meins, '| Sprüche:', await ev(() => window.game.dialog.log.filter(l => l.who === 'Heribert').slice(-2).map(l => l.text)));
+
 console.log('Fehler:', errs.length ? errs : 'keine');
 const ok = Object.values(res).every(Boolean) && !errs.length; console.log(ok ? 'BALL OK' : 'BALL FEHLER', res);
 await b.close(); process.exit(ok ? 0 : 1);

@@ -18,7 +18,7 @@ const VEGGIES = {
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, s = sphere(0.3, i % 2 ? 0xf39c12 : 0xe67e22, Math.cos(a) * 0.15, 0, Math.sin(a) * 0.15, 8); s.scale.set(1, 0.95, 1); g.add(s); } // Rippen
     g.add(cyl(0.05, 0.07, 0.2, 0x6b8e23, 0, 0.35, 0, 6)); } },
 };
-const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _ax = new THREE.Vector3(), _q = new THREE.Quaternion();
+const TAU = Math.PI * 2, _v = new THREE.Vector3(), _w = new THREE.Vector3(), _ax = new THREE.Vector3(), _q = new THREE.Quaternion();
 
 // Tasten: TRILLER = C / Gamepad B / Touch 🌀, BELLEN = V / Gamepad RB / Touch 📢
 export const ABILITIES = {
@@ -315,7 +315,8 @@ export function installGadgets(Level) {
     toySqueak(it) { if (!it.squeak || this.t - (it._sq ?? -9) < 0.25) return; it._sq = this.t; this.game.audio.sfx('squeak'); it._squish = 1; },
     // Beißen ohne Apportieren: Spielzeug vor der Schnauze bekommt einen Schubs (Quietsche-Knochen quiekt)
     toyBite(point, r) {
-      const pl = this.game.player, fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw);
+      const pl = this.game.player, fx = Math.sin(pl.yaw), fz = Math.cos(pl.yaw), h = this.bruno;
+      if (h?.bone && Math.hypot(h.bone.x - point.x, h.bone.z - point.z) < r + 0.6) { this.game.audio.sfx('growl'); this.game.talk('bruno.meinsnoch', { mesh: h.mesh }); return; } // Knochen zurückholen? Keine Chance
       for (const it of this.fetchItems || []) if (it.spin && !it.carried && Math.hypot(it.x - point.x, it.z - point.z) < r + it.r && Math.abs(it.y - point.y) < 1.5) {
         if (it.veg) this.launch(it, { x: pl.pos.x - fx * 2, z: pl.pos.z - fz * 2 }); else { it.vx += fx * 5; it.vz += fz * 5; it.vy = Math.max(it.vy, 3); this.toySqueak(it); }
       }
@@ -426,12 +427,47 @@ export function installGadgets(Level) {
         const k = Math.min(1, dt * 6); p.x += dx * k; p.z += dz * k; p.mesh.position.x = p.x; p.mesh.position.z = p.z;
       }
     },
+    // ---- Heribert spielt mit: Spielzeug, das bei ihm liegen bleibt, stupst er mit der Nase im Bogen zu Moll zurück.
+    // Einen Kauknochen direkt vor seiner Nase behält er (im Maul) und knurrt.
+    _heribertPlay(dt) {
+      const h = this.bruno, pl = this.game.player; if (!h || !this.fetchItems) return;
+      const m = h.mesh, hx = m.position.x, hz = m.position.z; h.base ??= m.position.clone();
+      if (h.bone) { // Knochen im Maul halten
+        const it = h.bone, u = m.userData; m.updateMatrixWorld(true); _v.set(0, -0.27, 0.78); u.head.localToWorld(_v);
+        it.x = _v.x; it.y = _v.y - it.r; it.z = _v.z; it.vx = it.vy = it.vz = 0; it.mesh.position.set(it.x, it.y, it.z); it.mesh.rotation.set(0, 0, 0); u.head.getWorldQuaternion(it.spin.quaternion);
+      }
+      if (h.kick) { // Ausholen und Stupsen: kurzer Ausfallschritt zum Spielzeug
+        const k = h.kick, it = k.it; k.t += dt; const f = Math.min(1, k.t / 0.45);
+        const want = Math.atan2(it.x - hx, it.z - hz), dy = ((want - m.rotation.y) % TAU + TAU * 1.5) % TAU - TAU / 2; m.rotation.y += dy * Math.min(1, dt * 8); // zum Spielzeug drehen
+        const lunge = Math.sin(Math.PI * f) * 0.35; m.position.set(h.base.x + Math.sin(m.rotation.y) * lunge, h.base.y, h.base.z + Math.cos(m.rotation.y) * lunge);
+        if (f >= 0.5 && !k.done) {
+          k.done = true; if (it.carried || h.bone === it) return;
+          const dx = pl.pos.x - it.x, dz = pl.pos.z - it.z, d = Math.min(14, Math.hypot(dx, dz)) || 1, T = Math.max(0.5, Math.min(1.3, 0.35 + d * 0.07)), sp = d * 0.8 / T, n = Math.hypot(dx, dz) || 1;
+          it.vx = dx / n * sp; it.vz = dz / n * sp; it.vy = 11 * T; it.y += 0.05;
+          if (!it.roll) { it.tumble = 12; (it.tumbleAx ||= new THREE.Vector3()).set(1, 0, 0.3).normalize(); }
+          this.game.audio.sfx('boop'); this.toySqueak(it); it._kicked = this.t;
+          if (Math.random() < 0.3) this.game.talk('bruno.kickt', { mesh: m });
+        }
+        if (f >= 1) { h.kick = null; m.position.copy(h.base); }
+        return;
+      }
+      if (Math.hypot(pl.pos.x - hx, pl.pos.z - hz) > 22) return;
+      for (const it of this.fetchItems) {
+        if (!it.spin || it.carried || it.planted || it.heavy || it === h.bone || this.t - (it._kicked ?? -9) < 1.2) continue;
+        const d = Math.hypot(it.x - hx, it.z - hz), still = Math.hypot(it.vx, it.vz) < 2.5 && Math.abs(it.y - h.y) < 1;
+        if (it.squeak && !h.bone && d < 1.5 && still) { // Kauknochen ganz nah: gehört jetzt Heribert
+          h.bone = it; it.carried = true; it.heldBy = h; it.done = true; this.game.audio.sfx('growl'); this.toySqueak(it); this.game.talk('bruno.meins', { mesh: m }); return;
+        }
+        if (d < 2.4 && still) { h.kick = { it, t: 0 }; return; }
+      }
+    },
     updateGadgets(dt) {
+      this._heribertPlay(dt);
       for (const t of this.spinTargets || []) { if (t.spin > 0) { t.spin = Math.max(0, t.spin - dt * 0.6); t.wheel.rotation.z += dt * 18 * t.spin; } }
       for (const t of this.barkTargets || []) if (!t.done) { const k = (this.t * 1.2) % 1; t.ring.scale.setScalar(0.6 + k * 0.9); t.ring.material.opacity = 0.7 * (1 - k); t.ring.lookAt(this.game.camera.position); }
       for (const u of this.updrafts || []) for (const l of u.leaves) { const d = l.userData; d.a += dt * 3; d.y = (d.y + dt * 4) % u.h; l.position.set(Math.cos(d.a) * d.rr, d.y, Math.sin(d.a) * d.rr); l.rotation.set(d.a, d.a * 2, 0); }
       const pl = this.game.player;
-      for (const it of this.fetchItems || []) if (it.carried) {
+      for (const it of this.fetchItems || []) if (it.heldBy) continue; else if (it.carried) {
         if (it.spin) { this._holdBall(it, pl); continue; }
         const f = { x: Math.sin(pl.yaw), z: Math.cos(pl.yaw) }; it.mesh.position.set(pl.pos.x + f.x * 1.15, pl.pos.y + 0.95, pl.pos.z + f.z * 1.15); it.mesh.rotation.y = pl.yaw + Math.PI / 2;
       } else if (it.spin && !it.planted) this._rollBall(it, Math.min(dt, 1 / 20), pl);
