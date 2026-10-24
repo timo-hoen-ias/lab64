@@ -10,6 +10,7 @@ import { DORF } from './worlds/dorf.js';
 import { STRASSE } from './worlds/strasse.js';
 import { KUECHE } from './worlds/kueche.js';
 import { BUERO } from './worlds/buero.js';
+import { KANAL } from './worlds/kanal.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -24,7 +25,7 @@ export const BONES = {
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
   hafen: ['boss', 'kruemel', 'geheim', 'kletter', 'kran', 'markt', 'mole', 'laderaum', 'anker', 'bojen'],
   dorf: ['boss', 'kruemel', 'geheim', 'kletter', 'muehle', 'scheune', 'huehner', 'burg', 'teich', 'baecker'],
-  kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
+  kanal: ['boss', 'kruemel', 'geheim', 'kletter', 'pumpe', 'rohre', 'becken', 'gully', 'nest', 'lampen'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
 export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Hochhaus', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
@@ -142,26 +143,6 @@ export const LEVELS = {
   dorf: DORF,
 
   // ---------------------------------------------------------------- KANAL
-  kanal: {
-    name: 'Der Kanal', indoor: true, sky: 0x2f3542, ground: 0x3d3d3d, size: 26, hazard: (x, z) => Math.abs(x) < 5.6, need: 6, goalKind: 'cheese', fogNear: 15, fogFar: 60, music: { scale: 'minor', root: 196, bpm: 120, seed: 13, style: 'sewer' },
-    build(l) {
-      l.spawn.set(-12, 2, 20); l.wallRing(26, 8, 0x57606f);
-      // Abwasserrinne in der Mitte, Gehwege links/rechts
-      l.group.add(box(10, 0.05, 52, 0x2e5d3a, 0, 0.03, 0));
-      l.box(-12, 0, 0, 14, 1, 52, 0x747d8c); l.box(12, 0, 0, 14, 1, 52, 0x747d8c);
-      // Rohre als Brücken
-      [[-10], [4], [16]].forEach(([z]) => { const p = cyl(0.9, 0.9, 10, 0x8395a7, 0, 1.4, z, 10); p.rotation.z = Math.PI / 2; l.deco(p, 0, 1.4, z); l.solids.push({ min: { x: -5, y: 0.5, z: z - 0.7 }, max: { x: 5, y: 2.1, z: z + 0.7 }, active: true }); });
-      // Laternen
-      [[-18, -20], [18, -20], [-18, 0], [18, 0], [-18, 20], [18, 20]].forEach(([x, z]) => { l.box(x, 1, z, 0.4, 5, 0.4, 0x2f3542); const lamp = new THREE.PointLight(0x9ad7ff, 1.2, 14); lamp.position.set(x, 6.2, z); l.scene.add(lamp); l.deco(sphere(0.5, 0x9ad7ff, x, 6.2, z, 6), x, 6.2, z); });
-      l.box(22, 1, -10, 3, 1.5, 3, 0x57606f); l.box(22, 1, -14, 3, 3, 3, 0x57606f); l.box(22, 1, -18, 3, 4.5, 3, 0x57606f); // Mauervorsprünge
-      l.goldbone('kletter', 22, 6.8, -18);
-      l.goldbone('geheim', -24, 1.6, 24, { hidden: true });
-      // Käse (die Ratte hortet)
-      [[-16, 1.3, -22], [16, 1.3, -22], [-10, 1.3, 10], [10, 1.3, -6], [0, 2.4, 4], [16, 1.3, 22]].forEach(([x, y, z]) => l.pickup(x, y, z, 'cheese', { goal: true }));
-      l.scatter(20);
-      l.label('Käse sammeln. Hier unten wohnt etwas Großes …', 0, 4, 18);
-    },
-    update(l) { if (l.game.player.pos.y < 0.6 && Math.abs(l.game.player.pos.x) < 5) { FX.splash(l.game.fx, l.game.player.pos); l.game.toast('Igitt – Kanalbrühe!'); l.game.player.hurt(1); l.game.player.respawn(); } },
-    onGoal(l) { l.game.toast('Rote Augen im Dunkeln. DIE KANALRATTE!'); l.game.later(1000, () => l.setBoss(new RatBoss(l.game, 0, -4))); }
-  },
+  kanal: KANAL,
+
 };
