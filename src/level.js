@@ -38,7 +38,7 @@ export class Level {
     this._placeScatter();
     this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     if (def.grass) this._plantGrass(def.grass === true ? undefined : def.grass);
-    this.crumbTotal = this.pickups.filter(p => !p.goal && p.kind !== 'goldbone').length;
+    this.crumbTotal = this.pickups.filter(p => !p.goal && !p.special && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
 
@@ -100,6 +100,37 @@ export class Level {
   // Luftblasen-Säule vom Grund bis zur Oberfläche: dort tankt Moll unter Wasser Luft
   airBubbles(x, y0, z, h = 6) { const c = makeBubbleColumn(h); c.position.set(x, y0, z); this.group.add(c); (this.bubbles ||= []).push({ x, y0, z, h, mesh: c }); }
   airAt(p) { return (this.bubbles || []).some(b => Math.hypot(b.x - p.x, b.z - p.z) < 1.4 && p.y > b.y0 - 1 && p.y < b.y0 + b.h + 1); }
+  // Auslöser: fn(), sobald Moll in den Radius kommt (once = nur einmal)
+  trigger(x, y, z, r, fn, once = true) { (this.triggers ||= []).push({ x, y, z, r, fn, once, done: false, inside: false }); }
+  // Schnellreise-Punkte (Strandkörbe, Hundehütten): Berühren schaltet frei, BISS daneben reist zum nächsten freigeschalteten
+  warp(x, y, z, name, mesh) {
+    const w = { x, y, z, name, on: (this.game.worldState(this.key).warps || []).includes(name) }; (this.warps ||= []).push(w);
+    if (mesh) this.deco(mesh, x, y, z);
+    const lab = makeLabel(`⇄ ${name}`); lab.scale.set(4, 1, 1); lab.position.set(x, y + 3, z); this.group.add(lab); w.label = lab;
+    this.interactable(x, y, z, 1.6, it => {
+      it.used = false; const on = this.warps.filter(v => v.on); if (on.length < 2) { this.game.toast('Finde weitere Schnellreise-Punkte!'); return; }
+      const next = on[(on.indexOf(w) + 1) % on.length]; this.teleport({ x: next.x + 1.8, y: next.y + 0.5, z: next.z }); this.game.toast(`Schnellreise: ${next.name}`);
+    }, 'BISS = Schnellreise');
+    this.trigger(x, y, z, 2, () => { if (w.on) return; w.on = true; const st = this.game.worldState(this.key); (st.warps ||= []).push(name); this.game.persist(); this.game.toast(`Schnellreise-Punkt „${name}“ gefunden!`); this.game.audio.sfx('collect'); });
+    return w;
+  }
+  // Ring-Parcours: alle Ringe in Reihenfolge innerhalb von time Sekunden → Goldknochen
+  ringCourse(points, boneId, time = 25, color = 0xffd32a) {
+    const rings = points.map(([x, y, z], i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.18, 8, 24), new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.4 })); m.position.set(x, y, z); this.group.add(m); return { x, y, z, m }; });
+    const c = { rings, i: 0, t: 0, boneId, time, done: this.game.hasBone(this.key, boneId) }; (this.courses ||= []).push(c); return c;
+  }
+  _updateCourses(dt, pp) {
+    for (const c of this.courses || []) {
+      if (c.done) continue;
+      c.rings.forEach((r, k) => { r.m.rotation.y += dt * (k === c.i ? 3 : 0.6); r.m.material.emissiveIntensity = k === c.i ? 0.9 : k < c.i ? 0.05 : 0.3; });
+      if (c.i > 0) { c.t -= dt; if (c.t <= 0) { c.i = 0; this.game.toast('Zu langsam! Fang beim ersten Ring neu an.'); } }
+      const r = c.rings[c.i]; if (Math.hypot(r.x - pp.x, r.z - pp.z) < 1.8 && Math.abs(r.y - (pp.y + 0.5)) < 1.8) {
+        c.i++; c.t = c.time; this.game.audio.sfx('collect'); FX.sparkle(this.game.fx, r);
+        if (c.i === c.rings.length) { c.done = true; this.spawnGoldbone(r.x, r.y, r.z, c.boneId); } else this.game.toast(`Ring ${c.i}/${c.rings.length}`, 1200);
+      }
+    }
+  }
+
   // Fähigkeits-Gegenstand (z.B. Taucherbrille): einmal einsammeln, dauerhaft freigeschaltet
   abilityItem(x, y, z, ability, text) {
     if (this.game.has(ability)) return null;
@@ -238,7 +269,7 @@ export class Level {
   // Sammelobjekt. goal=true zählt für das Levelziel. hidden=true: nur per Schnüffeln auffindbar (unsichtbar bis nah).
   pickup(x, y, z, kind = 'crumb', opts = {}) {
     const m = makeFood(kind); m.position.set(x, y, z); this.group.add(m);
-    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id, idx: this.pickups.length };
+    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, special: !!opts.special, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id, idx: this.pickups.length };
     if (p.hidden) m.visible = false;
     this.pickups.push(p); return p;
   }
@@ -310,6 +341,8 @@ export class Level {
     this._zoneT = (this._zoneT || 0) - dt;
     if (this._zoneT <= 0) { this._zoneT = 0.25; const c = this.game.camera.position, vd = this.game.q.view; for (const z of this.zones) z.group.visible = Math.hypot(z.x - c.x, z.z - c.z) < vd + z.r; }
     for (const b of this.bubbles || []) b.mesh.userData.update(dt, this.t);
+    for (const tr of this.triggers || []) { if (tr.done) continue; const ins = Math.hypot(tr.x - pp.x, tr.z - pp.z) < tr.r && Math.abs(tr.y - pp.y) < tr.r + 1.5; if (ins && !tr.inside) { tr.fn(tr); if (tr.once) tr.done = true; } tr.inside = ins; }
+    this._updateCourses(dt, pp);
     for (const it of this.abilityItems || []) {
       if (it.taken) continue; it.mesh.rotation.y += dt * 2; it.mesh.position.y = it.y + Math.sin(this.t * 3) * 0.15;
       if (Math.random() < dt * 10) FX.sparkle(this.game.fx, { x: it.x, y: it.y + 0.3, z: it.z });
@@ -411,6 +444,7 @@ export class Level {
     const st = this.game.worldState(this.key); this.state = st;
     for (const p of this.pickups) {
       if (p.kind === 'goldbone') continue;
+      if (p.special) { if (st.special.includes(p.idx)) { p.taken = true; p.mesh.visible = false; if (p.onRestore) p.onRestore(p); } continue; }
       if ((p.goal ? st.goals : st.crumbs).includes(p.idx)) { p.taken = true; p.mesh.visible = false; if (p.goal) this.goal.have++; else this.crumbHave++; }
     }
     if (this.goal.need && this.goal.have >= this.goal.need) {
@@ -420,7 +454,7 @@ export class Level {
   }
   remember(p) {
     if (!this.state || p.kind === 'goldbone') return;
-    const list = p.goal ? this.state.goals : this.state.crumbs; if (!list.includes(p.idx)) { list.push(p.idx); this.game.persist(); }
+    const list = p.special ? this.state.special : p.goal ? this.state.goals : this.state.crumbs; if (!list.includes(p.idx)) { list.push(p.idx); this.game.persist(); }
   }
   onCrumb() {
     this.crumbHave++;

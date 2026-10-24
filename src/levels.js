@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Vacuum, Cat, CanOpener, BirdBoss, Pigeon, FatMan, RatBoss } from './bosses.js';
 import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, makeGnome } from './models.js';
 import { FX } from './fx.js';
+import { STRAND } from './worlds/strand.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -14,14 +15,16 @@ export const BONES = {
   buero: ['boss', 'kruemel', 'geheim', 'kletter'],
   park: ['boss', 'kruemel', 'geheim', 'kletter'],
   rattenrennen: ['sieg', 'gierig'],
+  strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
   hafen: ['boss', 'kruemel', 'geheim', 'kletter'],
   dorf: ['boss', 'kruemel', 'geheim', 'kletter'],
   kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
-export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
+export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
 
 export const LEVELS = {
+  strand: STRAND,
   // ------------------------------------------------------------------ HUB
   hub: {
     name: 'Molls Garten', time: 'mittag', backdrop: 'huegel', grass: true, sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
@@ -92,6 +95,7 @@ export const LEVELS = {
       l.portal(-22, -6, 'Büro', 'buero', 0x9b9b9b, 4);
       l.portal(22, -6, 'Grillpark', 'park', 0x8e44ad, 7);
       l.portal(-23, -23, 'Rattenrennen', 'rattenrennen', 0xff7675, 9);
+      l.portal(0, 30, 'Strand', 'strand', 0xffd36e, 10);
       l.portal(-19, 22, 'Hafen', 'hafen', 0x48dbfb, 12);
       l.portal(19, 22, 'Dorf', 'dorf', 0xfeca57, 15);
       l.portal(23, -23, 'Kanal', 'kanal', 0x2ecc71, 19);

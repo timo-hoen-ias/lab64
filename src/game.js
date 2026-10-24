@@ -83,7 +83,7 @@ export class Game {
     }
     this.audio.underwater(under);
   }
-  worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; return w[key]; }
+  worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; w[key].special ||= []; return w[key]; }
   applyQuality() {
     const q = this.q = QUALITY[this.save.settings.quality];
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.ratio));
@@ -135,7 +135,8 @@ export class Game {
     this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
     else {
-      this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn); this.player.yaw = Math.PI; this.camYaw = 0;
+      this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn);
+      this.player.yaw = this.level.spawnYaw ?? Math.PI; this.camYaw = this.player.yaw - Math.PI;
       this._sunQuality(this.level.sun); this.level.restore(); this.snapCam = true;
     }
     this.fx.attach(this.level.scene); this.fade();
@@ -150,7 +151,7 @@ export class Game {
   updateHearts() { if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts); this.shake(0.3); } this._hp = this.player.hp; this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, 3 - this.player.hp)); }
   updateCounter() {
     const l = this.level; if (!l || l.isRunner) return;
-    const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀' }[l.goal.kind] || '⭐';
+    const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀', fries: '🍟' }[l.goal.kind] || '⭐';
     this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   ✦ ${l.crumbHave}/${l.crumbTotal}   🦴 ${this.boneCount()}` : `🦴 ${this.boneCount()}/${TOTAL_BONES}   ✦ ${l.crumbHave}/${l.crumbTotal}`;
   }
   pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
@@ -174,6 +175,7 @@ export class Game {
   // ---------------------------------------------------------- Ereignisse
   collect(p, level) {
     if (p.kind === 'goldbone') { this.audio.sfx('win'); return; }
+    if (p.special) { this.audio.sfx('collect'); this.pop(this.hud.counter); return; }
     this.pop(this.hud.counter);
     if (p.goal) { level.goal.have++; this.audio.sfx('big'); this.input.vibrate(60); level.checkGoal(); }
     else { this.save.crumbs += p.value; this.audio.sfx('collect'); if (p.kind === 'bone') this.toast('Knochen! +5 Krümel'); level.onCrumb(); }

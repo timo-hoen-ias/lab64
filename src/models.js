@@ -221,6 +221,15 @@ export function makeFood(kind) {
       halo.position.y = 0.5; g.add(halo); g.userData.halo = halo;
       break;
     }
+    case 'fries': { // Pommes-Tüte
+      g.add(cyl(0.22, 0.16, 0.45, 0xe74c3c, 0, 0.25, 0, 8));
+      for (let i = 0; i < 7; i++) g.add(box(0.06, 0.4, 0.06, 0xffd34d, Math.cos(i * 0.9) * 0.12, 0.6 + (i % 3) * 0.04, Math.sin(i * 0.9) * 0.12).rotateZ((i - 3) * 0.06));
+      break;
+    }
+    case 'shell': { // Muschel zum Sammeln
+      for (let i = 0; i < 5; i++) { const r = box(0.12, 0.08, 0.5, i % 2 ? 0xffd1dc : 0xffb3c6, (i - 2) * 0.1, 0.18, 0); r.rotation.y = (i - 2) * 0.3; g.add(r); }
+      g.add(sphere(0.08, 0xffb3c6, 0, 0.18, -0.25)); break;
+    }
     default: g.add(sphere(0.18, 0xd98c4a, 0, 0.2, 0)); // Krümel
   }
   g.userData.spin = Math.random() * Math.PI * 2;
@@ -288,4 +297,44 @@ export function makeGoggles() {
   g.add(box(0.2, 0.08, 0.08, 0xff7f27));
   const band = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 4, 20, Math.PI), mat(0x2d3436)); band.rotation.set(Math.PI / 2, 0, 0); band.position.z = -0.05; g.add(band);
   g.scale.setScalar(1.3); return g;
+}
+
+// Riesenkrabbe Kneifer: Panzer, zwei Scheren, sechs Beine, Stielaugen
+export function makeCrab(color = 0xe0503a) {
+  const g = new THREE.Group(), dark = new THREE.Color(color).multiplyScalar(0.7).getHex();
+  const body = sphere(0.8, color, 0, 0.7, 0, 10); body.scale.set(1.3, 0.55, 1); g.add(body);
+  const claws = [-1, 1].map(sx => {
+    const c = new THREE.Group(); c.position.set(sx * 1.0, 0.8, 0.7);
+    c.add(box(0.25, 0.25, 0.7, dark, 0, 0, 0.3)); const pin = new THREE.Group(); pin.position.z = 0.75; c.add(pin);
+    pin.add(sphere(0.32, color, 0, 0, 0.15, 8)); pin.add(cone(0.14, 0.45, color, 0, 0.12, 0.45).rotateX(Math.PI / 2)); pin.add(cone(0.12, 0.4, dark, 0, -0.12, 0.42).rotateX(Math.PI / 2));
+    g.add(c); return c;
+  });
+  const legs = []; for (let i = 0; i < 6; i++) { const sx = i < 3 ? -1 : 1, k = i % 3; const l = new THREE.Group(); l.position.set(sx * 0.85, 0.6, -0.3 + k * 0.35); const seg = box(0.9, 0.12, 0.12, dark, sx * 0.4, -0.15, 0); seg.rotation.z = sx * -0.6; l.add(seg); g.add(l); legs.push(l); }
+  [-0.25, 0.25].forEach(x => { g.add(box(0.07, 0.4, 0.07, dark, x, 1.15, 0.55)); g.add(sphere(0.11, 0xffffff, x, 1.38, 0.55, 8)); g.add(sphere(0.06, 0x111111, x, 1.4, 0.64, 6)); });
+  g.userData = { claws, legs, t: 0 }; return g;
+}
+
+// Qualle: halbe Glocke, schwingende Tentakel, leuchtet leicht
+export function makeJelly() {
+  const g = new THREE.Group(), m = new THREE.MeshLambertMaterial({ color: 0xff9ff3, transparent: true, opacity: 0.7, emissive: 0xff6fd8, emissiveIntensity: 0.5 });
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), m); g.add(bell);
+  const tent = []; for (let i = 0; i < 6; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 1.2, 4), m); const a = i / 6 * Math.PI * 2; t.position.set(Math.cos(a) * 0.35, -0.6, Math.sin(a) * 0.35); g.add(t); tent.push(t); }
+  g.userData = { bell, tent }; return g;
+}
+
+// Riesenmuschel am Riff: Schale klappt beim Biss auf
+export function makeClam() {
+  const g = new THREE.Group(), lid = new THREE.Group();
+  const lo = sphere(1.0, 0x8e7cc3, 0, 0, 0, 10); lo.scale.set(1.2, 0.35, 1); g.add(lo);
+  const up = sphere(1.0, 0xa593e0, 0, 0, 0.9, 10); up.scale.set(1.2, 0.35, 1); lid.add(up); lid.position.set(0, 0.15, -0.9); g.add(lid);
+  g.add(sphere(0.25, 0xffffff, 0, 0.3, 0, 10)); // Perle
+  g.userData.lid = lid; return g;
+}
+
+// Ein anderer Hund (Rettungsschwimmer, Burg-Bauer …): Moll in anderer Fellfarbe mit Mütze
+export function makeNpcDog(fur = 0xd9a441, cap = 0xe74c3c) {
+  const g = makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
+  g.traverse(o => { if (o.material && o.material.color) { const h = o.material.color.getHex(), i = from.indexOf(h); if (i >= 0) { o.material = o.material.clone(); o.material.color.copy(to).multiplyScalar([1, 0.7, 1.15][i]); } } });
+  const u = g.userData; if (u.head) { const c = cyl(0.32, 0.36, 0.2, cap, 0, 0.5, 0, 10); u.head.add(c); }
+  return g;
 }

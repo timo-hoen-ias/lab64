@@ -1,7 +1,7 @@
 // Bosse und Gegner. Jeder hat: mesh, name, hp, maxHp, radius, dead, update(dt, level), onBite().
 import * as THREE from 'three';
 import { FX } from './fx.js';
-import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, box, cyl } from './models.js';
+import { makeVacuum, makeCat, makeCanOpener, makeBird, makeFatMan, makeRat, makeCrab, makeJelly, box, cyl, sphere } from './models.js';
 
 class Boss {
   constructor(game, mesh, name, hp, radius = 1.4) {
@@ -242,4 +242,83 @@ export class RatBoss extends Boss {
     this.game.player.frozen = true;
     this.game.later(2200, () => this.game.enterLevel('albtraum'));
   }
+}
+
+// Kneifer, die Riesenkrabbe: rennt seitwärts, hebt die Scheren und haut sie in den Sand. Steckt eine fest → benommen.
+// Nach dem ersten Treffer flüchtet sie ins Wasser (hinterhertauchen!), nach dem zweiten kommt sie zurück und wirft Muscheln.
+export class Crab extends Boss {
+  constructor(game, cx, cz, water, arena = 13) {
+    super(game, makeCrab(), 'Kneifer, die Riesenkrabbe', 3, 2.2); this.home = { x: cx, z: cz }; this.cx = cx; this.cz = cz; this.water = water; this.arena = arena;
+    this.pos.set(cx, 0, cz); this.state = 'scuttle'; this.timer = 0; this.size = 2; this.mesh.scale.setScalar(this.size); this.shells = []; this.phase = 0;
+  }
+  ground(lvl) { return lvl.groundAt(this.pos.x, this.pos.z, 30); }
+  update(dt, lvl) {
+    const u = this.mesh.userData; u.t += dt;
+    for (const s of this.shells) { s.v.y -= 20 * dt; s.m.position.addScaledVector(s.v, dt); s.life -= dt; if (s.m.position.distanceTo(this.player.pos.clone().setY(this.player.pos.y + 0.6)) < 1 && s.life > 0) { this.player.hurt(1); s.life = 0; } if (s.life <= 0) s.m.visible = false; }
+    this.shells = this.shells.filter(s => s.life > 0);
+    if (this.baseUpdate(dt)) { u.claws.forEach((c, i) => c.rotation.x = 0.9 + Math.sin(this.t * 18 + i) * 0.08); this.pos.y = this.ground(lvl); return; }
+    // Phasenwechsel nach Treffern
+    const ph = this.maxHp - this.hp;
+    if (ph !== this.phase) {
+      this.phase = ph;
+      if (ph === 1) { this.cx = this.water.x; this.cz = this.water.z; this.state = 'flee'; this.game.toast('Kneifer flüchtet ins Wasser – tauch hinterher!', 3500); }
+      if (ph === 2) { this.cx = this.home.x; this.cz = this.home.z; this.state = 'flee'; this.game.toast('Kneifer ist sauer und wirft mit Muscheln!', 3000); }
+    }
+    u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t * 14 + i * 1.3) * 0.4);
+    if (this.state === 'flee') {
+      this.moveTo({ x: this.cx, z: this.cz }, 9, dt); this.faceTo({ x: this.cx, z: this.cz }, dt, 4);
+      if (Math.hypot(this.pos.x - this.cx, this.pos.z - this.cz) < 1) { this.state = 'scuttle'; this.timer = 0; }
+    } else if (this.state === 'scuttle') {
+      // seitwärts um Moll herum, langsam näher
+      this.faceTo(this.player.pos, dt, 3);
+      const a = Math.atan2(this.pos.z - this.player.pos.z, this.pos.x - this.player.pos.x) + dt * 0.8 * this.rage, r = Math.max(4, this.dist() - dt * 2);
+      this.moveTo({ x: this.player.pos.x + Math.cos(a) * r, z: this.player.pos.z + Math.sin(a) * r }, 4 * this.rage, dt);
+      u.claws.forEach((c, i) => c.rotation.x = Math.sin(u.t * 6 + i) * 0.2);
+      this.timer += dt;
+      if (this.phase === 2 && this.timer > 0.9 && Math.random() < dt * 1.5) this.throwShell(lvl);
+      if (this.timer > 2.6 / this.rage && this.dist() < 12) { this.state = 'raise'; this.timer = 0; this.game.audio.sfx('vacuum'); }
+      this.touchPlayer(1.2);
+    } else if (this.state === 'raise') {
+      this.timer += dt; this.faceTo(this.player.pos, dt, 8); u.claws.forEach(c => c.rotation.x = -1.2);
+      if (this.timer > 0.8) { this.state = 'slam'; this.timer = 0; this.target = this.player.pos.clone(); }
+    } else if (this.state === 'slam') {
+      this.timer += dt; this.moveTo(this.target, 13, dt);
+      if (this.timer > 0.55 || Math.hypot(this.pos.x - this.target.x, this.pos.z - this.target.z) < 0.6) {
+        u.claws.forEach(c => c.rotation.x = 0.9); this.game.shake(0.4); this.game.audio.sfx('hit');
+        FX.dust(this.game.fx, { x: this.pos.x, y: this.pos.y + 0.2, z: this.pos.z }, 18);
+        if (this.dist() < 3.2) this.player.hurt(1);
+        this.stun = 2.4; this.state = 'scuttle'; this.timer = 0; this.game.toast('Die Schere steckt fest – beißen!');
+      }
+    }
+    this.clampArena(this.arena); this.pos.y = this.ground(lvl);
+  }
+  throwShell(lvl) {
+    const m = sphere(0.3, 0xffb3c6, 0, 0, 0, 6); m.position.copy(this.pos).setY(this.pos.y + 2); lvl.group.add(m);
+    const d = this.player.pos.clone().sub(m.position); const t = 1.1; const v = new THREE.Vector3(d.x / t, (d.y + 10 * t * t) / t, d.z / t);
+    this.shells.push({ m, v, life: 2.5 });
+  }
+}
+
+// Kleine Strandkrabbe: läuft hin und her, zwickt. Biss = verscheucht (lässt Krümel fallen)
+export class BeachCrab {
+  constructor(game, x, z) { this.game = game; this.mesh = makeCrab(0xf0703a); this.mesh.scale.setScalar(0.55); this.home = { x, z }; this.t = Math.random() * 10; this.radius = 0.7; this.dead = false; this.mesh.position.set(x, 0, z); }
+  update(dt, lvl) {
+    this.t += dt; const u = this.mesh.userData; u.t += dt; u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t * 16 + i) * 0.4);
+    const p = this.mesh.position; p.x = this.home.x + Math.sin(this.t * 0.6) * 4; p.z = this.home.z + Math.sin(this.t * 0.23) * 1.5; p.y = lvl.groundAt(p.x, p.z, 30);
+    this.mesh.rotation.y = Math.PI / 2;
+    const pl = this.game.player; if (p.distanceTo(pl.pos) < 1.1) pl.hurt(1);
+  }
+  onBite() { this.dead = true; this.mesh.visible = false; this.game.audio.sfx('collect'); FX.hit(this.game.fx, this.mesh.position); this.game.toast('Zwick zurück!'); }
+}
+
+// Qualle: schwebt im Wasser auf und ab, Berührung brennt. Kann man nicht beißen.
+export class Jelly {
+  constructor(game, x, y, z) { this.game = game; this.mesh = makeJelly(); this.home = { x, y, z }; this.t = Math.random() * 10; this.radius = 0.8; this.dead = false; this.mesh.position.set(x, y, z); }
+  update(dt) {
+    this.t += dt; const u = this.mesh.userData, p = this.mesh.position;
+    p.y = this.home.y + Math.sin(this.t * 0.8) * 2; p.x = this.home.x + Math.sin(this.t * 0.3) * 2;
+    u.bell.scale.set(1 + Math.sin(this.t * 3) * 0.12, 1 - Math.sin(this.t * 3) * 0.12, 1 + Math.sin(this.t * 3) * 0.12); u.tent.forEach((t, i) => t.rotation.x = Math.sin(this.t * 3 + i) * 0.3);
+    const pl = this.game.player; if (Math.hypot(p.x - pl.pos.x, p.z - pl.pos.z) < 1.1 && pl.pos.y + 0.6 > p.y - 1.4 && pl.pos.y < p.y + 0.6) pl.hurt(1);
+  }
+  onBite() { this.game.toast('Autsch – Quallen beißt man nicht!'); }
 }
