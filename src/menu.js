@@ -11,8 +11,8 @@ export class Menu {
   constructor(game) {
     this.game = game; this.card = document.querySelector('#menu .card'); this.options = false;
     const st = game.save.settings;
-    st.music ??= 100; st.sfx ??= 100; st.vibration ??= true; st.invertY ??= false;
-    this._slider('optMusic', 'music'); this._slider('optSfx', 'sfx');
+    st.music ??= 100; st.sfx ??= 100; st.vibration ??= true; st.invertY ??= false; st.camSens ??= 75;
+    this._slider('optMusic', 'music'); this._slider('optSfx', 'sfx'); this._slider('optCam', 'camSens');
     $('optQuality').addEventListener('click', e => {
       const q = e.target.closest('button')?.dataset.q; if (!q) return;
       game.save.settings.quality = q; game.persist(); game.applyQuality(); this.sync();
@@ -54,12 +54,13 @@ export class Menu {
     this.game.audio.setVolume(st.music / 100, st.sfx / 100);
     this.game.input.noVibrate = !st.vibration;
     this.game.input.invertY = !!st.invertY;
+    this.game.input.camSens = st.camSens / 100;
   }
   // Anzeige an den Spielstand anpassen
   sync() {
     const st = this.game.save.settings;
-    for (const [id, key] of [['optMusic', 'music'], ['optSfx', 'sfx']]) {
-      const el = $(id); el.value = st[key]; el.style.setProperty('--v', `${st[key]}%`);
+    for (const [id, key] of [['optMusic', 'music'], ['optSfx', 'sfx'], ['optCam', 'camSens']]) {
+      const el = $(id); el.value = st[key]; el.style.setProperty('--v', `${(st[key] - el.min) / (el.max - el.min) * 100}%`);
       $(id + 'V').textContent = st[key] ? `${st[key]} %` : 'Aus';
     }
     $('optQuality').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.q === st.quality));
