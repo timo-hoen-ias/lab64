@@ -230,11 +230,11 @@ export class Game {
     this.dialog.reset();
     this.fx.detach(); this.rings.detach(); this.prints.detach(); this.player.mesh.removeFromParent(); this.player.shadow.removeFromParent(); // Moll wandert mit in die neue Welt: seine Geometrie nicht mit der alten Welt freigeben
     if (this.level && this.level.scene) this.level.scene.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    this.hideBoss(); this.suspicion(0); this.audio.stopLoops();
+    this.hideBoss(); this.suspicion(0); this.audio.stopLoops(); this.fromKey = this.level?.key;
     if (key === 'albtraum' || key === 'rattenrennen') { this.level = new RunnerLevel(this, key); }
     else {
       this.level = new Level(this, LEVELS[key], key); this.level.scene.add(this.player.mesh, this.player.shadow); this.player.reset(this.level.spawn);
-      this.player.yaw = this.level.spawnYaw ?? Math.PI; this.camYaw = this.player.yaw - Math.PI;
+      this.player.yaw = this.level.spawnYaw ?? Math.PI; this.camYaw = this.level.spawnCam ?? this.player.yaw - Math.PI;
       this._sunQuality(this.level.sun); this.level.restore(); this.snapCam = true;
     }
     this.fx.attach(this.level.scene); this.rings.attach(this.level.scene); if (this.level.def.prints) this.prints.attach(this.level.scene, this.level.def.prints); this.fade();
