@@ -45,13 +45,17 @@ export function makeDog() {
   const g = new THREE.Group();
   const brown = 0x8b5a2b, dark = 0x5a3715, light = 0xa8743f, nose = 0x2a1a0e;
   const rig = new THREE.Group(); g.add(rig); // alles außer Schatten hängt am Rig → Squash/Stretch und Neigung
+  // Rücken in zwei Hälften (Drehpunkt Körpermitte): front = Brust, Hals, Kopf, Vorderbeine; rear = Hüfte, Hinterbeine, Schwanz.
+  // So kann sich der Rücken im Galopp krümmen und strecken.
+  const front = new THREE.Group(), rear = new THREE.Group(); front.position.y = rear.position.y = 0.75; rig.add(front, rear);
+  const on = (grp, o) => { o.position.y -= 0.75; grp.add(o); return o; };
   const body = box(0.9, 0.6, 1.5, brown, 0, 0.75, 0); rig.add(body);
-  const chest = box(0.95, 0.5, 0.5, brown, 0, 0.72, 0.55); rig.add(chest);
+  on(front, box(0.95, 0.5, 0.5, brown, 0, 0.72, 0.55)); // Brust
   rig.add(box(0.7, 0.12, 1.2, light, 0, 0.44, 0)); // Bauch
-  rig.add(box(0.96, 0.56, 0.5, brown, 0, 0.8, -0.5)); // Hüfte
-  const neck = box(0.5, 0.5, 0.45, brown, 0, 1.05, 0.75); rig.add(neck);
-  rig.add(box(0.58, 0.14, 0.5, 0xd63031, 0, 1.1, 0.78)); // Halsband
-  const tag = cyl(0.09, 0.09, 0.04, 0xffcc33, 0, 0.98, 1.05, 10); tag.rotation.x = Math.PI / 2; rig.add(tag); // Hundemarke
+  on(rear, box(0.96, 0.56, 0.5, brown, 0, 0.8, -0.5)); // Hüfte
+  on(front, box(0.5, 0.5, 0.45, brown, 0, 1.05, 0.75)); // Hals
+  on(front, box(0.58, 0.14, 0.5, 0xd63031, 0, 1.1, 0.78)); // Halsband
+  const tag = cyl(0.09, 0.09, 0.04, 0xffcc33, 0, 0.98, 1.05, 10); tag.rotation.x = Math.PI / 2; on(front, tag); // Hundemarke
   const head = new THREE.Group(); head.position.set(0, 1.3, 0.95);
   head.add(box(0.7, 0.6, 0.65, brown));
   head.add(box(0.4, 0.35, 0.5, light, 0, -0.1, 0.5)); // Schnauze
@@ -68,58 +72,90 @@ export function makeDog() {
   const earL = box(0.18, 0.5, 0.3, dark, 0.4, -0.05, -0.05); earL.rotation.z = -0.25; head.add(earL);
   const earR = box(0.18, 0.5, 0.3, dark, -0.4, -0.05, -0.05); earR.rotation.z = 0.25; head.add(earR);
   const tongue = box(0.16, 0.05, 0.3, 0xff6b8a, 0, -0.3, 0.62); head.add(tongue);
-  rig.add(head);
+  on(front, head);
   const legs = [];
   [[0.3, 0.45], [-0.3, 0.45], [0.3, -0.5], [-0.3, -0.5]].forEach(([x, z]) => {
     const leg = new THREE.Group(); leg.position.set(x, 0.55, z);
     leg.add(box(0.26, 0.6, 0.28, brown, 0, -0.3, 0)); leg.add(box(0.28, 0.14, 0.34, dark, 0, -0.6, 0.03));
-    rig.add(leg); legs.push(leg);
+    on(z > 0 ? front : rear, leg); legs.push(leg);
   });
   const tail = new THREE.Group(); tail.position.set(0, 0.95, -0.75);
   const tailMesh = box(0.18, 0.18, 0.7, brown, 0, 0.15, -0.3); tailMesh.rotation.x = -0.6; tail.add(tailMesh);
-  rig.add(tail);
-  g.userData = { rig, head, legs, tail, body, earL, earR, tongue, eyes, t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
+  on(rear, tail);
+  g.userData = { rig, front, rear, head, legs, tail, body, earL, earR, tongue, eyes, t: 0, idle: 0, blink: 2, lean: 0, look: 0 };
   g.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); // Moll ist immer im Bild; verhindert, dass Kopf oder Schwanz auf manchen Handys weggeschnitten werden
   return g;
 }
 
-// Hundeanimation: speed (0..1), airborne, dt, bite (0..1), vy (Fallgeschwindigkeit), turn (Drehrate)
+// Ein Bein über die Schrittphase q (0..1): erst Stand (Pfote am Boden, wandert von vorn nach hinten), dann Schwung nach vorn.
+// reach: Winkel vorn (negativ), push: Winkel hinten, lift: wie stark das Bein im Schwung angezogen wird (Knie/Sprunggelenk).
+// Liefert [Winkel, Beinlänge]: im Stand wird das schräge Bein etwas länger, damit die Pfote am Boden bleibt.
+const plant = a => Math.min(1.12, 1 / Math.cos(a));
+function stride(q, duty, reach, push, lift) {
+  if (q < duty) { const a = reach + (push - reach) * (q / duty); return [a, plant(a)]; }
+  const f = (q - duty) / (1 - duty), e = f * f * (3 - 2 * f);
+  return [push + (reach - push) * e, plant(push) + (plant(reach) - plant(push)) * e - Math.sin(f * Math.PI) * lift];
+}
+const TAU = Math.PI * 2;
+const TROT = [0, 0.5, 0.5, 0]; // Trab: diagonale Beinpaare (vorn links + hinten rechts, vorn rechts + hinten links)
+const GALLOP = [0.54, 0.42, 0, 0.1]; // Rotationsgalopp: hinten links, hinten rechts, vorn rechts, vorn links
+
+// Hundeanimation: speed (0..1, darüber z. B. Zoomies = schnellere Schritte), airborne, dt, bite (0..1), vy (Fallgeschwindigkeit), turn (Drehrate)
+// Langsam trabt Moll, bei Vollgas galoppiert sie mit Rückenbeugung; beide Gangarten werden je nach Tempo überblendet.
 export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0, swim = false) {
-  const u = dog.userData; u.t += dt * (4 + speed * 10);
+  const u = dog.userData; u.t += dt * (4 + Math.min(1, speed) * 10);
+  u.legs.forEach(leg => { leg.scale.y = 1; });
   if (swim) { // Hundepaddeln: Kopf hoch, Beine strampeln, Schwanz als Ruder
-    u.t += dt * 6; u.idle = 0;
+    u.t += dt * 6; u.idle = 0; u.sm = 0;
     u.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(u.t * 1.5 + (i % 2 ? Math.PI : 0) + (i > 1 ? 1 : 0)) * 0.7 - 0.3; });
     u.rig.position.y = Math.sin(u.t * 0.8) * 0.05; u.rig.rotation.x = -0.18; u.rig.rotation.z = Math.sin(u.t * 0.4) * 0.05;
+    u.front.rotation.set(0, 0, 0); u.rear.rotation.set(0, 0, 0); u.body.scale.z = 1;
     u.head.rotation.set(-0.25, 0, 0); u.tail.rotation.y = Math.sin(u.t * 0.9) * 0.6; u.tail.rotation.x = 0.4;
     u.earL.rotation.z = -0.6; u.earR.rotation.z = 0.6; u.tongue.visible = false; u.body.scale.y = 1; u.head.position.z = 0.95;
     return;
   }
-  // Weiche Übergänge: Laufstärke und Sprung-Pose werden überblendet statt umgeschaltet
+  // Weiche Übergänge: Laufstärke, Gangart und Sprung-Pose werden überblendet statt umgeschaltet
   u.sm = (u.sm ?? 0) + ((airborne ? 0 : speed) - (u.sm ?? 0)) * Math.min(1, dt * 10);
   u.air = (u.air ?? 0) + ((airborne ? 1 : 0) - (u.air ?? 0)) * Math.min(1, dt * (airborne ? 14 : 9));
-  const s = u.sm, A = u.air, k = THREE.MathUtils.clamp(vy / 10, -1, 1); // hoch: Beine gestreckt, runter: zum Landen bereit
-  // Galopp: Vorder- und Hinterbeine versetzt, dazu Körper-Wippen
+  const sp = u.sm, s = Math.min(1, sp), A = u.air, k = THREE.MathUtils.clamp(vy / 10, -1, 1); // hoch: Beine gestreckt, runter: zum Landen bereit
+  if (!airborne) u.gait = (u.gait ?? 0) + (THREE.MathUtils.smoothstep(sp, 0.62, 0.88) - (u.gait ?? 0)) * Math.min(1, dt * 5);
+  const G = u.gait ?? 0, on = Math.min(1, s * 5) * (1 - A); // G: 0 = Trab, 1 = Galopp; on: Laufbewegung sichtbar
+  // Schrittphase: Trab 1,5–3 Schritte/s, Galopp längere Sprünge mit ~3 Sprüngen/s
+  u.ph = ((u.ph ?? 0) + dt * THREE.MathUtils.lerp(1.5 + 1.6 * sp, 2.6 + 0.6 * sp, G) * (1 - A * 0.7)) % 1;
+  const ph = u.ph, ta = 0.22 + 0.28 * s;
   u.legs.forEach((leg, i) => {
-    const run = Math.sin(u.t + (i % 2 ? 0.5 : 0) + (i > 1 ? Math.PI : 0)) * 0.9 * s, jump = i < 2 ? -0.6 - k * 0.5 : 0.4 + k * 0.5;
+    const fr = i < 2;
+    const [ta0, tl] = stride((ph - TROT[i] + 1) % 1, 0.55, fr ? -ta - 0.05 : -ta + 0.08, fr ? ta - 0.08 : ta + 0.05, 0.2);
+    const [ga0, gl] = stride((ph - GALLOP[i] + 1) % 1, 0.34, fr ? -1.05 : -0.55, fr ? 0.5 : 1.05, 0.35);
+    const run = THREE.MathUtils.lerp(ta0, ga0, G) * on, jump = fr ? -0.6 - k * 0.5 : 0.4 + k * 0.5;
     leg.rotation.x = run + (jump - run) * A;
+    leg.scale.y = 1 + (THREE.MathUtils.lerp(tl, gl, G) - 1) * on;
   });
-  u.rig.position.y = Math.abs(Math.sin(u.t)) * 0.1 * s * (1 - A);
-  u.rig.rotation.x = Math.sin(u.t * 2) * 0.04 * s * (1 - A) - THREE.MathUtils.clamp(vy * 0.03, -0.35, 0.35) * A;
+  // Körper: Trab wippt leicht zweimal pro Schritt und schaukelt seitlich; Galopp hebt und senkt Vorder-/Hinterteil,
+  // der Rücken krümmt sich in der Schwebephase (alle Beine unterm Bauch) und streckt sich, wenn die Vorderbeine weit greifen.
+  const flex = Math.cos(TAU * (ph - 0.93)) * G * on - 0.4 * A * (k > 0 ? 1 : 0.3); // +1 gekrümmt, -1 gestreckt
+  const pitch = THREE.MathUtils.lerp(Math.sin(TAU * 2 * ph) * 0.02, -Math.sin(TAU * (ph - 0.02)) * 0.13, G) * on;
+  u.rig.position.y = THREE.MathUtils.lerp(0.035 * (0.5 - 0.5 * Math.cos(TAU * 2 * ph)), 0.13 * (0.5 + 0.5 * Math.cos(TAU * (ph - 0.93))), G) * on;
+  u.rig.rotation.x = pitch - THREE.MathUtils.clamp(vy * 0.03, -0.35, 0.35) * A;
+  u.front.rotation.x = flex * 0.15; u.rear.rotation.x = -flex * 0.2; u.body.scale.z = 1 - flex * 0.05;
+  const sway = Math.sin(TAU * ph) * 0.05 * (1 - G) * on; u.front.rotation.z = -sway; u.rear.rotation.z = sway;
   // In Kurven reinlehnen
-  u.lean += (THREE.MathUtils.clamp(-turn * 0.08, -0.3, 0.3) * speed - u.lean) * Math.min(1, dt * 8); u.rig.rotation.z = u.lean;
+  u.lean += (THREE.MathUtils.clamp(-turn * 0.08, -0.3, 0.3) * s - u.lean) * Math.min(1, dt * 8); u.rig.rotation.z = u.lean;
   // Leerlauf: Atmen, Umschauen, Schwanzwedeln
   u.idle = speed < 0.05 && !airborne ? u.idle + dt : 0;
   const idle = Math.min(1, u.idle * 2);
   u.look = idle * Math.sin(u.idle * 0.9) * 0.5 * (Math.sin(u.idle * 0.33) > 0 ? 1 : 0.3);
   u.head.rotation.y = u.look;
-  u.tail.rotation.y = Math.sin(u.t * 1.7 + u.idle * 14 * idle) * (0.5 + s * 0.4 + idle * 0.3);
-  u.tail.rotation.x = airborne ? 0.5 : -0.1 * idle;
-  u.head.rotation.x = airborne ? -0.3 : Math.sin(u.t) * 0.06 * s + Math.sin(u.idle * 2.2) * 0.04 * idle;
+  // Schwanz: im Trab locker erhoben und wedelnd, im Galopp lang nach hinten gestreckt als Steuer, wippt mit dem Rücken
+  u.tail.rotation.y = Math.sin(u.t * 1.7 + u.idle * 14 * idle) * ((0.45 + s * 0.3) * (1 - 0.75 * G * on) + idle * 0.3);
+  u.tail.rotation.x = airborne ? 0.5 : -0.1 * idle + THREE.MathUtils.lerp(0.15, -0.05 + Math.sin(TAU * (ph - 0.15)) * 0.2, G) * on;
+  // Kopf: hält den Blick ruhig (gleicht das Nicken des Körpers aus), im Galopp tiefer und nach vorn gestreckt
+  u.head.rotation.x = airborne ? -0.3 : -(pitch + u.front.rotation.x) * 0.7 + (Math.sin(TAU * 2 * ph) * 0.05 * (1 - G) + 0.12 * G) * on + Math.sin(u.idle * 2.2) * 0.04 * idle;
   // Ohren schwingen träge nach (Schlappohren)
-  const earT = airborne ? 0.4 + vy * 0.04 : Math.abs(Math.sin(u.t)) * 0.3 * s;
+  const earT = airborne ? 0.4 + vy * 0.04 : THREE.MathUtils.lerp(Math.abs(Math.sin(TAU * 2 * ph)) * 0.15, 0.15 + 0.6 * (0.5 + 0.5 * Math.sin(TAU * (ph - 0.75))), G) * on; // Galopp: Ohren flattern mit jedem Sprung
   u.ear = (u.ear ?? 0) + (earT - (u.ear ?? 0)) * Math.min(1, dt * 12);
   u.earL.rotation.z = -0.25 - u.ear; u.earR.rotation.z = 0.25 + u.ear;
-  u.body.scale.y = 1 + Math.sin(u.t * 2) * 0.03 * s + Math.sin(u.idle * 3) * 0.03 * idle;
+  u.body.scale.y = 1 + Math.sin(TAU * 2 * ph) * 0.02 * on + Math.sin(u.idle * 3) * 0.03 * idle;
   u.tongue.visible = speed > 0.5 || bite > 0 || idle > 0.9;
   u.tongue.position.y = -0.3 + Math.sin(u.idle * 6) * 0.015;
   // Blinzeln

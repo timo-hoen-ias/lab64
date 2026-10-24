@@ -164,7 +164,7 @@ export class Player {
     else if (this.stretch > 0) { this.stretch -= dt; const s = 1 + this.stretch * 1.2; this.mesh.scale.set(1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
-    animateDog(this.mesh, this.speedFrac, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet);
+    animateDog(this.mesh, Math.hypot(this.vel.x, this.vel.z) / RUN, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet); // echtes Tempo (Stick-Ausschlag und Beschleunigung) wählt Trab oder Galopp
     const u = this.mesh.userData; if (this.gliding) { u.earL.rotation.set(0, 0, -1.4); u.earR.rotation.set(0, 0, 1.4); u.head.rotation.y = 0; u.earsSpin = (u.earsSpin || 0) + dt * 30; u.head.children.forEach(c => { if (c === u.earL || c === u.earR) c.rotation.y = u.earsSpin; }); } else { u.earL.rotation.y = 0; u.earR.rotation.y = 0; }
     // Leerlauf: nur wenn Moll still am Boden steht und keine Taste gedrückt ist; jede Eingabe weckt sie sofort
     const busy = this.frozen || wet || !this.onGround || this.hurtT > 0 || this.bite > 0 || Math.hypot(this.vel.x, this.vel.z) > 0.5
