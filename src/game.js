@@ -7,6 +7,7 @@ import { Level } from './level.js';
 import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
 import { Particles, makeLightShafts, SEE_THROUGH } from './fx.js';
+import { Menu } from './menu.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -15,7 +16,6 @@ const QUALITY = {
   mittel: { name: 'Mittel', ratio: 1.5, shadows: true, shadowMap: 1024, view: 150, fog: 240, grass: 1600 },
   niedrig: { name: 'Niedrig', ratio: 1, shadows: false, shadowMap: 512, view: 95, fog: 150, grass: 500 },
 };
-const QUALITY_ORDER = ['hoch', 'mittel', 'niedrig'];
 
 // Strahl gegen Kiste (Slab-Test): Abstand oder Infinity
 function rayBox(o, d, s) {
@@ -44,16 +44,15 @@ export class Game {
     this.save = this.loadSave(); this.applyQuality();
     window.addEventListener('resize', () => this.resize()); this.resize();
     document.getElementById('btnStart').addEventListener('click', () => this.start());
-    document.getElementById('btnReset').addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); this.save = this.loadSave(); this.toast('Spielstand gelöscht'); });
-    document.getElementById('btnQuality').addEventListener('click', () => { const i = QUALITY_ORDER.indexOf(this.save.settings.quality); this.save.settings.quality = QUALITY_ORDER[(i + 1) % 3]; this.persist(); this.applyQuality(); });
+    this.menu = new Menu(this);
     document.getElementById('btnLeave').addEventListener('click', () => { this.enterLevel('hub', true); this.start(); });
     this.enterLevel('hub', true);
     this.loop();
   }
 
-  loadSave() {
-    const fresh = () => ({ crumbs: 0, bones: {}, worlds: {}, abilities: {}, settings: {} });
-    let s; try { s = Object.assign(fresh(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { s = fresh(); }
+  loadSave(fresh = false) {
+    const empty = () => ({ crumbs: 0, bones: {}, worlds: {}, abilities: {}, settings: {} });
+    let s; try { s = Object.assign(empty(), JSON.parse((!fresh && localStorage.getItem(SAVE_KEY)) || '{}')); } catch (e) { s = empty(); }
     for (const k of ['bones', 'worlds', 'abilities', 'settings']) if (typeof s[k] !== 'object' || !s[k]) s[k] = {};
     if (!QUALITY[s.settings.quality]) s.settings.quality = matchMedia('(pointer: coarse)').matches ? 'mittel' : 'hoch';
     return s;
@@ -148,17 +147,17 @@ export class Game {
 
   start() {
     this.audio.init(); this.audio.resume();
-    document.getElementById('menu').classList.add('hidden'); this.paused = false;
+    this.menu.show(false); document.getElementById('menu').classList.add('hidden'); this.paused = false;
     if (this.level) this.audio.playTheme(this.level.def.music);
   }
   pause() {
-    this.paused = true; const m = document.getElementById('menu'); m.classList.remove('hidden');
-    document.getElementById('btnStart').textContent = 'Weiter';
+    this.paused = true; const m = document.getElementById('menu'); m.classList.remove('hidden'); m.classList.add('paused');
+    document.getElementById('btnStart').textContent = '▶ Weiter';
     document.getElementById('btnLeave').style.display = this.level && this.level.key !== 'hub' ? '' : 'none';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
     const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg' };
     const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || id[0].toUpperCase() + id.slice(1)}`).join(' · ')}</span>` : '';
-    document.getElementById('menuText').innerHTML = `<b>Pause</b> · Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
+    document.getElementById('menuText').innerHTML = `<b>⏸ Pause</b>Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();
   }
 
@@ -240,7 +239,8 @@ export class Game {
     requestAnimationFrame(() => this.loop());
     const dt = Math.min(0.05, this.clock.getDelta());
     this.input.update();
-    if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
+    if (this.menu.options && this.paused) { if (this.input.pressed('pause')) this.menu.show(false); } // in den Optionen: Esc/Start = zurück
+    else if (this.input.pressed('pause')) { if (this.paused) this.start(); else this.pause(); }
     else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet
     if (!this.paused && this.level) {
       if (this.level.isRunner) this.level.update(dt);

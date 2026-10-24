@@ -67,21 +67,64 @@
   #bPause{top:calc(var(--sa-t) + 60px);right:calc(var(--sa-r) + 14px);width:44px;height:44px;background:rgba(59,36,18,.6);color:var(--ui);border-width:2px;font-size:16px}
   #camZone{position:absolute;right:0;top:25%;width:45%;height:45%;pointer-events:auto}
 
-  /* Menu overlay */
-  #menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(from 0deg at 50% 30%,rgba(255,255,255,.08) 0 10deg,transparent 10deg 20deg),radial-gradient(circle at 50% 30%,#ffd56b,#f4a52a 45%,#c7641e);background-size:100% 100%;padding:calc(var(--sa-t)+16px) max(16px,var(--sa-r)) calc(var(--sa-b)+16px) max(16px,var(--sa-l))}
-  #menu .card{animation:cardIn .5s cubic-bezier(.34,1.56,.64,1);background:var(--ui);color:var(--ink);border-radius:26px;padding:28px 30px;max-width:520px;width:100%;box-shadow:0 10px 0 var(--ink);text-align:center;border:5px solid var(--ink)}
-  #menu h1{margin:0 0 4px;font-size:clamp(36px,8vw,64px);letter-spacing:-1px;line-height:1}
-  #menu h1 small{display:block;font-size:.35em;letter-spacing:4px;text-transform:uppercase;color:#a0561b}
-  #menu p{margin:10px 0;font-size:15px;line-height:1.45}
-  #menu button{font:inherit;font-weight:900;font-size:20px;padding:14px 28px;border-radius:16px;border:4px solid var(--ink);background:var(--accent);color:var(--ink);box-shadow:0 5px 0 var(--ink);cursor:pointer;margin:6px}
-  #menu button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
-  #menu .keys{font-size:13px;color:#6b4a2b;margin-top:12px}
+  /* Menü: Titel links, Knöpfe rechts (Querformat); Optionen ersetzen beide Spalten */
+  #menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:repeating-conic-gradient(from 0deg at 50% 30%,rgba(255,255,255,.08) 0 10deg,transparent 10deg 20deg),radial-gradient(circle at 50% 30%,#ffd56b,#f4a52a 45%,#c7641e);padding:calc(var(--sa-t) + 12px) calc(var(--sa-r) + 16px) calc(var(--sa-b) + 12px) calc(var(--sa-l) + 16px)}
+  #menu.paused{background:radial-gradient(circle at 50% 40%,rgba(59,36,18,.35),rgba(18,10,4,.8))}
   #menu.hidden{display:none}
-  #dogIcon{font-size:70px;line-height:1;filter:drop-shadow(0 4px 0 var(--ink));display:inline-block;animation:hop 1.1s ease-in-out infinite;transform-origin:50% 100%}
+  #menu .deco{position:absolute;bottom:-60px;font-size:34px;opacity:.55;animation:float 9s linear infinite;pointer-events:none}
+  #menu.paused .deco{display:none}
+  #menu.paused #dogIcon,#menu.paused h1{display:none}
+  #menu.paused #menuText>b:first-child{display:block;font-size:26px;margin-bottom:4px}
+  @keyframes float{to{transform:translateY(calc(-100vh - 120px)) rotate(360deg)}}
+  #menu .card{position:relative;animation:cardIn .5s cubic-bezier(.34,1.56,.64,1);background:var(--ui);color:var(--ink);border-radius:26px;padding:22px 26px;max-width:800px;width:100%;max-height:100%;overflow-y:auto;box-shadow:0 10px 0 var(--ink);text-align:center;border:5px solid var(--ink);display:grid;grid-template-columns:1.15fr 1fr;gap:10px 26px;align-items:center;touch-action:pan-y}
+  #menu .card.opts .title,#menu .card.opts #vMain{display:none}
+  #menu .card:not(.opts) #vOptions{display:none}
+  #menu h1{margin:0 0 4px;font-size:clamp(36px,7vw,64px);letter-spacing:-1px;line-height:1}
+  #menu h1 small{display:block;font-size:.35em;letter-spacing:4px;text-transform:uppercase;color:#a0561b}
+  #menu h2{margin:0 0 8px;font-size:24px}
+  #menu p{margin:10px 0;font-size:15px;line-height:1.45}
+  #menu button{font:inherit;font-weight:900;font-size:17px;padding:11px 18px;border-radius:16px;border:4px solid var(--ink);background:#f1e2c4;color:var(--ink);box-shadow:0 5px 0 var(--ink);cursor:pointer;transition:transform .1s;touch-action:manipulation}
+  #menu button:hover{transform:translateY(-2px)}
+  #menu button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+  #menu button:focus-visible{outline:4px solid #3fa7ff;outline-offset:2px}
+  #vMain{display:flex;flex-direction:column;gap:12px}
+  #vMain .primary{font-size:26px;padding:16px 18px;background:var(--accent)}
+  #vMain .row{display:flex;gap:10px}
+  #vMain .row button{flex:1}
+  #btnInstall{background:var(--good)!important}
+  #dogIcon{font-size:64px;line-height:1;filter:drop-shadow(0 4px 0 var(--ink));display:inline-block;animation:hop 1.1s ease-in-out infinite;transform-origin:50% 100%}
   @keyframes hop{0%,100%{transform:translateY(0) scale(1.08,.92)}15%{transform:translateY(0) scale(.95,1.06)}45%{transform:translateY(-16px) rotate(-6deg)}75%{transform:translateY(0) scale(1.06,.94)}}
   @keyframes cardIn{from{transform:translateY(30px) scale(.9);opacity:0}to{transform:none;opacity:1}}
-  #menu button{transition:transform .1s}
-  #menu button:hover{transform:translateY(-2px)}
+  /* Optionen */
+  #vOptions{grid-column:1/-1;text-align:left}
+  #vOptions .cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
+  #vOptions h3{margin:6px 0 6px;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#a0561b}
+  #vOptions .set{margin:0 0 12px}
+  #vOptions label{display:flex;justify-content:space-between;font-weight:900;font-size:16px;margin-bottom:4px}
+  #vOptions input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:0;touch-action:none}
+  #vOptions input[type=range]::-webkit-slider-runnable-track{height:14px;border-radius:8px;border:3px solid var(--ink);background:linear-gradient(90deg,var(--accent) var(--v,50%),#f1e2c4 0)}
+  #vOptions input[type=range]::-moz-range-track{height:8px;border-radius:8px;border:3px solid var(--ink);background:linear-gradient(90deg,var(--accent) var(--v,50%),#f1e2c4 0)}
+  #vOptions input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;background:var(--ui);border:4px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
+  #vOptions input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ui);border:4px solid var(--ink)}
+  #vOptions .seg{display:flex;gap:6px}
+  #vOptions .seg button{flex:1;font-size:15px;padding:9px 6px;box-shadow:0 4px 0 var(--ink)}
+  #vOptions .seg button.on{background:var(--accent)}
+  #vOptions .hint{font-size:13px;color:#6b4a2b;margin:6px 0 0;min-height:1.3em}
+  #vOptions .bottom{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+  #vOptions .bottom button{flex:1}
+  #btnBack{background:var(--accent)!important;font-size:20px!important}
+  #btnReset.armed{background:var(--bad)!important;color:var(--ui)}
+  #menu .keys{font-size:12px;color:#6b4a2b;margin-top:10px;text-align:center;line-height:1.5}
+  /* Hochformat / schmal: alles untereinander */
+  @media (max-aspect-ratio:1/1){#menu .card{grid-template-columns:1fr}#vOptions .cols{grid-template-columns:1fr}}
+  /* Handy quer: wenig Höhe */
+  @media (max-height:430px){
+    #menu .card{padding:12px 18px;border-width:4px;border-radius:20px;box-shadow:0 6px 0 var(--ink)}
+    #dogIcon{font-size:44px} #menu h1{font-size:clamp(30px,6vw,46px)} #menu p{font-size:13px;margin:6px 0}
+    #vMain{gap:8px} #vMain .primary{font-size:21px;padding:10px 14px} #menu button{font-size:15px;padding:8px 12px}
+    #vOptions .set{margin-bottom:6px} #menu h2{font-size:20px;margin-bottom:2px} #menu .keys{display:none}
+  }
+  @media (max-height:300px){#dogIcon{display:none} #vOptions .cols{gap:0 16px} #vOptions h3{margin:2px 0} #vOptions .hint{display:none} #vOptions label{font-size:14px;margin:0}}
   #btnUpdate{position:fixed;left:50%;bottom:calc(var(--sa-b) + 14px);transform:translateX(-50%);z-index:90;font:inherit;font-weight:900;font-size:16px;padding:10px 18px;border-radius:14px;border:3px solid var(--ink);background:var(--good);color:var(--ink);box-shadow:0 4px 0 var(--ink);cursor:pointer;white-space:nowrap}
   #btnUpdate:active{transform:translate(-50%,3px);box-shadow:0 1px 0 var(--ink)}
   /* Hochformat am Handy: zum Drehen auffordern */
@@ -121,19 +164,45 @@
 </div>
 
 <div id="menu">
+  <span class="deco" style="left:6%;animation-delay:-1s">🦴</span><span class="deco" style="left:22%;animation-delay:-6s;font-size:24px">🍖</span>
+  <span class="deco" style="left:78%;animation-delay:-3s">🦴</span><span class="deco" style="left:92%;animation-delay:-7.5s;font-size:26px">🐾</span>
   <div class="card">
-    <div id="dogIcon">🐕</div>
-    <h1>MOLL<small>Der Labrador</small></h1>
-    <p id="menuText">Ein brauner Labrador. Eine Welt voller Schinken. Und ein Staubsauger, der alles kaputt macht.</p>
-    <button id="btnStart">Spielen</button>
-    <button id="btnLeave" style="display:none">Welt verlassen</button>
-    <br><button id="btnQuality" style="background:#ddd;font-size:14px;padding:8px 14px">Grafik: Hoch</button>
-    <button id="btnInstall" style="display:none;background:var(--good);font-size:14px;padding:8px 14px">📲 App installieren</button>
-    <button id="btnReset" style="background:#ddd;font-size:14px;padding:8px 14px">Spielstand löschen</button>
-    <div class="keys">Tastatur: WASD/Pfeile · Leertaste Sprung · Shift/E Biss · F Nase · Q/R Kamera · Esc Pause<br>Gamepad: Stick links laufen · Stick rechts Kamera · A Sprung · X Biss · Y Nase · Start Pause<br>Touch: Stick links · Wischen rechts = Kamera · Buttons rechts</div>
+    <div class="title">
+      <div id="dogIcon">🐕</div>
+      <h1>MOLL<small>Der Labrador</small></h1>
+      <p id="menuText">Ein brauner Labrador. Eine Welt voller Schinken. Und ein Staubsauger, der alles kaputt macht.</p>
+    </div>
+    <div id="vMain">
+      <button id="btnStart" class="primary">▶ Spielen</button>
+      <button id="btnLeave" style="display:none">🏡 Welt verlassen</button>
+      <div class="row">
+        <button id="btnOptions">⚙️ Optionen</button>
+        <button id="btnInstall" style="display:none">📲 App installieren</button>
+      </div>
+    </div>
+    <div id="vOptions">
+      <h2>⚙️ Optionen</h2>
+      <div class="cols">
+        <div>
+          <h3>Ton</h3>
+          <div class="set"><label for="optMusic">🎵 Musik <span id="optMusicV"></span></label><input type="range" id="optMusic" min="0" max="100" step="5"></div>
+          <div class="set"><label for="optSfx">🔊 Effekte <span id="optSfxV"></span></label><input type="range" id="optSfx" min="0" max="100" step="5"></div>
+          <h3>Steuerung</h3>
+          <div class="seg" id="optVibe"><button data-v="1">📳 Vibration an</button><button data-v="0">Aus</button></div>
+        </div>
+        <div>
+          <h3>Grafik</h3>
+          <div class="seg" id="optQuality"><button data-q="hoch">Hoch</button><button data-q="mittel">Mittel</button><button data-q="niedrig">Niedrig</button></div>
+          <p class="hint" id="optQualityHint"></p>
+          <h3>Spielstand</h3>
+          <div class="bottom"><button id="btnReset">🗑️ Spielstand löschen</button></div>
+        </div>
+      </div>
+      <div class="bottom" style="margin-top:12px"><button id="btnBack">✔ Zurück</button></div>
+      <div class="keys">Tastatur: WASD/Pfeile · Leertaste Sprung · Shift/E Biss · F Nase · Q/R Kamera · Esc Pause<br>Gamepad: Stick links laufen · Stick rechts Kamera · A Sprung · X Biss · Y Nase · Start Pause<br>Touch: Stick links · Wischen rechts = Kamera · Buttons rechts</div>
+    </div>
   </div>
 </div>
-
 <button id="btnUpdate" style="display:none">✨ Neue Version – neu laden</button>
 <div id="rotate"><div class="phone">📱</div>Bitte das Handy quer halten</div>
 
