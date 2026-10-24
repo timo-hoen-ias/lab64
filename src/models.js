@@ -537,5 +537,15 @@ export function makeNpcDog(fur = 0xd9a441, cap = 0xe74c3c) {
   const g = makeDog(), from = [0x8b5a2b, 0x5a3715, 0xa8743f], to = new THREE.Color(fur);
   g.traverse(o => { if (o.material && o.material.color) { const h = o.material.color.getHex(), i = from.indexOf(h); if (i >= 0) { o.material = o.material.clone(); o.material.color.copy(to).multiplyScalar([1, 0.7, 1.15][i]); } } });
   const u = g.userData; if (u.head) { const c = cyl(0.32, 0.36, 0.2, cap, 0, 0.5, 0, 10); u.head.add(c); }
+  u.npc = true; // Level sammelt NPCs, damit sie Moll mit dem Kopf nachschauen (Kopf bleibt dank userData beweglich)
   return compact(g);
+}
+
+// Kopf weich zu einem Ziel drehen (NPCs schauen Moll an, Moll schaut NPCs an). dx/dz: Richtung zum Ziel in Weltkoordinaten,
+// yaw: Blickrichtung des Körpers, on: hinschauen? Ziele hinter dem Rücken werden ignoriert, der Winkel ist auf ±max begrenzt.
+export function headTrack(u, dx, dz, yaw, on, dt, max = 1.1) {
+  let a = Math.atan2(dx, dz) - yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
+  const want = on && Math.abs(a) < 2.3 ? THREE.MathUtils.clamp(a, -max, max) : 0;
+  u.track = (u.track ?? 0) + (want - (u.track ?? 0)) * Math.min(1, dt * 5);
+  return u.track;
 }

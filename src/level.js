@@ -1,7 +1,7 @@
 // Level-Framework: Szene, Solids (AABB), Sammelobjekte, Portale, Interaktionen, Gegner, Boss.
 import * as THREE from 'three';
 import { BONES } from './levels.js';
-import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere } from './models.js';
+import { box, makeFood, makeLabel, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam } from './fx.js';
 
@@ -30,7 +30,7 @@ export class Level {
       if (def.backdrop) { this.backdrop = makeBackdrop(def.backdrop, this.sky.horizon, this.sky.top); this.scene.add(this.backdrop); this.follow.push(this.backdrop); }
       this.skyLife = makeSkyLife(160); this.scene.add(this.skyLife);
     }
-    this.solids = []; this.pickups = []; this.enemies = []; this.portals = []; this.interact = []; this.hideSpots = [];
+    this.solids = []; this.pickups = []; this.enemies = []; this.portals = []; this.interact = []; this.hideSpots = []; this.npcs = [];
     this.terrain = []; this.zones = []; this.doors = []; this.killY = def.killY ?? -25;
     this.bounds = this.mainArea = { min: { x: -(def.size || 40), z: -(def.size || 40) }, max: { x: def.size || 40, z: def.size || 40 } };
     this.areas = [this.mainArea];
@@ -317,7 +317,7 @@ export class Level {
   }
 
   // Nur Deko (keine Kollision)
-  deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); return mesh; }
+  deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); if (mesh.userData.npc) this.npcs.push(mesh); return mesh; }
   tree(x, z, s = 1, mesh) { const y = Math.max(0, this.heightAt(x, z)); this.deco(mesh || makeTree(s), x, y, z); this.solids.push({ min: { x: x - 0.4 * s, y, z: z - 0.4 * s }, max: { x: x + 0.4 * s, y: y + 1.5 * s, z: z + 0.4 * s }, active: true }); }
   // Höchste begehbare Oberfläche an (x,z): Gelände oder Kiste (zum Platzieren von Dingen)
   top(x, z) { return this.groundAt(x, z, 1e6); }
@@ -467,6 +467,13 @@ export class Level {
     for (const it of this.interact) if (!it.used && Math.hypot(it.x - pp.x, it.z - pp.z) < it.r + 1.3 && Math.abs(it.y - pp.y) < 2.5) hint = it.hintText;
     this.game.hint(hint);
     if (this.def.update) this.def.update(this, dt);
+    // NPCs drehen den Kopf zu Moll, wenn sie in der Nähe vorbeiläuft (nach def.update, das manche NPCs animiert)
+    for (const n of this.npcs) {
+      const u = n.userData, dx = pp.x - n.position.x, dz = pp.z - n.position.z;
+      const on = n.visible && Math.hypot(dx, dz) < 9 && Math.abs(pp.y - n.position.y) < 4;
+      if (!on && Math.abs(u.track ?? 0) < 0.002) continue;
+      u.head.rotation.y = headTrack(u, dx, dz, n.rotation.y, on, dt); u.head.rotation.z = -u.track * 0.12; // leicht schief gelegt: neugierig
+    }
     if (this.boss) this.game.updateBossBar(this.boss);
   }
 
