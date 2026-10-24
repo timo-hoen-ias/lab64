@@ -84,7 +84,7 @@ export const GARTEN = {
     // ---- Portale (schauen zur Gartenmitte)
     l.portal(-9, -4, 'Erdgeschoss', 'kueche', 0xff9f43, 0);
     l.portal(9, -4, 'Einkaufsstraße', 'strasse', 0x54a0ff, 3);
-    l.portal(-22, -6, 'Hochhaus', 'buero', 0x9b9b9b, 8);
+    l.portal(-22, -6, 'Das Büro', 'buero', 0x9b9b9b, 8);
     l.portal(22, -6, 'Grillpark', 'park', 0x8e44ad, 14);
     l.portal(-23, -23, 'Rattenrennen', 'rattenrennen', 0xff7675, 18);
     l.portal(0, 30, 'Strand', 'strand', 0xffd36e, 22);

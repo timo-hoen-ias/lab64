@@ -220,7 +220,7 @@ export class Game {
     document.getElementById('btnStart').textContent = '▶ Weiter';
     document.getElementById('btnLeave').style.display = this.level && this.level.key !== 'hub' ? '' : 'none';
     const rows = Object.keys(BONES).map(k => { const p = this.levelProgress(k); return `<span style="display:inline-block;min-width:46%;text-align:left">${p.have === p.total ? '✅' : '🦴'} ${WORLD_NAMES[k]} <b>${p.have}/${p.total}</b></span>`; }).join(' ');
-    const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg', apport: 'Apportieren', trillern: 'Trillern', bellen: 'Bellen', stampfen: 'Bauchklatscher', buddeln: 'Buddeln', gleiten: 'Gleiten', wand: 'Wandsprung', tornado: 'Tornado' };
+    const k = this.level && !this.level.isRunner ? this.level.key : null, NAME = { boss: 'Boss', kruemel: 'Alle Krümel', geheim: 'Geheimversteck', kletter: 'Kletterweg', apport: 'Apportieren', trillern: 'Trillern', bellen: 'Bellen', stampfen: 'Bauchklatscher', buddeln: 'Buddeln', gleiten: 'Gleiten', wand: 'Wandsprung', tornado: 'Tornado', server: 'Aktenarchiv', chef: 'Amtsleiter', antenne: 'Antennenmast', tassen: 'Kaffeetassen' };
     const here = k && BONES[k] ? `<br><span style="font-size:13px">Hier (${WORLD_NAMES[k]}): ${BONES[k].map(id => `${this.hasBone(k, id) ? '✅' : '❔'} ${NAME[id] || id[0].toUpperCase() + id.slice(1)}`).join(' · ')}</span>` : '';
     document.getElementById('menuText').innerHTML = `<b>⏸ Pause</b>Goldknochen ${this.boneCount()}/${TOTAL_BONES} · Krümel ${this.save.crumbs}${here}<br><span style="font-size:13px;line-height:1.7">${rows}</span>`;
     this.audio.stopMusic(); this.audio.stopLoops();

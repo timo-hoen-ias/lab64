@@ -67,7 +67,7 @@ const pig = () => ev(() => window.game.level.enemies.filter(e => e.home && e.y0 
 const pg0 = await pig(); await ev(() => { const e = window.game.level.enemies.find(e => e.y0 !== undefined && !e.dead), pl = window.game.player; pl.pos.set(e.mesh.position.x, 0.6, e.mesh.position.z + 5); pl.yaw = Math.PI; pl.barkCd = 0; pl.hurtT = 5; }); await press('bark'); await sim(2);
 res.tauben = (await pig()) === pg0 - 1; console.log('  Taube weggebellt:', res.tauben);
 
-// ---- Hochhaus: Bauchklatscher
+// ---- Das Büro: Bauchklatscher
 await enter('buero'); res.bauchklatscher = await learnAt();
 await setAb('bauchklatscher', false); await tp(-10, 3, 24); await sim(4); await press('act'); await sim(30); const knOhne = await ev(() => window.game.level.knoepfe); await setAb('bauchklatscher', true);
 for (const [x, z] of [[-10, 24], [8, 27], [-22, 6]]) { await tp(x, 3, z); await sim(4); await press('act'); await sim(30); }
