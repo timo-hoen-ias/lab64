@@ -3,7 +3,7 @@
 // Hüpf- und Flattertiere wandern mit Moll mit: Wer zu weit weg ist, taucht außer Sicht an einem freien Platz in seiner Nähe neu auf.
 import * as THREE from 'three';
 import { box, sphere, cone, cyl, makeButterfly, compact, makeFood } from './models.js';
-import { FX } from './fx.js';
+import { FX, WATER } from './fx.js';
 
 // Welche Tiere wo (Anzahl bei Grafik „Hoch“). Teiche bekommen automatisch Enten und Frösche, Wasser springende Fische.
 const SETS = {
@@ -180,13 +180,13 @@ export class Critters {
       if (f.visible) {
         f.userData.k += dt / 0.9; const k = f.userData.k, a = f.userData;
         f.position.set(a.x + a.dx * k, a.y - 0.4 + Math.sin(k * Math.PI) * 1.6, a.z + a.dz * k); f.rotation.set(0, Math.atan2(a.dx, a.dz) - Math.PI / 2, (0.5 - k) * 2.2);
-        if (k >= 1) { f.visible = false; fx.burst({ x: f.position.x, y: a.y, z: f.position.z }, { n: 10, color: [0xffffff, 0x9ad7ff], speed: 1.8, up: 4, life: 0.6, size: 0.14, gravity: -16 }); FX.land(fx, { x: f.position.x, y: a.y, z: f.position.z }, 0.3); }
+        if (k >= 1) { f.visible = false; WATER.ripple(f.position.x, f.position.z, 0.9); fx.burst({ x: f.position.x, y: a.y, z: f.position.z }, { n: 10, color: [0xffffff, 0x9ad7ff], speed: 1.8, up: 4, life: 0.6, size: 0.14, gravity: -16 }); FX.land(fx, { x: f.position.x, y: a.y, z: f.position.z }, 0.3); }
       } else if ((this.fishT -= dt) <= 0) {
         this.fishT = 2 + Math.random() * 4;
         for (let i = 0; i < 6; i++) {
           const ang = Math.random() * 7, r = 7 + Math.random() * 18, x = pp.x + Math.cos(ang) * r, z = pp.z + Math.sin(ang) * r, wy = L.waterAt(x, z);
           if (wy === null || L.groundAt(x, z, wy) > wy - 1.2 || (L.key === 'kanal')) continue;
-          const dir = Math.random() * 7; Object.assign(f.userData, { x, y: wy, z, dx: Math.sin(dir) * 2.2, dz: Math.cos(dir) * 2.2, k: 0 }); f.visible = true;
+          const dir = Math.random() * 7; Object.assign(f.userData, { x, y: wy, z, dx: Math.sin(dir) * 2.2, dz: Math.cos(dir) * 2.2, k: 0 }); f.visible = true; WATER.ripple(x, z, 0.7);
           fx.burst({ x, y: wy, z }, { n: 6, color: 0xffffff, speed: 1.2, up: 3, life: 0.5, size: 0.12, gravity: -16 }); break;
         }
       }

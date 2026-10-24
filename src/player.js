@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { makeDog, animateDog, compact, headTrack } from './models.js';
 import { animateIdle } from './idle.js';
-import { makeBlobShadow, FX, characterLook } from './fx.js';
+import { makeBlobShadow, FX, characterLook, WATER } from './fx.js';
 
 const GRAVITY = -28, RUN = 8.5, JUMP = 11, JUMP2 = 9.5, HALF = 0.42, HEIGHT = 1.15, STEP = 0.45, SUB = 0.25; // STEP: so hohe Kanten steigt Moll im Laufen einfach hoch
 
@@ -65,6 +65,7 @@ export class Player {
     const swim = wet && !this.diving, dive = this.diving;
     if (wet && !this._wet) { FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); this.game.audio.sfx('splash'); this.flipT = 0; this.stomp = false; this.gliding = false; if (!this._swamOnce) { this._swamOnce = true; this.game.toast('Platsch! Moll schwimmt – zum Rausklettern einfach ans Ufer paddeln'); } }
     this._wet = wet; this.swimming = swim;
+    if (swim && !this.diving) { this._ripT = (this._ripT || 0) - dt; if (this._ripT <= 0) { const v = Math.hypot(this.vel.x, this.vel.z); this._ripT = v > 1 ? 0.3 : 1.3; WATER.ripple(this.pos.x, this.pos.z, v > 1 ? 0.8 : 0.4); if (v > 1) this.game.fx.burst({ x: this.pos.x, y: wy + 0.05, z: this.pos.z }, { n: 3, color: 0xffffff, speed: 1.2, up: 1, life: 0.4, size: 0.12, gravity: -6 }); } } // Bugwelle beim Schwimmen
     // Zoomies: nach einem Moment Vollgas am Boden rast Moll los (bleibt im Sprung erhalten)
     if (has('zoomies') && this.onGround && !wet && this.speedFrac > 0.92) this.zoomT = Math.min(1.5, (this.zoomT || 0) + dt);
     else if (this.onGround || wet) this.zoomT = Math.max(0, (this.zoomT || 0) - dt * 4);

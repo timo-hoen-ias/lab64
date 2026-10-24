@@ -4,7 +4,7 @@ import { BONES } from './levels.js';
 import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, headTrack } from './models.js';
 import { installGadgets } from './abilities.js';
 import { collectPatches, surfaceAt } from './surface.js';
-import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex } from './fx.js';
+import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
 
 // Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
@@ -434,6 +434,14 @@ export class Level {
     CLOUDS.uCloudT.value += dt;
   }
 
+  // Wasser spiegelt Himmel und Sonne (siehe WATER in fx.js); bei Regen kräuselt es sich überall
+  _updateWater(dt, pp) {
+    WATER.update(dt);
+    const out = !this.def.indoor, rain = this.wx?.k || 0;
+    WATER.uWSky.value.copy(this.scene.fog.color); if (out) WATER.uWSky.value.lerp(this.sky.top, 0.7);
+    WATER.uWSunK.value = out && this.T ? 1 - rain * 0.9 : 0; WATER.uWSun.value.copy(this.sky.sunDir);
+    if (rain > 0.2 && !this.bounds?.room && Math.random() < dt * 14 * rain) { const x = pp.x + (Math.random() - 0.5) * 16, z = pp.z + (Math.random() - 0.5) * 16; if (this.waterAt(x, z) !== null) WATER.ripple(x, z, 0.45); }
+  }
   // Schaum am Strand: Rasterpunkte, an denen das Gelände die Wasserlinie schneidet
   _shoreFoam() {
     const y = this.seaY, S = (this.def.size || 40) * 1.1, step = 2, pts = [];
@@ -544,6 +552,7 @@ export class Level {
     GRASS.uPlayer.value.copy(pp); this.critters?.update(dt); this._updateSky(dt, cp, pp);
     for (const a of this.ambient || []) a.userData.update(dt, cp, pp.y - 1.5);
     if (this.plankton) { const uw = !!this._uw; this.plankton.visible = uw; if (uw) this.plankton.userData.update(dt, cp, cp.y - 5); }
+    if (this.water || this.ponds) this._updateWater(dt, pp);
     if (this.water) this.water.userData.update(dt);
     for (const p of this.ponds || []) p.mesh.userData.update(dt);
     // Ferne Bereiche ausblenden (Sichtweite je Grafik-Stufe)
