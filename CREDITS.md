@@ -25,3 +25,9 @@ Fremde Modelle mit Textur-Palette werden vor dem Einchecken mit `tools/lowpoly.p
 | Datei | Herkunft | Lizenz |
 |---|---|---|
 | `vendor/three.module.js`, `vendor/GLTFLoader.js`, `vendor/BufferGeometryUtils.js` | [three.js](https://threejs.org) r160 | MIT |
+
+## Schriften
+| Dateien | Schrift | Urheber | Lizenz |
+|---|---|---|---|
+| `fonts/fredoka.woff2` (Fließtext, Schilder) | [Fredoka](https://fonts.google.com/specimen/Fredoka) | Milena Brandão, Hafontia | [SIL Open Font License 1.1](https://openfontlicense.org) |
+| `fonts/luckiest-guy.woff2` (HUD-Zahlen, Überschriften) | [Luckiest Guy](https://fonts.google.com/specimen/Luckiest+Guy) | Astigmatic | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) |

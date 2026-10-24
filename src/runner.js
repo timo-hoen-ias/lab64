@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { makeDog, animateDog, makeRat, makeFood, compact, box, cyl, sphere } from './models.js';
 import { makeSky, FX, characterLook } from './fx.js';
+import { ICON } from './hud.js';
 
 const LANE_W = 2.2, SPEED = 18, LENGTH = 700, SEG = 40;
 
@@ -113,7 +114,7 @@ export class RunnerLevel {
     const u = this.rat.userData; u.t += dt * 14; u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.t + i) * 0.7);
     // Kamera
     const cam = this.game.camera; this.sky.mesh.position.copy(cam.position); this.camPos.set(0, 5.5, this.z - 9); cam.position.lerp(this.camPos, Math.min(1, dt * 8)); cam.lookAt(0, 2, this.z + 8);
-    this.game.hud.counter.textContent = `${icon} Moll ${this.score} : Ratte ${this.ratScore}   ${Math.max(0, Math.floor(LENGTH - this.z))} m`;
+    this.game.counters.set([{ k: 'moll', icon: ICON.badge(icon), text: `Moll ${this.score}` }, { k: 'rat', icon: ICON.badge('🐀'), text: `Ratte ${this.ratScore}` }, { k: 'm', icon: ICON.badge('🏁'), text: `${Math.max(0, Math.floor(LENGTH - this.z))} m`, quiet: true }], { stay: true });
 
     if (this.z >= LENGTH) {
       this.done = true;

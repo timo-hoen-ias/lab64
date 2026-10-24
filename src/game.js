@@ -13,6 +13,7 @@ import { Post } from './post.js';
 import { MenuDog } from './menudog.js';
 import { ABILITIES, UPGRADES } from './abilities.js';
 import { Dialog } from './dialog.js';
+import { ICON, Counters } from './hud.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -48,7 +49,7 @@ export class Game {
     this.input = new Input(); this.audio = new AudioEngine();
     this.fx = new Particles(); this.rings = this.fx.rings = new Rings(); this.prints = new Prints(); this.shakeT = 0; this._shake = new THREE.Vector3();
     this.player = new Player(this);
-    this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') };
+    this.hud = { levelName: document.getElementById('levelName'), hearts: document.getElementById('hearts'), counter: document.getElementById('counter'), toast: document.getElementById('toast'), boss: document.getElementById('bossbar'), sniff: document.getElementById('sniff') }; this.counters = new Counters(this.hud.counter);
     this.camYaw = 0; this.camPitch = 0.35; this.camDist = 9;
     this.paused = true; this.level = null; this.clock = new THREE.Clock();
     this.save = this.loadSave(); this.dialog = new Dialog(this); this.applyQuality(); this.updateAbilityButtons(); this._setupShop();
@@ -257,21 +258,35 @@ export class Game {
     }
     this.fx.attach(this.level.scene); this.rings.attach(this.level.scene); if (this.level.def.prints) this.prints.attach(this.level.scene, this.level.def.prints); this.fade();
     this.level.key = key;
-    this.hud.levelName.textContent = this.level.def.name;
-    this.updateHearts(); this.updateCounter();
+    this.hud.levelName.textContent = this.level.def.name; this.banner();
+    this.updateHearts(); this.updateCounter(); if (!this.level.isRunner) this.counters.show(5000);
     if (!silent) { this.audio.sfx('portal'); this.audio.playTheme(this.level.def.music); }
     const br = this.level.bruno; if (br && br.ability && !this.has(br.ability)) this.later(5200, () => { if (!this.has(br.ability)) this.toast('🐕 Opa Bruno wartet hier in der Nähe – er bringt dir etwas Neues bei!', 4000); });
     if (!this.level.isRunner) { const intro = this.level.intro; if (key !== 'hub') this.toast(this.level.def.name + (intro ? ' – ' + intro : ''), 4500); else if (intro) this.toast(intro, 3500); }
   }
 
   // ------------------------------------------------------------- HUD
-  updateHearts() { if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts); this.shake(0.3); } this._hp = this.player.hp; this.hud.hearts.innerHTML = '<span>♥</span>'.repeat(Math.max(0, this.player.hp)) + '<span style="opacity:.25">♥</span>'.repeat(Math.max(0, this.maxHp() - this.player.hp)); }
+  updateHearts() {
+    if (this._hp !== undefined && this.player.hp < this._hp) { this.pop(this.hud.hearts, 'ouch'); this.shake(0.3); }
+    else if (this._hp !== undefined && this.player.hp > this._hp) this.pop(this.hud.hearts);
+    this._hp = this.player.hp; const hp = Math.max(0, this.player.hp);
+    this.hud.hearts.innerHTML = ICON.heart(true).repeat(hp) + ICON.heart(false).repeat(Math.max(0, this.maxHp() - hp));
+  }
   updateCounter() {
     const l = this.level; if (!l || l.isRunner) return;
     const icon = { ham: '🍖', bread: '🥖', treat: '🦴', sausage: '🌭', fish: '🐟', cheese: '🧀', fries: '🍟' }[l.goal.kind] || '⭐';
-    this.hud.counter.textContent = l.goal.need ? `${icon} ${l.goal.have}/${l.goal.need}   ✦ ${l.crumbHave}/${l.crumbTotal}   🦴 ${this.boneCount()}` : `🦴 ${this.boneCount()}/${TOTAL_BONES}   ✦ ${l.crumbHave}/${l.crumbTotal}`;
+    const rows = [];
+    if (l.goal.need) rows.push({ k: 'goal', icon: ICON.badge(icon), text: `${l.goal.have}/${l.goal.need}` });
+    rows.push({ k: 'crumb', icon: ICON.crumb(), text: `${l.crumbHave}/${l.crumbTotal}` });
+    rows.push({ k: 'bone', icon: ICON.bone(), text: l.goal.need ? `${this.boneCount()}` : `${this.boneCount()}/${TOTAL_BONES}` });
+    this.counters.set(rows);
   }
-  pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  // Weltname als Holzschild oben in der Mitte, rutscht nach ein paar Sekunden wieder weg
+  banner(ms = 3800) { const b = this.hud.levelName; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); clearTimeout(this._bt); this._bt = setTimeout(() => b.classList.remove('show'), ms); }
+  pop(el, cls = 'pop') {
+    if (el === this.hud.counter) { this.counters.show(); return; } // Zähler hüpfen selbst, sobald sich die Zahl ändert
+    el.classList.remove('pop', 'ouch'); void el.offsetWidth; el.classList.add(cls);
+  }
   fade() { const f = document.getElementById('fade'); if (!f) return; f.classList.remove('out'); void f.offsetWidth; f.classList.add('out'); }
   shake(t = 0.3) { this.shakeT = Math.max(this.shakeT, t); }
   // Figuren sprechen (Texte und Stimmen in dialog.js)
@@ -344,7 +359,7 @@ export class Game {
     else if (this.paused && this.input.pressed('jump') && this.level) this.start(); // Gamepad A / Leertaste startet
     if (!this.paused && this.level) {
       if (this.level.isRunner) this.level.update(dt);
-      else { this.player.update(dt, this.level); this.level.update(dt); this.updateCamera(dt); this.updateCompass(dt); }
+      else { this.player.update(dt, this.level); this.level.update(dt); if (this.player.idleT > 1.5) this.counters.show(2500); this.updateCamera(dt); this.updateCompass(dt); }
     }
     if (!this.paused) { this.fx.update(dt); this.rings.update(dt); this.prints.update(dt); }
     // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird
