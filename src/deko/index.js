@@ -1,7 +1,10 @@
 // Deko-Füllung der Welten: nach dem Aufbau einer Welt werden leere Flächen mit passenden Requisiten belebt.
 // Die Platzierung hält alles frei, was fürs Spielen wichtig ist (Sammelsachen, Türen, Rampen, Schalter, Wege),
 // stellt nichts ins Wasser oder auf Kanten und gibt größeren Dingen eine Kollision (mesh: true = kein Gras darin).
+import * as THREE from 'three';
 import { compact } from '../models.js';
+import { X } from '../requisiten.js';
+import { extras } from './extras.js';
 import { strasse } from './strasse.js';
 import { park } from './park.js';
 import { dorf } from './dorf.js';
@@ -11,7 +14,7 @@ import { kueche } from './kueche.js';
 import { buero } from './buero.js';
 import { kanal } from './kanal.js';
 
-const WORLDS = { strasse, park, dorf, hafen, strand, kueche, buero, kanal };
+const WORLDS = { strasse, park, dorf, hafen, strand, kueche, buero, kanal, hub: () => {} };
 
 function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
@@ -82,8 +85,15 @@ export class Deko {
     const fw = (o.solid ? o.solid[0] : (o.w || 1)) * k, fd = (o.solid ? o.solid[2] : (o.d || 1)) * k;
     this.keep.push({ x, z, r: o.keep ?? Math.hypot(fw, fd) / 2 * 0.9 });
     if (mesh.userData.spin || mesh.userData.wave || mesh.userData.bob) { mesh.userData.static = false; compact(mesh); this.anim.push({ m: mesh, y: mesh.position.y, ph: this.r(0, 6) }); }
+    if (mesh.userData.moves) { // Extra-Requisiten: nur die beweglichen Teile bleiben einzeln, der Körper wird mit verbacken
+      const u = mesh.userData, st = new THREE.Group(); st.position.copy(mesh.position); st.quaternion.copy(mesh.quaternion); st.scale.copy(mesh.scale);
+      st.add(u.body); st.userData.static = true; mesh.parent.add(st); u.static = false; this.anim.push({ m: mesh, y: mesh.position.y, ph: this.r(0, 6) });
+    }
     return mesh;
   }
+  // Extra-Requisite aus assets/extras (X in requisiten.js): put bzw. at, ohne Modell nichts
+  extra(name, x, z, o = {}) { const m = X(name); return m && this.put(m, x, z, o); }
+  extraAt(name, x, z, o = {}) { const m = X(name); return m && this.at(m, x, z, o); }
   // Prüfen, dann hinstellen. Grundfläche: o.solid oder o.w/o.d (Standard 1 × 1)
   put(mesh, x, z, o = {}) {
     const ry = o.ry || 0, k = o.s || 1, [w0, d0] = (o.solid ? [o.solid[0], o.solid[2]] : [o.w || 1, o.d || 1]).map(v => v * k), c = Math.abs(Math.cos(ry)), s = Math.abs(Math.sin(ry));
@@ -107,7 +117,7 @@ export class Deko {
 // Nach dem Aufbau der Welt (vor den Zufallskrümeln) aufrufen
 export function dekorate(l) {
   const f = WORLDS[l.key]; if (!f) return;
-  const d = new Deko(l); f(d, l); if (d.anim.length) l.decoAnim = d.anim;
+  const d = new Deko(l); f(d, l); extras[l.key]?.(d, l); if (d.anim.length) l.decoAnim = d.anim;
 }
 // Leichte Bewegung: Windräder drehen, Fahnen wehen, Bojen und Boote schaukeln
 export function animateDeko(l, dt) {
@@ -115,6 +125,11 @@ export function animateDeko(l, dt) {
     const u = a.m.userData, t = l.t + a.ph;
     if (u.spin) u.spin.rotation[u.axis || 'z'] += dt * (u.speed || 4);
     if (u.wave) u.wave.rotation.y = Math.sin(t * 3) * 0.35;
+    if (u.moves) for (const v of u.moves) {
+      if (v.kind === 'spin') v.n.rotation[v.axis] += dt * v.amp;
+      else if (v.kind === 'swing') v.n.rotation[v.axis] = Math.sin(t * v.f) * v.amp;
+      else v.n.position.y = v.y + (0.5 - 0.5 * Math.cos(t * v.f)) * v.amp;
+    }
     if (u.bob) { a.m.position.y = a.y + Math.sin(t * 1.6) * 0.12; a.m.rotation.z = Math.sin(t * 1.1) * 0.06; a.m.rotation.x = Math.sin(t * 0.9) * 0.05; }
   }
 }
