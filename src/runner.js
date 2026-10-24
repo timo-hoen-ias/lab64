@@ -124,7 +124,7 @@ export class RunnerLevel {
           if (dream) this.game.awardBone('kanal', 'boss', false);
           else { this.game.awardBone('rattenrennen', 'sieg', false); if (this.score >= 30) this.game.later(1200, () => this.game.awardBone('rattenrennen', 'gierig', false)); else this.game.toast('Tipp: Mit 30+ Würstchen gibt es einen zweiten Goldknochen.', 3000); }
         });
-        this.game.later(4200, () => this.game.enterLevel('hub'));
+        this.game.later(4200, () => this.game.enterLevel(dream ? 'kanal' : 'hub')); // nach dem Albtraum zurück in den Kanal (Ein-Besuch-Regel)
       } else { this.game.audio.sfx('lose'); this.game.toast(dream ? 'Die Ratte lacht. Der Traum beginnt von vorn …' : 'Die Ratte war gieriger. Nochmal!'); this.game.later(2500, () => this.game.enterLevel(this.mode)); }
     }
   }

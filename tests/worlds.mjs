@@ -16,6 +16,25 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async kanal() {
+    await shot('kanal_start', null, 0.25);
+    await grabBone('kletter'); await grabBone('pumpe'); await shot('kanal_pumpwerk', 2.6, 0.3);
+    await grabBone('rohre'); await shot('kanal_rohre', 1.0, 0.35);
+    await grabBone('becken'); await shot('kanal_becken', -1.6, 0.3);
+    await grabBone('gully'); await shot('kanal_gully', 0, 0.5);
+    for (const [x, y, z] of [[-10, 9.4, -56], [44, 0.2, 50], [-44, 3.3, -3.4], [-1.5, 20.2, 49]]) { const n0 = await ev(() => window.game.level.switches); for (let k = 0; k < 4 && await ev(() => window.game.level.switches) === n0; k++) { await tp(x, y, z + 1.2, Math.PI); await W(250); await bite(); } }
+    console.log('  Schalter:', await ev(() => window.game.level.switches)); await W(600); await grabBone('lampen');
+    await tp(-40, 0.2, -58.6); await W(900); console.log('  im Rattennest:', await ev(() => window.game.player.pos.x > 1900));
+    await shot('kanal_nest', null, 0.3); await grabBone('nest'); await grabAll("q.x > 1900 && q.kind !== 'goldbone'");
+    await tp(2000, 0.2, 9.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] + 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    await grabAll('q.goal'); console.log('  Käse:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await W(2500); await tp(-12, 1.2, 10); await W(800); await shot('kanal_boss', 0, 0.3);
+    for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
+    await W(3500); console.log('  Albtraum:', await ev(() => window.game.level.key)); await ev(() => { const l = window.game.level; l.score = 35; l.ratScore = 3; l.z = 699; }); await W(9000);
+    console.log('  danach in:', await ev(() => window.game.level.key));
+  },
   async buero() {
     await shot('buero_start', null, 0.25);
     // Schubladen aufbeißen
