@@ -9,6 +9,7 @@ import { HAFEN } from './worlds/hafen.js';
 import { DORF } from './worlds/dorf.js';
 import { STRASSE } from './worlds/strasse.js';
 import { KUECHE } from './worlds/kueche.js';
+import { BUERO } from './worlds/buero.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -17,7 +18,7 @@ export const BONES = {
   hub: ['huegel', 'geheim'],
   kueche: ['boss', 'kruemel', 'geheim', 'kletter', 'vorrat', 'regal', 'treppe', 'uhr', 'keller', 'socken'],
   strasse: ['boss', 'kruemel', 'geheim', 'kletter', 'daecher', 'kaufhaus', 'baustelle', 'brunnen', 'eisdiele', 'bahnhof'],
-  buero: ['boss', 'kruemel', 'geheim', 'kletter'],
+  buero: ['boss', 'kruemel', 'geheim', 'kletter', 'kopierer', 'chef', 'server', 'fenster', 'tassen', 'antenne'],
   park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
   rattenrennen: ['sieg', 'gierig'],
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
@@ -26,7 +27,7 @@ export const BONES = {
   kanal: ['boss', 'kruemel', 'geheim', 'kletter'],
 };
 export const TOTAL_BONES = Object.values(BONES).reduce((a, b) => a + b.length, 0);
-export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Büro', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
+export const WORLD_NAMES = { hub: 'Garten', kueche: 'Erdgeschoss', strasse: 'Einkaufsstraße', buero: 'Hochhaus', park: 'Grillpark', rattenrennen: 'Rattenrennen', strand: 'Strand', hafen: 'Hafen', dorf: 'Dorf', kanal: 'Kanal + Albtraum' };
 
 export const LEVELS = {
   strand: STRAND,
@@ -98,7 +99,7 @@ export const LEVELS = {
       // ---- Portale (schauen zur Gartenmitte)
       l.portal(-9, -4, 'Erdgeschoss', 'kueche', 0xff9f43, 0);
       l.portal(9, -4, 'Einkaufsstraße', 'strasse', 0x54a0ff, 2);
-      l.portal(-22, -6, 'Büro', 'buero', 0x9b9b9b, 4);
+      l.portal(-22, -6, 'Hochhaus', 'buero', 0x9b9b9b, 4);
       l.portal(22, -6, 'Grillpark', 'park', 0x8e44ad, 7);
       l.portal(-23, -23, 'Rattenrennen', 'rattenrennen', 0xff7675, 9);
       l.portal(0, 30, 'Strand', 'strand', 0xffd36e, 10);
@@ -131,41 +132,7 @@ export const LEVELS = {
   strasse: STRASSE,
 
   // ----------------------------------------------------------------- BÜRO
-  buero: {
-    name: 'Das Büro', indoor: true, sky: 0xdfe6e9, ground: 0x636e72, size: 26, need: 6, goalKind: 'treat', music: { scale: 'dorian', root: 247, bpm: 112, seed: 21, style: 'office' },
-    build(l) {
-      l.spawn.set(0, 1, 18); l.wallRing(26, 6, 0xf5f6fa);
-      // Teppich
-      l.group.add(box(50, 0.04, 50, 0x4a6fa5, 0, 0.02, 0));
-      // Schreibtische in Reihen, jede mit Schublade
-      const desks = [];
-      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
-        const x = -14 + c * 14, z = -12 + r * 11;
-        l.box(x, 0, z, 6, 1.4, 3, 0xdcdde1); l.box(x + 1.8, 0, z, 2.2, 1.3, 2.8, 0xb2bec3);
-        l.box(x - 1, 1.4, z - 0.6, 1.6, 1.0, 0.2, 0x2d3436); // Monitor
-        l.box(x + 2.2, 0, z + 3, 1.4, 1.0, 1.4, 0x2d3436); // Stuhl
-        desks.push({ x, z });
-      }
-      // Schubladen: 6 mit Leckerli, 3 leer
-      desks.forEach((d, i) => {
-        const drawer = box(1.6, 0.4, 0.2, 0x636e72, d.x + 1.8, 1.0, d.z + 1.5); l.group.add(drawer);
-        l.interactable(d.x + 1.8, 1, d.z + 1.5, 1.5, it => {
-          l.game.audio.sfx('drawer'); drawer.position.z += 0.8; drawer.scale.z = 6;
-          if (i !== 2 && i !== 4 && i !== 7) { l.pickup(d.x + 1.8, 1.5, d.z + 2.2, 'treat', { goal: true }); l.game.toast('Leckerli in der Schublade!'); }
-          else l.game.toast('Nur Büroklammern. Bäh.');
-        }, 'SCHUBLADE: BISS');
-      });
-      // Aktenschrank-Treppe + Regal mit Krümeln
-      l.box(-22, 0, -20, 3, 1.5, 3, 0x95a5a6); l.box(-22, 0, -16, 3, 3, 3, 0x95a5a6); l.box(-22, 0, -12, 3, 4.5, 3, 0x95a5a6);
-      l.goldbone('kletter', -22, 5.2, -12);
-      l.goldbone('geheim', 24, 0.6, -24, { hidden: true });
-      // Kantine: Dose
-      l.box(22, 0, 18, 6, 0.8, 6, 0xd63031); l.label('Kantine', 22, 3.5, 18);
-      l.scatter(24);
-      l.label('6 Leckerli in Schubladen – beiß dran!', 0, 4, 16);
-    },
-    onGoal(l) { l.game.toast('Aus der Kantine: ein Klappern. DER DOSENÖFFNER!'); l.game.later(1000, () => { const b = new CanOpener(l.game, 10, 8); l.group.add(b.can); l.setBoss(b); }); }
-  },
+  buero: BUERO,
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
   // ---------------------------------------------------------------- HAFEN

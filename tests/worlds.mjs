@@ -16,6 +16,25 @@ const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pas
 const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
 
 const STEPS = {
+  async buero() {
+    await shot('buero_start', null, 0.25);
+    // Schubladen aufbeißen
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const x = -14 + c * 14 + 1.8, z = -12 + r * 11 + 3.2; await tp(x, 0.2, z, Math.PI); await W(150); await bite(); }
+    await grabAll('q.goal'); console.log('  Leckerli:', await ev(() => window.game.level.goal.have + '/' + window.game.level.goal.need));
+    await grabBone('kletter'); await grabBone('kopierer'); await shot('buero_stock1', 0.8, 0.3);
+    await grabBone('server'); await shot('buero_server', 2.6, 0.3); await grabBone('fenster');
+    await grabBone('antenne'); await shot('buero_dach', 0.6, 0.35);
+    await tp(10, 12.2, -30.6); await W(900); console.log('  im Chefbüro:', await ev(() => window.game.player.pos.x > 1900));
+    await shot('buero_chef', null, 0.3); await grabBone('chef'); await grabAll("q.x > 1900 && q.kind !== 'goldbone'");
+    await tp(2000, 0.2, 9.7); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    await grabAll('q.special'); console.log('  Tassen:', await ev(() => window.game.level.tassen));
+    await tp(12, 24.2, 19.4, 0); await W(200); await bite(); await bite(); await W(600); await grabBone('tassen');
+    await p.keyboard.down('KeyF'); const gq = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(gq[0] - 3, gq[1] - 0.5, gq[2]); await W(300); await tp(gq[0], gq[1] - 0.5, gq[2]); await W(500); await p.keyboard.up('KeyF');
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    await W(2500); await tp(0, 0.2, 14); await W(800); await shot('buero_boss', 0, 0.3);
+    for (let i = 0; i < 3; i++) { await ev(() => { const b = window.game.level.boss; if (b && !b.dead) { b.stun = 1; b.onBite(); } }); await W(1500); }
+    await W(1500); await grabBone('boss');
+  },
   async kueche() {
     await shot('kueche_start', null, 0.25);
     await grabBone('kletter'); await grabBone('vorrat'); await shot('kueche_vorrat', 2.8, 0.3);
