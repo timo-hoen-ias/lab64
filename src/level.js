@@ -4,6 +4,10 @@ import { BONES } from './levels.js';
 import { box, makeFood, makeLabel, makeTree, makeBush, cyl, sphere } from './models.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, toonGradient, FX } from './fx.js';
 
+// Kleiner Zufallsgenerator mit festem Startwert: gleiche Welt = gleiche Krümel-Positionen (für den Spielstand)
+function seeded(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const smooth = u => u * u * (3 - 2 * u);
+
 export class Level {
   constructor(game, def, key) {
     this.game = game; this.def = def; this.key = key; this._scatter = [];
@@ -14,7 +18,9 @@ export class Level {
     this.scene.fog = new THREE.Fog(this.sky.horizon, def.fogNear || 40, def.fogFar || 110);
     if (!def.indoor) { this.clouds = makeClouds(Math.round((def.size || 40) / 3), (def.size || 40) * 1.8, 38); this.scene.add(this.clouds); }
     this.solids = []; this.pickups = []; this.enemies = []; this.portals = []; this.interact = []; this.hideSpots = [];
-    this.bounds = { min: { x: -(def.size || 40), z: -(def.size || 40) }, max: { x: def.size || 40, z: def.size || 40 } };
+    this.terrain = []; this.zones = []; this.doors = []; this.killY = def.killY ?? -25;
+    this.bounds = this.mainArea = { min: { x: -(def.size || 40), z: -(def.size || 40) }, max: { x: def.size || 40, z: def.size || 40 } };
+    this.areas = [this.mainArea];
     this.boss = null; this.goal = { have: 0, need: def.need || 0, kind: def.goalKind || 'ham' }; this.done = false; this.t = 0;
     this.spawn = new THREE.Vector3(0, 1, 0);
     this._light();
@@ -22,6 +28,7 @@ export class Level {
     this.group = new THREE.Group(); this.scene.add(this.group);
     def.build(this);
     this._placeScatter();
+    this._mergeStatic(this.group); this.zones.forEach(z => this._mergeStatic(z.group));
     this.crumbTotal = this.pickups.filter(p => !p.goal && p.kind !== 'goldbone').length;
     this.crumbHave = 0;
   }
@@ -68,9 +75,108 @@ export class Level {
 
   // Fester Block: x,y,z = Mittelpunkt (y = Unterkante), w,h,d
   box(x, y, z, w, h, d, color, opts = {}) {
-    const m = box(w, h, d, color, x, y + h / 2, z); this.group.add(m);
-    const s = { min: { x: x - w / 2, y, z: z - d / 2 }, max: { x: x + w / 2, y: y + h, z: z + d / 2 }, active: true, mesh: m, ...opts };
+    const m = box(w, h, d, color, x, y + h / 2, z); this.group.add(m); m.userData.merge = !opts.dynamic;
+    const s = { min: { x: x - w / 2, y, z: z - d / 2 }, max: { x: x + w / 2, y: y + h, z: z + d / 2 }, active: true, mesh: m, cam: h > 2.2, ...opts };
     this.solids.push(s); return s;
+  }
+
+  // ---- Gelände: Hügel (rund/elliptisch, flacher Gipfel) und Rampen. Liegt über dem Boden, Kisten kommen obendrauf.
+  // hill: o.flat = Anteil Gipfelplateau (0..1), o.rz = Radius in z, o.y0 = Fußhöhe (für Stufen auf Plateaus), o.color/o.side
+  hill(x, z, r, h, o = {}) {
+    const t = { kind: 'hill', x, z, rx: r, rz: o.rz || r, h, flat: o.flat ?? 0.35, y0: o.y0 || 0 };
+    t.min = { x: x - t.rx, z: z - t.rz }; t.max = { x: x + t.rx, z: z + t.rz };
+    this.terrain.push(t); this.group.add(this._hillMesh(t, o.color ?? this.def.ground ?? 0x6bbf59, o.side ?? 0x9b7b4f)); return t;
+  }
+  // Rampe von (x0,z0) nach (x1,z1), Breite w, Höhe h0 → h1 (z.B. Weg auf ein Plateau)
+  ramp(x0, z0, x1, z1, w, h0, h1, color = 0xc8b48a, o = {}) {
+    const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz), t = { kind: 'ramp', x0, z0, ux: dx / len, uz: dz / len, len, w, h0, h1, y0: o.y0 || 0 };
+    const hw = w / 2 + 0.01, ex = Math.abs(t.uz) * hw, ez = Math.abs(t.ux) * hw;
+    t.min = { x: Math.min(x0, x1) - ex, z: Math.min(z0, z1) - ez }; t.max = { x: Math.max(x0, x1) + ex, z: Math.max(z0, z1) + ez };
+    this.terrain.push(t); this.group.add(this._rampMesh(t, color)); return t;
+  }
+  _terrainH(t, x, z) {
+    if (x < t.min.x || x > t.max.x || z < t.min.z || z > t.max.z) return -Infinity;
+    if (t.kind === 'hill') {
+      const d = Math.hypot((x - t.x) / t.rx, (z - t.z) / t.rz); if (d >= 1) return -Infinity;
+      return t.y0 + t.h * (d <= t.flat ? 1 : smooth((1 - d) / (1 - t.flat)));
+    }
+    const px = x - t.x0, pz = z - t.z0, a = px * t.ux + pz * t.uz, b = -px * t.uz + pz * t.ux;
+    if (a < 0 || a > t.len || Math.abs(b) > t.w / 2) return -Infinity;
+    return t.h0 + (t.h1 - t.h0) * a / t.len;
+  }
+  // Höhe des Geländes an (x,z); -Infinity = kein Gelände (dann zählen nur Boden und Kisten)
+  heightAt(x, z) { let h = -Infinity; for (const t of this.terrain) { const v = this._terrainH(t, x, z); if (v > h) h = v; } return h; }
+  // Höchster Boden unter einem Punkt: Gelände oder Kisten-Oberseite (nicht höher als y)
+  groundAt(x, z, y = Infinity) {
+    let g = this.heightAt(x, z); if (g > y + 0.05) g = -Infinity;
+    for (const s of this.solids) if (s.active && x > s.min.x && x < s.max.x && z > s.min.z && z < s.max.z && s.max.y <= y + 0.05 && s.max.y > g) g = s.max.y;
+    return g;
+  }
+  _hillMesh(t, top, side) {
+    const R = 14, S = 48, pos = [], col = [], idx = [], cTop = new THREE.Color(top), cSide = new THREE.Color(side), c = new THREE.Color();
+    for (let i = 0; i <= R; i++) {
+      const r = i / R, k = r <= t.flat ? 1 : smooth((1 - r) / (1 - t.flat)), y = t.y0 + t.h * k + (i === R ? -0.05 : 0);
+      // Hänge bekommen die Erdfarbe, je steiler desto mehr
+      const steep = r <= t.flat ? 0 : Math.min(1, t.h * 6 * (1 - r) * r / ((1 - t.flat) * Math.max(t.rx, t.rz)) * 1.4);
+      c.copy(cTop).lerp(cSide, steep * 0.4);
+      for (let j = 0; j < (i ? S : 1); j++) { const a = j / S * Math.PI * 2; pos.push(t.x + Math.cos(a) * t.rx * r, y, t.z + Math.sin(a) * t.rz * r); col.push(c.r, c.g, c.b); }
+    }
+    for (let j = 0; j < S; j++) idx.push(0, 1 + (j + 1) % S, 1 + j);
+    for (let i = 1; i < R; i++) { const a0 = 1 + (i - 1) * S, a1 = 1 + i * S; for (let j = 0; j < S; j++) { const j1 = (j + 1) % S; idx.push(a0 + j, a0 + j1, a1 + j, a0 + j1, a1 + j1, a1 + j); } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: toonGradient() })); m.receiveShadow = true; m.castShadow = true; return m;
+  }
+  _rampMesh(t, color) {
+    const len = t.len, hw = t.w / 2, b = t.y0, g = new THREE.BufferGeometry();
+    // lokale Koordinaten: x = Breite, z = Länge; Oberseite schräg, Seiten bis y0
+    const P = [[-hw, t.h0, 0], [hw, t.h0, 0], [hw, t.h1, len], [-hw, t.h1, len], [-hw, b, 0], [hw, b, 0], [hw, b, len], [-hw, b, len]];
+    const F = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [1, 2, 6, 5], [3, 0, 4, 7]], pos = [];
+    F.forEach(f => [[f[0], f[1], f[2]], [f[0], f[2], f[3]]].forEach(tri => tri.forEach(k => pos.push(...P[k]))));
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), side: THREE.DoubleSide }));
+    m.position.set(t.x0, 0, t.z0); m.rotation.y = Math.atan2(t.ux, t.uz); m.castShadow = m.receiveShadow = true; return m;
+  }
+
+  // ---- Bereiche: alles, was in fn gebaut wird, landet in einer eigenen Gruppe, die aus der Ferne ausgeblendet wird
+  zone(x, z, r, fn) {
+    const zg = new THREE.Group(), prev = this.group; this.scene.add(zg); this.group = zg;
+    try { fn(this); } finally { this.group = prev; }
+    const zo = { x, z, r, group: zg }; this.zones.push(zo); return zo;
+  }
+  // ---- Innenräume abseits der Hauptkarte (eigene Begrenzung). Rückgabe: Mittelpunkt + Fläche
+  room(x, z, w, d) { const a = { min: { x: x - w / 2, z: z - d / 2 }, max: { x: x + w / 2, z: z + d / 2 }, room: true }; this.areas.push(a); return a; }
+  // Tür: Berühren bringt Moll zum Ziel (to = {x,y,z,yaw?}). o.label = Schild über der Tür, o.color
+  door(x, y, z, to, o = {}) {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = o.ry || 0;
+    g.add(box(2.4, 3.2, 0.3, o.frame ?? 0x7a4a1f, 0, 1.6, -0.05)); g.add(box(1.8, 2.7, 0.32, 0x1d1208, 0, 1.35, 0));
+    if (o.label) { const l = makeLabel(o.label); l.scale.set(4, 1, 1); l.position.set(0, 3.8, 0); g.add(l); }
+    this.group.add(g); this.doors.push({ x, y, z, to, group: g });
+  }
+  areaAt(x, z) { return this.areas.find(a => x >= a.min.x - 0.5 && x <= a.max.x + 0.5 && z >= a.min.z - 0.5 && z <= a.max.z + 0.5) || this.mainArea; }
+  teleport(to) {
+    const pl = this.game.player; pl.pos.set(to.x, to.y, to.z); pl.vel.set(0, 0, 0); pl.checkpoint.copy(pl.pos);
+    if (to.yaw !== undefined) { pl.yaw = to.yaw; this.game.camYaw = to.yaw + Math.PI; }
+    this.bounds = this.areaAt(to.x, to.z); this.game.snapCam = true; this.game.fade(); this.game.audio.sfx('portal'); this._doorCd = 0.8;
+  }
+
+  // Statische Kisten gleicher Farbe zu einem Mesh zusammenfassen: viel weniger Zeichenaufrufe auf großen Karten
+  _mergeStatic(group) {
+    const buckets = new Map();
+    for (const m of group.children) if (m.isMesh && m.userData.merge && m.geometry.index && !m.material.transparent) {
+      const k = m.material.color.getHex(); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(m);
+    }
+    for (const list of buckets.values()) {
+      if (list.length < 2) continue;
+      const pos = [], nor = [], uv = [], idx = []; let off = 0;
+      for (const m of list) {
+        m.updateMatrix(); const g = m.geometry.clone().applyMatrix4(m.matrix), p = g.attributes.position;
+        pos.push(...p.array); nor.push(...g.attributes.normal.array); uv.push(...g.attributes.uv.array);
+        for (const i of g.index.array) idx.push(i + off); off += p.count; g.dispose(); m.geometry.dispose(); group.remove(m);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+      const mm = new THREE.Mesh(g, list[0].material); mm.castShadow = mm.receiveShadow = true; group.add(mm);
+    }
   }
   // Nur Deko (keine Kollision)
   deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); return mesh; }
@@ -85,7 +191,7 @@ export class Level {
   // Sammelobjekt. goal=true zählt für das Levelziel. hidden=true: nur per Schnüffeln auffindbar (unsichtbar bis nah).
   pickup(x, y, z, kind = 'crumb', opts = {}) {
     const m = makeFood(kind); m.position.set(x, y, z); this.group.add(m);
-    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id };
+    const p = { mesh: m, kind, x, y, z, goal: !!opts.goal, hidden: !!opts.hidden, taken: false, value: opts.value || 1, onTake: opts.onTake, id: opts.id, idx: this.pickups.length };
     if (p.hidden) m.visible = false;
     this.pickups.push(p); return p;
   }
@@ -149,6 +255,12 @@ export class Level {
     if (this.clouds) this.clouds.userData.update(dt);
     if (this.water) this.water.userData.update(dt);
     for (const p of this.ponds || []) p.mesh.userData.update(dt);
+    // Ferne Bereiche ausblenden (Sichtweite je Grafik-Stufe)
+    this._zoneT = (this._zoneT || 0) - dt;
+    if (this._zoneT <= 0) { this._zoneT = 0.25; const c = this.game.camera.position, vd = this.game.q.view; for (const z of this.zones) z.group.visible = Math.hypot(z.x - c.x, z.z - c.z) < vd + z.r; }
+    // Türen
+    if (this._doorCd > 0) this._doorCd -= dt;
+    else for (const d of this.doors) if (Math.hypot(d.x - pp.x, d.z - pp.z) < 1.1 && Math.abs(d.y - pp.y) < 2) { this.teleport(d.to); break; }
     // Sammeln
     let nearestHidden = null, nd = 1e9;
     for (const p of this.pickups) {
@@ -167,7 +279,7 @@ export class Level {
         p.taken = true; p.mesh.visible = false;
         const at = { x: p.x, y: p.mesh.position.y + 0.3, z: p.z };
         if (p.kind === 'goldbone') FX.gold(this.game.fx, at); else if (p.goal) FX.food(this.game.fx, at); else FX.crumb(this.game.fx, at);
-        this.game.collect(p, this); if (p.onTake) p.onTake(p);
+        this.game.collect(p, this); this.remember(p); if (p.onTake) p.onTake(p);
       }
     }
     this.game.sniffHint(pl.sniffing ? nearestHidden : null, nd);
@@ -199,15 +311,18 @@ export class Level {
   // Zufällige Krümel erst nach dem Aufbau verteilen: nie in Blöcken, nie über Wasser/Gefahr, immer erreichbar.
   scatter(n, kind = 'crumb') { this._scatter.push({ n, kind }); }
   _placeScatter() {
-    const s = (this.def.size || 40) - 3, hazard = this.def.hazard;
+    const s = (this.def.size || 40) - 3, hazard = this.def.hazard, rand = seeded(this.key || 'x');
     for (const { n, kind } of this._scatter) {
       let placed = 0, tries = 0;
       while (placed < n && tries++ < n * 60) {
-        const x = (Math.random() * 2 - 1) * s, z = (Math.random() * 2 - 1) * s;
+        const x = (rand() * 2 - 1) * s, z = (rand() * 2 - 1) * s;
         if (hazard && hazard(x, z)) continue;
+        if (this.waterAt(x, z) !== null) continue;
         let top = -Infinity;
         for (const so of this.solids) if (so.active && x > so.min.x - 0.5 && x < so.max.x + 0.5 && z > so.min.z - 0.5 && z < so.max.z + 0.5) top = Math.max(top, so.max.y);
-        if (top > 2.6) continue;
+        const th = this.heightAt(x, z);
+        if (top > 2.6 && top > th) continue; // hohe Kisten nicht, Hügel schon
+        top = Math.max(top, th);
         if (this.def.minFloor !== undefined && top < this.def.minFloor) continue;
         this.pickup(x, top + 0.3, z, kind); placed++;
       }
@@ -231,8 +346,24 @@ export class Level {
   }
   spawnGoldbone(x, y, z, id = 'boss') {
     this.game.audio.sfx('big'); this.game.toast('Ein GOLDKNOCHEN ist erschienen! 🦴');
-    const p = this.goldbone(id, x, Math.max(y, 1), z, { exit: id === 'boss' }); p.appear = 0; p.mesh.scale.setScalar(0.01);
+    const p = this.goldbone(id, x, Math.max(y, 1), z); p.appear = 0; p.mesh.scale.setScalar(0.01);
     FX.gold(this.game.fx, { x, y: Math.max(y, 1) + 0.5, z }); this.game.shake(0.25);
+  }
+  // ---- Fortschritt pro Welt: gesammelte Ziele und Krümel bleiben gesammelt, auch nach dem Verlassen
+  restore() {
+    const st = this.game.worldState(this.key); this.state = st;
+    for (const p of this.pickups) {
+      if (p.kind === 'goldbone') continue;
+      if ((p.goal ? st.goals : st.crumbs).includes(p.idx)) { p.taken = true; p.mesh.visible = false; if (p.goal) this.goal.have++; else this.crumbHave++; }
+    }
+    if (this.goal.need && this.goal.have >= this.goal.need) {
+      if (this.game.hasBone(this.key, 'boss')) this.goalReached = true; else this.checkGoal();
+    }
+    if (this.crumbTotal && this.crumbHave === this.crumbTotal && (BONES[this.key] || []).includes('kruemel') && !this.game.hasBone(this.key, 'kruemel')) this.spawnGoldbone(this.spawn.x + 2, this.spawn.y + 0.8, this.spawn.z, 'kruemel');
+  }
+  remember(p) {
+    if (!this.state || p.kind === 'goldbone') return;
+    const list = p.goal ? this.state.goals : this.state.crumbs; if (!list.includes(p.idx)) { list.push(p.idx); this.game.persist(); }
   }
   onCrumb() {
     this.crumbHave++;

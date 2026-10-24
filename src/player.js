@@ -84,18 +84,21 @@ export class Player {
     // Kollision: achsenweise
     const solids = level.solids;
     const wasGround = this.onGround; this.onGround = false;
-    this.pos.x += this.vel.x * dt; this._resolve(solids, 'x');
-    this.pos.z += this.vel.z * dt; this._resolve(solids, 'z');
-    this.pos.y += this.vel.y * dt; this._resolve(solids, 'y');
+    this.pos.x += this.vel.x * dt; this._resolve(solids, 'x'); this._terrainSide(level, 'x', this.vel.x * dt);
+    this.pos.z += this.vel.z * dt; this._resolve(solids, 'z'); this._terrainSide(level, 'z', this.vel.z * dt);
+    this.pos.y += this.vel.y * dt; this._resolve(solids, 'y'); this._terrainY(level, wasGround);
     if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); }
     this._lastVy = this.vel.y;
     // Laufstaub
     if (this.onGround && !swim && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); } }
-    if (this.pos.y < -25) { this.hurt(1); this.respawn(); }
+    if (this.pos.y < (level.killY ?? -25)) { this.hurt(1); this.respawn(); }
     // Am Ufer: schwimmt Moll gegen den Rand, hüpft sie automatisch raus
     if (swim && this.speedFrac > 0.3 && this.vel.y < 4) {
       const fx = this.pos.x + Math.sin(this.yaw) * 0.8, fz = this.pos.z + Math.cos(this.yaw) * 0.8;
-      for (const s of solids) if (s.active && fx > s.min.x && fx < s.max.x && fz > s.min.z && fz < s.max.z && s.max.y > this.pos.y + 0.3 && s.max.y <= wy + 0.8) { this.vel.y = 10; this.autoHop = true; this.game.audio.sfx('jump'); FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); break; }
+      const th = level.heightAt ? level.heightAt(fx, fz) : -Infinity;
+      let edge = th > this.pos.y + 0.3 && th <= wy + 0.8;
+      for (const s of solids) if (s.active && fx > s.min.x && fx < s.max.x && fz > s.min.z && fz < s.max.z && s.max.y > this.pos.y + 0.3 && s.max.y <= wy + 0.8) { edge = true; break; }
+      if (edge) { this.vel.y = 10; this.autoHop = true; this.game.audio.sfx('jump'); FX.splash(this.game.fx, { x: this.pos.x, y: wy, z: this.pos.z }); }
     }
 
     // Level-Grenzen
@@ -112,10 +115,22 @@ export class Player {
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
     animateDog(this.mesh, this.speedFrac, !this.onGround && !swim, dt, this.bite, this.vel.y, this.turn, swim);
     // Blob-Schatten auf dem höchsten Boden unter Moll
-    let gy = -Infinity;
-    for (const s of solids) if (s.active && this.pos.x > s.min.x && this.pos.x < s.max.x && this.pos.z > s.min.z && this.pos.z < s.max.z && s.max.y <= this.pos.y + 0.05) gy = Math.max(gy, s.max.y);
+    const gy = level.groundAt ? level.groundAt(this.pos.x, this.pos.z, this.pos.y) : -Infinity;
     this.shadow.visible = gy > -Infinity && !swim;
     if (this.shadow.visible) { const h = this.pos.y - gy, k = Math.max(0.35, 1 - h * 0.08); this.shadow.position.set(this.pos.x, gy + 0.03, this.pos.z); this.shadow.scale.setScalar(k); this.shadow.material.opacity = k; }
+  }
+
+  // Gelände seitlich: zu steiler Anstieg wirkt wie eine Wand, sanfte Hänge läuft Moll einfach hoch
+  _terrainSide(level, axis, moved) {
+    if (!level.terrain || !level.terrain.length || !moved) return;
+    const h = level.heightAt(this.pos.x, this.pos.z);
+    if (h - this.pos.y > 0.08 + Math.abs(moved) * 2.4) { this.pos[axis] -= moved; this.vel[axis] = 0; }
+  }
+  _terrainY(level, wasGround) {
+    if (!level.terrain || !level.terrain.length) return;
+    const h = level.heightAt(this.pos.x, this.pos.z); if (h === -Infinity) return;
+    if (this.pos.y <= h && this.pos.y > h - 1.5) { this.pos.y = h; if (this.vel.y <= 0) { this.vel.y = 0; this.onGround = true; } }
+    else if (!this.onGround && wasGround && this.vel.y <= 0 && this.pos.y - h < 0.45) { this.pos.y = h; this.vel.y = 0; this.onGround = true; } // bergab am Boden bleiben
   }
 
   _resolve(solids, axis) {
