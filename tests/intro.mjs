@@ -13,5 +13,12 @@ for (const s of [10, 25, 31, 36]) { await p.evaluate(s => { window.game.intro.po
 await p.reload(); await p.waitForTimeout(1200); await p.keyboard.press('Space'); await p.waitForTimeout(1500);
 console.log('Musik läuft:', await p.evaluate(() => ({ step: window.game.audio.song?.step, ctx: window.game.audio.ctx.state })));
 await p.keyboard.press('Space'); await p.waitForTimeout(600);
-console.log('übersprungen:', await st());
+console.log('übersprungen:', await st(), 'Menü-Musik:', await p.evaluate(async () => { const { SONGS } = await import('./src/music.js'); return window.game.audio.song?.def === SONGS.menu; }));
+await p.click('#btnStart'); await p.waitForTimeout(800);
+console.log('Spiel gestartet → Level-Musik:', await p.evaluate(async () => { const { SONGS } = await import('./src/music.js'); return { paused: window.game.paused, garten: window.game.audio.song?.def === SONGS.garden }; }));
+// Ohne Überspringen: nach dem Schlussakkord geht es in die Menü-Musik über, die in Schleife läuft
+await p.reload(); await p.waitForTimeout(1200); await p.mouse.click(400, 225);
+await p.waitForFunction(() => window.game.audio.song?.def.bpm === 116, null, { timeout: 40000 }); // Menü-Stück (116 bpm)
+console.log('Menü-Musik nach dem Intro:', await p.evaluate(() => window.game.intro.state)); await p.waitForTimeout(4000);
+console.log('Menü-Musik läuft weiter (Schleife, kein once):', await p.evaluate(() => ({ step: window.game.audio.song.step, once: !!window.game.audio.song.def.once })));
 console.log('ERR', errs); await b.close();

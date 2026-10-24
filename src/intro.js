@@ -65,7 +65,7 @@ export class Intro {
       const d = innerHeight - r.top + r.height, v0 = -r.height * 0.9, T = FALL * this.step;
       this.fall = { el, v0, g: 2 * (d - v0 * T) / (T * T), dx: r.width * 0.8 };
     } else if (what === 'plonk') { a.sfx('plonk'); this._remFall(); this.card.classList.add('shake'); }
-    else if (what === 'reveal') this._final();
+    else if (what === 'reveal') { this._final(); setTimeout(() => this._menuMusic(), (this.song ? this.song.S.len - 34 : 0) * st * 1000); } // Schlussakkord ausklingen lassen
   }
   _fallFrame() {
     const f = this.fall, t = Math.max(0, this.pos - CUES.find(c => c[1] === 'fall')[0]) * this.step, k = t / (FALL * this.step);
@@ -74,9 +74,13 @@ export class Intro {
   }
   _remFall() { if (this.fall) { this.fall.el.remove(); this.fall = null; } }
   skip() {
-    const a = this.game.audio;
-    if (this.state === 'play' && a.song && a.song === this.song) a.stopMusic();
+    if (this.state === 'play') this._menuMusic();
     this._final();
+  }
+  // Hauptmenü-Musik: nach dem Schlussakkord des Intros (bzw. sofort beim Überspringen), nur solange noch das Startmenü offen ist
+  _menuMusic() {
+    const a = this.game.audio;
+    if (this.game.paused && !this.menu.classList.contains('paused') && (!a.song || a.song === this.song)) a.playTheme({ style: 'menu' });
   }
   // Endzustand: „MOLL“, Menü komplett
   _final() {
