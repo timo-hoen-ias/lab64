@@ -154,7 +154,7 @@ export class Level {
   }
   // Rampe von (x0,z0) nach (x1,z1), Breite w, Höhe h0 → h1 (z.B. Weg auf ein Plateau)
   ramp(x0, z0, x1, z1, w, h0, h1, color = 0xc8b48a, o = {}) {
-    const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz), t = { kind: 'ramp', x0, z0, ux: dx / len, uz: dz / len, len, w, h0, h1, y0: o.y0 || 0 };
+    const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz), t = { kind: 'ramp', x0, z0, ux: dx / len, uz: dz / len, len, w, h0, h1, y0: o.bridge ? Math.min(h0, h1) - 0.35 : o.y0 || 0, bridge: !!o.bridge };
     const hw = w / 2 + 0.01, ex = Math.abs(t.uz) * hw, ez = Math.abs(t.ux) * hw;
     t.min = { x: Math.min(x0, x1) - ex, z: Math.min(z0, z1) - ez }; t.max = { x: Math.max(x0, x1) + ex, z: Math.max(z0, z1) + ez };
     this.terrain.push(t); this.group.add(this._rampMesh(t, color)); return t;
@@ -169,11 +169,12 @@ export class Level {
     if (a < 0 || a > t.len || Math.abs(b) > t.w / 2) return -Infinity;
     return t.h0 + (t.h1 - t.h0) * a / t.len;
   }
-  // Höhe des Geländes an (x,z); -Infinity = kein Gelände (dann zählen nur Boden und Kisten)
-  heightAt(x, z) { let h = -Infinity; for (const t of this.terrain) { const v = this._terrainH(t, x, z); if (v > h) h = v; } return h; }
+  // Höhe des Geländes an (x,z); -Infinity = kein Gelände (dann zählen nur Boden und Kisten).
+  // Mit y zählen Brücken (ramp mit bridge) nur, wenn man nicht deutlich darunter ist – so kann man unter ihnen durchlaufen.
+  heightAt(x, z, y = Infinity) { let h = -Infinity; for (const t of this.terrain) { const v = this._terrainH(t, x, z); if (v > h && !(t.bridge && y < v - 1.2)) h = v; } return h; }
   // Höchster Boden unter einem Punkt: Gelände oder Kisten-Oberseite (nicht höher als y)
   groundAt(x, z, y = Infinity) {
-    let g = this.heightAt(x, z); if (g > y + 0.05) g = -Infinity;
+    let g = this.heightAt(x, z, y); if (g > y + 0.05) g = -Infinity;
     for (const s of this.solids) if (s.active && x > s.min.x && x < s.max.x && z > s.min.z && z < s.max.z && s.max.y <= y + 0.05 && s.max.y > g) g = s.max.y;
     return g;
   }
@@ -258,11 +259,18 @@ export class Level {
   }
   // Nur Deko (keine Kollision)
   deco(mesh, x = 0, y = 0, z = 0, ry = 0) { mesh.position.set(x, y, z); mesh.rotation.y = ry; this.group.add(mesh); return mesh; }
-  tree(x, z, s = 1) { this.deco(makeTree(s), x, 0, z); this.solids.push({ min: { x: x - 0.4 * s, y: 0, z: z - 0.4 * s }, max: { x: x + 0.4 * s, y: 1.5 * s, z: z + 0.4 * s }, active: true }); }
+  tree(x, z, s = 1, mesh) { const y = Math.max(0, this.heightAt(x, z)); this.deco(mesh || makeTree(s), x, y, z); this.solids.push({ min: { x: x - 0.4 * s, y, z: z - 0.4 * s }, max: { x: x + 0.4 * s, y: y + 1.5 * s, z: z + 0.4 * s }, active: true }); }
+  // Höchste begehbare Oberfläche an (x,z): Gelände oder Kiste (zum Platzieren von Dingen)
+  top(x, z) { return this.groundAt(x, z, 1e6); }
   bush(x, z, w = 2) { const b = makeBush(w); this.deco(b, x, 0, z); this.hideSpots.push({ x, z, r: w * 0.5 }); return b; }
-  wallRing(size, h = 3, color = 0x999999) {
-    this.box(0, 0, -size, size * 2, h, 1, color); this.box(0, 0, size, size * 2, h, 1, color);
-    this.box(-size, 0, 0, 1, h, size * 2, color); this.box(size, 0, 0, 1, h, size * 2, color);
+  // Mauer um das Quadrat ±size; gate > 0 lässt in jeder Seite mittig ein Tor dieser Breite frei
+  wallRing(size, h = 3, color = 0x999999, gate = 0) {
+    if (!gate) {
+      this.box(0, 0, -size, size * 2, h, 1, color); this.box(0, 0, size, size * 2, h, 1, color);
+      this.box(-size, 0, 0, 1, h, size * 2, color); this.box(size, 0, 0, 1, h, size * 2, color); return;
+    }
+    const w = size - gate / 2, c = gate / 2 + w / 2;
+    [-c, c].forEach(o => { this.box(o, 0, -size, w, h, 1, color); this.box(o, 0, size, w, h, 1, color); this.box(-size, 0, o, 1, h, w, color); this.box(size, 0, o, 1, h, w, color); });
   }
   label(text, x, y, z) { if (text.length > 18) { this.intro = text; return null; } const l = makeLabel(text); l.position.set(x, y, z); this.group.add(l); return l; }
 

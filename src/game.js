@@ -192,11 +192,11 @@ export class Game {
     // Kamera-Kollision: hohe Kisten und Hügel zwischen Hund und Kamera verkürzen den Abstand
     const L = this.level, dir = off.clone().normalize(); let hit = this.camDist;
     for (const s of L.solids) if (s.cam && s.active) { const d = rayBox(target, dir, s); if (d < hit) hit = d; }
-    if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
+    if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z, y) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
     const blocked = hit < this.camDist; if (blocked) off.setLength(Math.max(1.5, hit - 0.4));
     const want = target.clone().add(off);
     // Kamera nicht unter den Boden; beim Schwimmen an der Oberfläche bleibt sie über dem Wasser
-    want.y = Math.max(want.y, this.player.diving ? -Infinity : L.camFloor ?? 1.2, L.heightAt(want.x, want.z) + 0.8);
+    want.y = Math.max(want.y, this.player.diving ? -Infinity : L.camFloor ?? 1.2, L.heightAt(want.x, want.z, want.y) + 0.8);
     if (this.player.diving) want.y = Math.max(want.y, L.groundAt(want.x, want.z, want.y + 2) + 0.6);
     else if (this.player.swimming) { const wy = L.waterAt(p.x, p.z); if (wy !== null) want.y = Math.max(want.y, wy + 0.6); }
     this.camera.position.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false; this.camera.lookAt(target);

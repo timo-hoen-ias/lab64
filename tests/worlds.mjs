@@ -1,0 +1,49 @@
+// Welten-Test: holt in jeder großen Welt alle Goldknochen in einem Besuch (Teleport + Interaktionen), Screenshots.
+// Aufruf: node tests/worlds.mjs <ordner> [welt,welt,...]   Server auf Port 8077.
+import { chromium } from 'playwright';
+const out = process.argv[2] || '.', only = (process.argv[3] || 'park').split(',');
+const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 800, height: 450 } });
+const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:8077/index.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
+await p.click('#btnStart');
+const W = ms => p.waitForTimeout(ms), ev = (f, a) => p.evaluate(f, a);
+const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const pl = window.game.player, l = window.game.level; pl.pos.set(x, y, z); pl.vel.set(0, 0, 0); pl.hurtT = 0; pl.biteCd = 0; pl.hp = 3; pl.air = 15; if (yaw !== undefined && yaw !== null) pl.yaw = yaw; l.bounds = l.areaAt(x, z); const wy = l.waterAt(x, z); pl.diving = wy !== null && y < wy - 1.2; window.game.snapCam = true; }, [x, y, z, yaw]);
+const bite = async () => { await p.keyboard.down('KeyE'); await W(150); await p.keyboard.up('KeyE'); await W(350); };
+const shot = async (name, yaw, pitch = 0.3) => { await ev(([y, pi]) => { if (y !== null) window.game.camYaw = y; window.game.camPitch = pi; window.game.snapCam = true; document.getElementById('toast').classList.remove('show'); }, [yaw, pitch]); await W(800); await p.screenshot({ path: `${out}/${name}.png` }); };
+const grabBone = async id => { const q = await ev(id => { const q = window.game.level.pickups.find(q => q.boneId === id && !q.taken); return q && [q.x, q.y, q.z]; }, id); if (q) { await tp(q[0], q[1] - 0.5, q[2]); await W(600); } return !!q; };
+const grabAll = async (filter, wait = 380) => { for (let pass = 0; pass < 2; pass++) for (const q of await ev(f => window.game.level.pickups.filter(q => !q.taken && new Function('q', 'return ' + f)(q)).map(q => [q.x, q.y, q.z]), filter)) { await tp(q[0] + (pass ? 0 : 0), q[1] - 0.3, q[2]); await W(pass ? wait + 200 : wait); } };
+const talk = async (x, z, yaw = 0) => { const y = await ev(([x, z]) => window.game.level.top(x, z), [x, z]); await tp(x - Math.sin(yaw) * 1.6, y + 0.1, z - Math.cos(yaw) * 1.6, yaw); await W(200); await bite(); };
+
+const STEPS = {
+  async park() {
+    await shot('park_start', null, 0.25);
+    await grabBone('kletter'); await grabBone('turm'); await shot('park_turm', 0.6, 0.35);
+    await grabBone('insel'); await grabBone('baumkrone'); await shot('park_wald', 1.2, 0.3);
+    // Dachsbau über die Tür
+    await tp(18, 0.2, -71.4); await W(900); console.log('  im Dachsbau:', await ev(() => window.game.player.pos.x > 1900));
+    await shot('park_dachsbau', null, 0.3); await grabBone('dachsbau');
+    await grabAll("q.kind === 'crumb' && q.x > 1900");
+    await tp(2000, 0.2, 19.0); await W(900); console.log('  wieder draußen:', await ev(() => window.game.player.pos.x < 500));
+    // Parcours
+    for (const [x, y, z] of [[84, 3.2, 4], [88, 5.6, 16], [95, 6.2, 1], [95, 3, 10], [112, 2.2, 8]]) { await tp(x, y - 0.5, z); await W(400); }
+    await W(500); await grabBone('parcours'); await shot('park_spielplatz', 2.0, 0.3);
+    // Picknick
+    await grabAll('q.special'); console.log('  Picknick:', await ev(() => window.game.level.picnic), await ev(() => window.game.level.pickups.filter(q => q.special && !q.taken).map(q => [q.x.toFixed(0), q.y.toFixed(1), q.z.toFixed(0)]))); await talk(40, 60, Math.PI); await W(500); await grabBone('picknick');
+    // Geheim
+    await p.keyboard.down('KeyF'); const g = await ev(() => { const q = window.game.level.pickups.find(q => q.boneId === 'geheim'); return [q.x, q.y, q.z]; }); await tp(g[0] + 3, g[1] - 0.5, g[2]); await W(300); await tp(g[0], g[1] - 0.5, g[2]); await W(500); await p.keyboard.up('KeyF');
+    // Krümel
+    await grabAll("!q.goal && !q.special && q.kind !== 'goldbone'"); await W(500); await grabBone('kruemel');
+    // Würstchen-Ziel erzwingen (Schleichen wird im Playtest nicht nachgespielt)
+    await ev(() => { const l = window.game.level; l.goal.have = l.goal.need; l.checkGoal(); }); await W(1500); await grabBone('boss');
+    await tp(0, 1, -60, 0); await shot('park_see', Math.PI, 0.2);
+  },
+};
+for (const key of only) {
+  await ev(k => window.game.enterLevel(k), key); await W(1500);
+  console.log(key + ':'); await STEPS[key]();
+  for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken).map(q => [q.x, q.y, q.z]))) { await tp(q[0], q[1] - 0.5, q[2]); await W(700); } // Nachlese
+  const res = await ev(k => window.game.levelProgress(k), key);
+  console.log(`  Knochen ${res.have}/${res.total}`, await ev(k => Object.keys(window.game.save.bones).filter(b => b.startsWith(k + ':')).map(b => b.split(':')[1]).join(' '), key));
+}
+console.log('ERR', JSON.stringify(errs)); await b.close();

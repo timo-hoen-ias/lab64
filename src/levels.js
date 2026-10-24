@@ -4,6 +4,7 @@ import { Vacuum, Cat, CanOpener, BirdBoss, Pigeon, FatMan, RatBoss } from './bos
 import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, makeGnome } from './models.js';
 import { FX } from './fx.js';
 import { STRAND } from './worlds/strand.js';
+import { PARK } from './worlds/park.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -13,7 +14,7 @@ export const BONES = {
   kueche: ['boss', 'kruemel', 'geheim', 'kletter'],
   strasse: ['boss', 'kruemel', 'geheim', 'kletter'],
   buero: ['boss', 'kruemel', 'geheim', 'kletter'],
-  park: ['boss', 'kruemel', 'geheim', 'kletter'],
+  park: ['boss', 'kruemel', 'geheim', 'kletter', 'turm', 'insel', 'dachsbau', 'baumkrone', 'parcours', 'picknick'],
   rattenrennen: ['sieg', 'gierig'],
   strand: ['boss', 'kruemel', 'geheim', 'riesenrad', 'schatz', 'leuchtturm', 'ringe', 'sandburg', 'rennen', 'muscheln'],
   hafen: ['boss', 'kruemel', 'geheim', 'kletter'],
@@ -25,6 +26,7 @@ export const WORLD_NAMES = { hub: 'Garten', kueche: 'Küche', strasse: 'Einkaufs
 
 export const LEVELS = {
   strand: STRAND,
+  park: PARK,
   // ------------------------------------------------------------------ HUB
   hub: {
     name: 'Molls Garten', time: 'mittag', backdrop: 'huegel', grass: true, sky: 0x7fd0ff, ground: 0x6bbf59, size: 34, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
@@ -212,28 +214,6 @@ export const LEVELS = {
   },
 
   // -------------------------------------------------------- GRILLPARK (Schleichen)
-  park: {
-    name: 'Der Grillpark', time: 'nachmittag', backdrop: 'wald', grass: true, sky: 0xa7e8ff, ground: 0x58b04f, size: 36, need: 10, goalKind: 'sausage', music: { scale: 'major', root: 220, bpm: 96, seed: 5, swing: 0.1, style: 'bbq' },
-    build(l) {
-      l.spawn.set(-28, 1, 28); l.wallRing(36, 4, 0x6b8e23);
-      // Weg
-      const path = [{ x: -20, z: 20 }, { x: -20, z: -10 }, { x: 0, z: -20 }, { x: 20, z: -10 }, { x: 20, z: 15 }, { x: 0, z: 22 }];
-      for (let i = 0; i < path.length; i++) { const a = path[i], b = path[(i + 1) % path.length]; const n = 8; for (let k = 0; k < n; k++) l.group.add(box(2.5, 0.05, 2.5, 0xc9b58c, a.x + (b.x - a.x) * k / n, 0.03, a.z + (b.z - a.z) * k / n)); }
-      // Büsche zum Verstecken, Bäume, Grills
-      [[-14, 14], [-24, 4], [-12, -14], [8, -14], [24, 0], [14, 12], [-4, 10], [8, 20], [-22, -20], [26, -22]].forEach(([x, z]) => l.bush(x, z, 2.6));
-      [[-30, -30], [30, -30], [30, 30], [-10, -28], [12, -30], [-32, 10]].forEach(([x, z]) => l.tree(x, z, 1.6));
-      [[-6, -6], [6, 6]].forEach(([x, z]) => { l.box(x, 0, z, 2, 1.2, 1.2, 0x2d3436); l.deco(box(2.2, 0.1, 1.4, 0x636e72), x, 1.25, z); });
-      l.box(-28, 0, -12, 3, 1.2, 3, 0x8d6e4a); l.box(-28, 0, -16, 3, 2.4, 3, 0x8d6e4a); l.box(-28, 0, -20, 3, 3.6, 3, 0x8d6e4a); // Holzstapel
-      l.goldbone('kletter', -28, 4.4, -20);
-      l.goldbone('geheim', 26, 0.6, -22, { hidden: true }); // im Busch
-      // Der dicke Mann
-      l.addEnemy(new FatMan(l.game, path, (x, z) => { l.pickup(x, 0.3, z, 'sausage', { goal: true }); l.game.audio.sfx('collect'); }));
-      l.scatter(24);
-      l.label('Folge ihm leise. Sammle, was er verliert. Büsche = Versteck.', -20, 4, 26);
-    },
-    onGoal(l) { l.game.toast('Seine Tüte ist leer – und er hat nichts gemerkt!'); l.spawnGoldbone(0, 1, 0); }
-  },
-
   // ---------------------------------------------------------------- HAFEN
   hafen: {
     name: 'Der Hafen', water: true, time: 'wolkig', backdrop: 'meer', sky: 0x74b9ff, ground: 0x1e90ff, size: 36, minFloor: 1.9, need: 8, goalKind: 'fish', music: { scale: 'mixo', root: 262, bpm: 124, seed: 42, style: 'harbor' },

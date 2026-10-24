@@ -143,12 +143,12 @@ export class Player {
   // Gelände seitlich: zu steiler Anstieg wirkt wie eine Wand, sanfte Hänge läuft Moll einfach hoch
   _terrainSide(level, axis, moved) {
     if (!level.terrain || !level.terrain.length || !moved) return;
-    const h = level.heightAt(this.pos.x, this.pos.z);
+    const h = level.heightAt(this.pos.x, this.pos.z, this.pos.y);
     if (h - this.pos.y > 0.08 + Math.abs(moved) * 2.4) { this.pos[axis] -= moved; this.vel[axis] = 0; }
   }
   _terrainY(level, wasGround) {
     if (!level.terrain || !level.terrain.length) return;
-    const h = level.heightAt(this.pos.x, this.pos.z); if (h === -Infinity) return;
+    const h = level.heightAt(this.pos.x, this.pos.z, this.pos.y); if (h === -Infinity) return;
     if (this.pos.y <= h && this.pos.y > h - 1.5) { this.pos.y = h; if (this.vel.y <= 0) { this.vel.y = 0; this.onGround = true; } }
     else if (!this.onGround && wasGround && this.vel.y <= 0 && this.pos.y - h < 0.45) { this.pos.y = h; this.vel.y = 0; this.onGround = true; } // bergab am Boden bleiben
   }
