@@ -102,7 +102,7 @@ export class Critters {
       for (let i = 0; i < 3; i++) { const m = makeFrog(); this.group.add(m); const f = { kind: 'frog', mesh: m, pond: p, t: 0, state: 'sit' }; this._frogSpot(f); this.list.push(f); }
     }
     this.water = level.seaY !== undefined || (level.ponds || []).length > 0;
-    if (this.water) { this.fish = makeFood('fish'); this.fish.children[0].material = this.fish.children[0].material.clone(); this.fish.children[0].material.color.set(0xffa25e); this.fish.scale.setScalar(1.4); this.fish.visible = false; this.group.add(this.fish); }
+    if (this.water) { this.fish = makeFood('fish'); this.fish.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.color.set(0xffa25e); } }); this.fish.scale.setScalar(1.4); this.fish.visible = false; this.group.add(this.fish); }
   }
   _frogSpot(f) {
     const p = f.pond, a = Math.random() * Math.PI * 2, x = p.x + Math.cos(a) * p.rx * 1.08, z = p.z + Math.sin(a) * p.rz * 1.08;
