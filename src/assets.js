@@ -6,12 +6,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/GLTFLoader.js';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.js';
-import { toonGradient } from './fx.js';
+import { toonGradient, addSway } from './fx.js';
 
 // name → Datei unter assets/ (ohne .glb). Neue Modelle hier eintragen und in CREDITS.md nennen.
 export const ASSETS = {
   'auto-rot': 'autos/auto-rot', 'auto-blau': 'autos/auto-blau', 'auto-gelb': 'autos/auto-gelb', lieferwagen: 'autos/lieferwagen', // eigene, aus Blender (tools/make_cars.py)
-  ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (texturiert, makeFood)
+  ...Object.fromEntries(['goldbone', 'crumb', 'sausage', 'bread', 'ham', 'cheese', 'fish', 'fries', 'shell', 'ice', 'bone', 'treat', 'sock', 'cup'].map(k => ['food-' + k, 'sammeln/' + k])), // Sammelobjekte (makeFood)
+  tanne: 'pflanzen/tanne', laubbaum: 'pflanzen/laubbaum', apfelbaum: 'pflanzen/apfelbaum', busch: 'pflanzen/busch', gartenzwerg: 'deko/gartenzwerg', // Blender
   taxi: 'kenney-car/taxi', police: 'kenney-car/police', cone: 'kenney-car/cone', carton: 'kenney-car/box', // Kenney Car Kit (CC0)
 };
 
@@ -131,6 +132,30 @@ export function texturedAsset(name, o = {}) {
     const sm = [].concat(m.material)[0], key = `${name}|${sm.uuid}|${o.emissive ?? ''}`;
     if (!texMats.has(key)) texMats.set(key, new THREE.MeshToonMaterial({ color: sm.color, map: sm.map, gradientMap: toonGradient(), ...(o.emissive !== undefined && { emissive: new THREE.Color(o.emissive) }) }));
     const q = new THREE.Mesh(m.geometry, texMats.get(key)); q.applyMatrix4(m.matrixWorld); q.castShadow = true; g.add(q);
+  });
+  return g;
+}
+
+// Sammelobjekte u. ä.: texturierte Modelle mit Textur, einfarbige als ein Mesh mit Vertexfarben
+export function model(name, o = {}) {
+  let tex = false; src.get(name)?.traverse(m => { if (m.isMesh && [].concat(m.material)[0].map) tex = true; });
+  return tex ? texturedAsset(name, o) : asset(name, o);
+}
+
+// Für Deko, die Level._mergeStatic nach Farbe zusammenbackt (Bäume, Büsche): ein Mesh je Materialfarbe mit eigenem
+// Toon-Material, damit gleiche Farben über die ganze Welt ein Zeichenaufruf werden. o.sway = { knotenname: Stärke }
+// gibt den Teilen unter diesem Knoten (z. B. 'laub') das Wind-/Wackel-Material (addSway), o.scale den Maßstab.
+const flatGeos = new Map();
+export function colorAsset(name, o = {}) {
+  if (!src.has(name)) return null;
+  const scene = src.get(name), g = new THREE.Group(), sway = o.sway || {}; scene.updateMatrixWorld(true);
+  let i = 0;
+  scene.traverse(m => {
+    if (!m.isMesh) return;
+    const key = `${name}|${i++}`; if (!flatGeos.has(key)) flatGeos.set(key, flat(m, m.matrixWorld));
+    let amp; for (let p = m; p && amp === undefined; p = p.parent) amp = sway[p.name];
+    const mt = new THREE.MeshToonMaterial({ color: [].concat(m.material)[0].color, gradientMap: toonGradient() });
+    const q = new THREE.Mesh(flatGeos.get(key), amp === undefined ? mt : addSway(mt, amp)); q.scale.setScalar(o.scale ?? 1); q.castShadow = true; q.receiveShadow = true; g.add(q);
   });
   return g;
 }

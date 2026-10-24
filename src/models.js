@@ -1,7 +1,7 @@
 // Low-Poly-Modelle aus Grundkörpern. Alle Figuren sind Gruppen mit benannten Teilen für Animationen.
 import * as THREE from 'three';
 import { toonGradient, addSway, makeGlow } from './fx.js';
-import { texturedAsset } from './assets.js';
+import { texturedAsset, model, colorAsset } from './assets.js';
 
 const mat = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: toonGradient(), ...extra });
 export const box = (w, h, d, color, x = 0, y = 0, z = 0) => {
@@ -422,7 +422,7 @@ export function makeFood(kind) {
     const halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1.0, 24), new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false }));
     halo.position.y = 0.5; g.add(halo); g.userData.halo = halo;
     const glow = makeGlow(0xffd84a, 2.6, 0.55); glow.position.y = 0.5; g.add(glow);
-  } else { const k = FOOD[kind] ? kind : 'crumb'; g.add(texturedAsset('food-' + k) ?? bake(k, FOOD[k])); } // GLB-Modell (assets/sammeln), sonst Grundkörper
+  } else { const k = FOOD[kind] ? kind : 'crumb'; g.add(model('food-' + k) ?? bake(k, FOOD[k])); } // GLB-Modell (assets/sammeln), sonst Grundkörper
   g.userData.spin = Math.random() * Math.PI * 2;
   return g;
 }
@@ -432,7 +432,9 @@ export function makeFood(kind) {
 const leafMat = (c, amp = 0.07) => addSway(mat(c), amp); // Ikosaeder ohne Index → von sich aus flach schattiert
 const blob = (r, c, x, y, z, amp) => { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafMat(c, amp)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; };
 export function makeTree(scale = 1) {
-  const g = new THREE.Group(), s = scale;
+  const s = scale, gl = colorAsset('tanne', { scale: s, sway: { laub: 0.04 } }); // GLB aus Blender (assets/pflanzen), sonst Grundkörper
+  if (gl) { gl.userData.static = true; gl.userData.tree = { r: 1.5 * s, top: 4.6 * s, fir: true }; return gl; }
+  const g = new THREE.Group();
   g.add(cyl(0.2 * s, 0.38 * s, 1.6 * s, 0x7a4a1f, 0, 0.8 * s, 0, 7));
   [[1.5, 1.6, 1.9, 0x3f9a46], [1.2, 1.5, 2.8, 0x4caa4c], [0.9, 1.3, 3.6, 0x5fc25f], [0.55, 1.0, 4.3, 0x6fd06a]].forEach(([r, h, y, c], i) => {
     const k = new THREE.Mesh(new THREE.ConeGeometry(r * s, h * s, 7), leafMat(c, 0.04)); k.position.y = y * s; k.rotation.y = i * 0.45; k.castShadow = true; g.add(k);
@@ -440,6 +442,8 @@ export function makeTree(scale = 1) {
   g.userData.static = true; g.userData.tree = { r: 1.5 * s, top: 4.6 * s, fir: true }; return g;
 }
 export function makeBush(w = 2) {
+  const gl = colorAsset('busch', { scale: w / 2, sway: { laub: 0.05 } });
+  if (gl) { gl.userData.static = true; gl.userData.bush = w; return gl; }
   const g = new THREE.Group(), cols = [0x3d9a3d, 0x4fb24f, 0x46a646, 0x5cbf55];
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + Math.random(), r = w * (0.3 + Math.random() * 0.12); g.add(blob(r, cols[i % 4], Math.cos(a) * w * 0.28, 0.45 + Math.random() * 0.3, Math.sin(a) * w * 0.28, 0.05)); }
   g.add(blob(w * 0.42, 0x58b84f, 0, 0.75, 0, 0.05));
@@ -449,6 +453,8 @@ export function makeBush(w = 2) {
 
 // Laubbaum mit runder Krone (optional mit Äpfeln): Wurzeln, Äste, Krone aus mehreren Laubballen
 export function makeRoundTree(scale = 1, apples = false) {
+  const gl = colorAsset(apples ? 'apfelbaum' : 'laubbaum', { scale, sway: { laub: 0.06 } });
+  if (gl) { gl.userData.static = true; gl.userData.tree = { r: 1.7 * scale, top: 4.5 * scale, apples }; return gl; }
   const g = new THREE.Group(), s = scale, bark = 0x7a4a1f, dbark = 0x5e3815;
   g.add(cyl(0.26 * s, 0.42 * s, 2.3 * s, bark, 0, 1.15 * s, 0, 7));
   for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2 + 0.4, r = cone(0.2 * s, 0.75 * s, dbark, Math.cos(a) * 0.36 * s, 0.25 * s, Math.sin(a) * 0.36 * s, 5); r.rotation.set(-Math.sin(a) * 0.7, 0, Math.cos(a) * 0.7); g.add(r); }
@@ -485,6 +491,7 @@ export function makeButterfly(color = 0xff9ff3) {
 
 // Gartenzwerg
 export function makeGnome() {
+  const gl = model('gartenzwerg'); if (gl) return gl;
   const g = new THREE.Group(), skin = 0xf5c9a2;
   g.add(cyl(0.25, 0.3, 0.5, 0x2e86de, 0, 0.25, 0, 8)); g.add(cyl(0.27, 0.27, 0.06, 0x5d3f26, 0, 0.42, 0, 8)); g.add(box(0.08, 0.07, 0.03, 0xffcc33, 0, 0.42, 0.27));
   [-1, 1].forEach(s => { g.add(box(0.14, 0.1, 0.22, 0x5d3f26, s * 0.12, 0.05, 0.08)); g.add(sphere(0.08, skin, s * 0.3, 0.32, 0.08, 5)); });
