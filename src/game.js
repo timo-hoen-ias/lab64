@@ -6,7 +6,7 @@ import { Player } from './player.js';
 import { Level } from './level.js';
 import { LEVELS, BONES, TOTAL_BONES, WORLD_NAMES } from './levels.js';
 import { RunnerLevel } from './runner.js';
-import { Particles } from './fx.js';
+import { Particles, makeLightShafts } from './fx.js';
 
 const SAVE_KEY = 'moll-save-v1';
 // Grafik-Stufen: Auflösung, Schatten, Sichtweite (Bereiche dahinter werden ausgeblendet)
@@ -59,6 +59,30 @@ export class Game {
     return s;
   }
   has(ability) { return !!this.save.abilities[ability]; }
+  unlock(ability, text) {
+    if (this.has(ability)) return; this.save.abilities[ability] = true; this.persist();
+    this.audio.sfx('big'); this.input.vibrate(300); this.shake(0.3); this.toast(text || `Neue Fähigkeit: ${ability}!`, 6000);
+  }
+  updateAir(k, show) {
+    const el = document.getElementById('air'); if (!el) return;
+    el.style.display = show ? 'flex' : 'none'; if (!show) return;
+    el.style.setProperty('--p', `${Math.max(0, k) * 100}%`); el.classList.toggle('low', k < 0.3);
+  }
+  // Unter Wasser: Nebel und Hintergrund blaugrün, Musik dumpf, Lichtstrahlen von oben
+  _underwater() {
+    const L = this.level, c = this.camera.position; if (!L || L.isRunner) return;
+    const wy = L.waterAt(c.x, c.z), under = wy !== null && c.y < wy - 0.05;
+    if (under === !!L._uw) { if (under && L._shafts) { L._shafts.position.set(c.x, wy, c.z); L._shafts.userData.update(L.t); } return; }
+    L._uw = under; const f = L.scene.fog;
+    if (under) {
+      L._fogAbove = { color: f.color.clone(), near: f.near, far: f.far, bg: L.scene.background.clone() };
+      const col = new THREE.Color(L.def.waterFog ?? 0x1b7fa6); f.color.copy(col); f.near = 0.5; f.far = L.def.waterView ?? 30; L.scene.background = col.clone();
+      if (!L._shafts) { L._shafts = makeLightShafts(); L.scene.add(L._shafts); } L._shafts.visible = true; L.sky.mesh.visible = false;
+    } else if (L._fogAbove) {
+      const a = L._fogAbove; f.color.copy(a.color); f.near = a.near; f.far = a.far; L.scene.background = a.bg; if (L._shafts) L._shafts.visible = false; L.sky.mesh.visible = true;
+    }
+    this.audio.underwater(under);
+  }
   worldState(key) { const w = this.save.worlds; if (!w[key] || typeof w[key] !== 'object') w[key] = {}; w[key].goals ||= []; w[key].crumbs ||= []; return w[key]; }
   applyQuality() {
     const q = this.q = QUALITY[this.save.settings.quality];
@@ -169,8 +193,10 @@ export class Game {
     if (L.terrain.length) for (let k = 1; k <= 10; k++) { const d = hit * k / 10, x = target.x + dir.x * d, y = target.y + dir.y * d, z = target.z + dir.z * d; if (L.heightAt(x, z) > y - 0.3) { hit = Math.max(0, d - hit / 10); break; } }
     const blocked = hit < this.camDist; if (blocked) off.setLength(Math.max(1.5, hit - 0.4));
     const want = target.clone().add(off);
-    // Kamera nicht unter den Boden
-    want.y = Math.max(want.y, L.camFloor ?? 1.2, L.heightAt(want.x, want.z) + 0.8);
+    // Kamera nicht unter den Boden; beim Schwimmen an der Oberfläche bleibt sie über dem Wasser
+    want.y = Math.max(want.y, this.player.diving ? -Infinity : L.camFloor ?? 1.2, L.heightAt(want.x, want.z) + 0.8);
+    if (this.player.diving) want.y = Math.max(want.y, L.groundAt(want.x, want.z, want.y + 2) + 0.6);
+    else if (this.player.swimming) { const wy = L.waterAt(p.x, p.z); if (wy !== null) want.y = Math.max(want.y, wy + 0.6); }
     this.camera.position.lerp(want, this.snapCam ? 1 : Math.min(1, dt * (blocked ? 20 : 6))); this.snapCam = false; this.camera.lookAt(target);
   }
 
@@ -187,6 +213,7 @@ export class Game {
     if (!this.paused) this.fx.update(dt);
     // Kamerawackeln nur für dieses Bild, damit die Kamerafahrt nicht verschoben wird
     if (this.shakeT > 0 && !this.paused) { this.shakeT -= dt; const k = Math.min(1, this.shakeT * 3) * 0.35; this._shake.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k); } else this._shake.set(0, 0, 0);
+    if (!this.paused) this._underwater();
     this.camera.position.add(this._shake);
     if (this.level) this.renderer.render(this.level.scene, this.camera);
     this.camera.position.sub(this._shake);

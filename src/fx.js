@@ -182,7 +182,7 @@ export class Particles {
         x: pos.x + Math.cos(a) * (o.spread || 0), y: pos.y, z: pos.z + Math.sin(a) * (o.spread || 0),
         vx: Math.cos(a) * sp * Math.cos(el), vy: (o.up ?? 3) * (0.6 + Math.random() * 0.8) + Math.sin(el) * sp * 0.5, vz: Math.sin(a) * sp * Math.cos(el),
         life: (o.life || 0.7) * (0.7 + Math.random() * 0.6), max: 0, size: (o.size || 0.25) * (0.6 + Math.random() * 0.8),
-        g: o.gravity ?? -12, drag: o.drag ?? 2, rx: Math.random() * 6, ry: Math.random() * 6, spin: (Math.random() - 0.5) * 12,
+        g: o.gravity ?? -12, drag: o.drag ?? 2, floor: o.floor ?? 0.02, rx: Math.random() * 6, ry: Math.random() * 6, spin: (Math.random() - 0.5) * 12,
         color: cols[Math.floor(Math.random() * cols.length)],
       });
       const q = this.p[this.p.length - 1]; q.max = q.life;
@@ -194,7 +194,7 @@ export class Particles {
     for (const q of this.p) {
       q.life -= dt; if (q.life <= 0) continue;
       q.vy += q.g * dt; const d = Math.max(0, 1 - q.drag * dt); q.vx *= d; q.vz *= d;
-      q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; if (q.y < 0.02 && q.vy < 0) { q.y = 0.02; q.vy *= -0.3; }
+      q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; if (q.y < q.floor && q.vy < 0) { q.y = q.floor; q.vy *= -0.3; }
       q.rx += q.spin * dt; q.ry += q.spin * dt * 0.7;
       const k = q.life / q.max, s = q.size * Math.min(1, k * 2.5);
       this._q.setFromEuler(this._e.set(q.rx, q.ry, 0));
@@ -222,7 +222,7 @@ export const FX = {
 // Teich: Wasserfläche als Ellipse mit leichten Wellen, dazu Becken (Wand + Grund)
 export function makePond(rx, rz, depth = 1.8) {
   const g = new THREE.Group(), uni = { uTime: { value: 0 } };
-  const wm = new THREE.MeshLambertMaterial({ color: 0x3fa9f5, transparent: true, opacity: 0.82, emissive: 0x1e6fb0, emissiveIntensity: 0.25, flatShading: true });
+  const wm = new THREE.MeshLambertMaterial({ color: 0x3fa9f5, transparent: true, opacity: 0.82, emissive: 0x1e6fb0, emissiveIntensity: 0.25, flatShading: true, side: THREE.DoubleSide }); // von unten sichtbar beim Tauchen
   wm.onBeforeCompile = sh => {
     sh.uniforms.uTime = uni.uTime;
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
@@ -261,4 +261,23 @@ export function makePortalDisk(color, r = 1.45) {
   const m = new THREE.Mesh(new THREE.CircleGeometry(r, 40), mat);
   m.userData.update = (dt, locked) => { mat.uniforms.uTime.value += dt * (locked ? 0.25 : 1); mat.uniforms.uLocked.value = locked ? 1 : 0; };
   return m;
+}
+
+// Lichtstrahlen unter Wasser: schräge, schwach leuchtende Bahnen von der Oberfläche nach unten
+export function makeLightShafts() {
+  const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: 0xbff0ff, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  for (let i = 0; i < 9; i++) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.6 + Math.random() * 0.8, 1.6 + Math.random(), 18, 8, 1, true), mat);
+    const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 12; m.position.set(Math.cos(a) * r, -9, Math.sin(a) * r); m.rotation.z = 0.25; m.userData.ph = Math.random() * 6; g.add(m);
+  }
+  g.userData.update = t => g.children.forEach(m => { m.scale.x = m.scale.z = 1 + Math.sin(t * 0.8 + m.userData.ph) * 0.25; });
+  return g;
+}
+
+// Luftblasen-Säule: steigt vom Grund auf, Moll tankt darin Luft
+export function makeBubbleColumn(h) {
+  const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.75, emissive: 0x6fc9e8, emissiveIntensity: 0.4 });
+  for (let i = 0; i < 14; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.12 + Math.random() * 0.14, 8, 6), mat); b.userData = { y: Math.random() * h, s: 1.2 + Math.random() * 1.2, ph: Math.random() * 6 }; g.add(b); }
+  g.userData.update = (dt, t) => g.children.forEach(b => { const u = b.userData; u.y = (u.y + u.s * dt) % h; b.position.set(Math.sin(t * 2 + u.ph) * 0.25, u.y, Math.cos(t * 1.7 + u.ph) * 0.25); });
+  return g;
 }

@@ -72,13 +72,16 @@ export const LEVELS = {
       l.deco(makeGnome(), 3, 0, 13, -0.6); l.deco(makeGnome(), -11, 0, 15, 0.8);
       l.deco(cyl(0.08, 0.08, 1.2, 0x7a4a1f, 0, 0.6, 0, 6), 4, 0, 4); l.deco(box(0.5, 0.4, 0.7, 0x2e86de, 0, 1.3, 0), 4, 0, 4);
       // ---- Teich zum Schwimmen mit Steinrand, Seerosen, Schilf und Steg
-      l.pond(0, 20, 9, 6);
+      l.pond(0, 20, 9, 6, 3.4); // tief genug zum Tauchen
       for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; if (Math.abs(a - Math.PI * 1.5) < 0.3) continue; const s = sphere(0.45 + Math.random() * 0.25, i % 2 ? 0xa4a4a4 : 0x8c8c8c, 0, 0, 0, 5); s.scale.y = 0.5; l.deco(s, Math.cos(a) * 9.4, 0.1, 20 + Math.sin(a) * 6.4); }
       l.lilies = [[-4, 18], [3, 22], [5, 17.5], [-2, 23]].map(([x, z]) => { const p = cyl(0.7, 0.7, 0.05, 0x2ecc71, 0, 0, 0, 10); l.deco(p, x, -0.2, z); l.deco(sphere(0.18, 0xff9ff3, 0, 0, 0, 6), x + 0.2, -0.05, z); return p; });
       [[-8.6, 22], [-8, 24], [8.4, 17], [7.8, 15.5]].forEach(([x, z]) => { for (let k = 0; k < 4; k++) l.deco(cyl(0.05, 0.05, 1.6 + k * 0.2, 0x6ab04c, 0, 0, 0, 4), x + k * 0.2, 0.8, z + (k % 2) * 0.2); });
-      l.box(0, -1.8, 14, 2.4, 2.1, 5, 0xa47148); // Steg ins Wasser (bis zum Grund, damit man nicht drunter schwimmt)
+      l.box(0, -3.4, 14, 2.4, 3.7, 5, 0xa47148); // Steg ins Wasser (bis zum Grund, damit man nicht drunter schwimmt)
       // Krümel über dem Wasser als Belohnung fürs Schwimmen
       [[-5, 20], [0, 20], [5, 20], [0, 24]].forEach(([x, z]) => l.pickup(x, -0.1, z, 'crumb'));
+      // Am Teichgrund: nur mit Taucherbrille erreichbar
+      [[-3, 21], [3, 19], [0, 23.5]].forEach(([x, z]) => l.pickup(x, -3.0, z, 'crumb'));
+      l.airBubbles(5.5, -3.4, 22, 3.2);
       // ---- Hügel mit Goldknochen
       l.box(13, 0, 6, 4, 1.2, 4, 0x8fd17a); l.box(16.5, 0, 9.5, 4, 2.4, 4, 0x8fd17a); l.box(20, 0, 6, 4, 3.6, 4, 0x8fd17a);
       l.goldbone('huegel', 20, 4.4, 6);
