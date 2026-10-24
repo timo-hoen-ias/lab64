@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { box, sphere, cone, cyl, makeButterfly, compact, makeFood } from './models.js';
 import { FX, WATER } from './fx.js';
+import { rigAsset } from './assets.js';
 
 // Welche Tiere wo (Anzahl bei Grafik „Hoch“). Teiche bekommen automatisch Enten und Frösche, Wasser springende Fische.
 const SETS = {
@@ -23,6 +24,8 @@ const BIRD = {
 };
 
 function makeSongbird(kind) {
+  const r = rigAsset({ tit: 'meise', gull: 'moewe-klein' }[kind] ?? 'spatz'); // GLB aus Blender (assets/tiere), sonst Grundkörper
+  if (r) { r.root.scale.setScalar(BIRD[kind].s * 2); r.root.userData = { body: r.n('body'), head: r.n('head'), wings: r.list('wing') }; return r.root; }
   const c = BIRD[kind], g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = sphere(0.22, c.body, 0, 0.3, 0, 8); b.scale.set(0.85, 0.8, 1.15); body.add(b);
   const be = sphere(0.18, c.belly, 0, 0.26, 0.08, 8); be.scale.set(0.8, 0.8, 0.9); body.add(be);
@@ -38,6 +41,8 @@ function makeSongbird(kind) {
 }
 
 function makeChicken() {
+  const r = rigAsset('huhn');
+  if (r) { r.root.userData = { body: r.n('body'), head: r.n('head'), wings: r.list('wing'), legs: r.list('leg') }; return r.root; }
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = sphere(0.3, 0xffffff, 0, 0.45, 0, 8); b.scale.set(0.8, 0.85, 1.1); body.add(b);
   body.add(cone(0.16, 0.3, 0xf5f5f5, 0, 0.62, -0.3, 6).rotateX(-0.9)); // Schwanzfedern
@@ -51,6 +56,8 @@ function makeChicken() {
 }
 
 function makeDuck() {
+  const r = rigAsset('wildente');
+  if (r) { r.root.userData = { body: r.n('body'), head: r.n('head') }; return r.root; }
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = sphere(0.3, 0x8d6e63, 0, 0.12, 0, 8); b.scale.set(0.8, 0.6, 1.2); body.add(b);
   body.add(cone(0.12, 0.25, 0x6d4c41, 0, 0.22, -0.36, 5).rotateX(-1.1));
@@ -63,6 +70,8 @@ function makeDuck() {
 }
 
 function makeFrog() {
+  const r = rigAsset('teichfrosch');
+  if (r) { r.root.userData = { body: r.n('body'), throat: r.n('throat') }; return r.root; }
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const b = sphere(0.2, 0x66bb6a, 0, 0.14, 0, 8); b.scale.set(1, 0.6, 1.1); body.add(b);
   body.add(sphere(0.15, 0xc5e1a5, 0, 0.1, 0.06, 6));
