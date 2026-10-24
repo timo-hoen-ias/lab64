@@ -690,7 +690,7 @@ export class Level {
   }
   // ---- Fortschritt pro Welt: gesammelte Ziele und Krümel bleiben gesammelt, auch nach dem Verlassen
   restore() {
-    const st = this.game.worldState(this.key); this.state = st;
+    const st = this.game.worldState(this.key); this.state = st; st.crumbTotal = this.crumbTotal; // fürs Pausemenü
     for (const p of this.pickups) {
       if (p.kind === 'goldbone') continue;
       if (p.special) { if (st.special.includes(p.idx)) { p.taken = true; p.mesh.visible = false; if (p.onRestore) p.onRestore(p); } continue; }

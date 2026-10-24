@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, makeGnome, makeNpcDog, makeRat, makeFood, makeSign } from '../models.js';
 import { BONES, TOTAL_BONES, WORLD_NAMES } from '../levels.js';
+import { PORTAL_NEED } from '../progress.js';
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 const shadeOf = c => new THREE.Color(c).multiplyScalar(0.8).getHex();
@@ -185,7 +186,7 @@ export const GARTEN = {
     // ---- 1. Erdgeschoss: Terrasse neben Molls Haus (Wäscheleine, Kräuterkübel, Gartentisch)
     l.deco(box(10, 0.14, 10, 0xb08860), 13, 0.07, -17);
     for (let i = 0; i < 6; i++) l.prop(box(0.06, 0.15, 9.96, 0x8d6e4a), 8.4 + i * 1.8, 0.08, -17);
-    l.portal(13, -16, 'Erdgeschoss', 'kueche', 0xff9f43, 0);
+    l.portal(13, -16, 'Erdgeschoss', 'kueche', 0xff9f43, PORTAL_NEED.kueche);
     l.box(17, 0, -21, 2.4, 1.1, 1.6, 0xecf0f1); l.deco(cyl(0.2, 0.2, 0.3, 0xe17055, 0, 0, 0, 8), 17.4, 1.25, -21); // Gartentisch mit Teekanne
     [[15.4, -21], [18.6, -21]].forEach(([x, z]) => l.box(x, 0, z, 0.9, 0.7, 0.9, 0x74b9ff));
     [[9, -21.5, 0x27ae60], [11.5, -21.8, 0xe84393], [17.5, -12.8, 0xfdcb6e]].forEach(([x, z, c]) => { l.box(x, 0, z, 1.3, 0.9, 1.3, 0xb5651d); l.deco(sphere(0.75, c, 0, 0, 0, 6), x, 1.3, z); });
@@ -198,7 +199,7 @@ export const GARTEN = {
     l.box(-26, 0, -49, 16, 0.12, 10, 0xb2bec3);
     l.prop(box(24, 0.06, 4, 0x4a4a4a), -26, 0.03, -42); for (let i = 0; i < 5; i++) l.prop(box(0.7, 0.07, 3.6, 0xffffff), -30 + i * 1.3, 0.04, -42);
     for (let i = 0; i < 6; i++) l.prop(box(1.6, 0.07, 0.2, 0xffffff), -37 + i * 4, 0.04, -40.2);
-    l.portal(-26, -49, 'Einkaufsstraße', 'strasse', 0x54a0ff, 3);
+    l.portal(-26, -49, 'Einkaufsstraße', 'strasse', 0x54a0ff, PORTAL_NEED.strasse);
     lamp(-33, -45); lamp(-19, -45);
     l.box(-32, 0, -52.9, 2, 3.4, 2, 0x95a5a6); [[0.8, 0xe74c3c], [1.6, 0xf1c40f], [2.4, 0x3498db]].forEach(([y, c]) => l.prop(cyl(1.08, 1.08, 0.6, c, 0, 0, 0, 12), -32, y, -52.9)); l.prop(cone(1.3, 0.6, 0x2d3436, 0, 0, 0, 12), -32, 3.7, -52.9); // Litfaßsäule
     bin(-20, -53, 0x2d3436); bin(-21.4, -53, 0x0984e3); bin(-22.8, -53, 0xfdcb6e);
@@ -209,7 +210,7 @@ export const GARTEN = {
     l.box(46, 7.5, -46, 9, 0.5, 9, 0x95a5a6);
     [[42, -50], [50, -50], [42, -42], [50, -42]].forEach(([x, z]) => l.box(x, 0, z, 0.7, 7.5, 0.7, 0x636e72));
     [[-4.4, 0, 0.2, 9], [0, -4.4, 9, 0.2], [4.4, 0, 0.2, 9]].forEach(([dx, dz, w, d]) => l.box(46 + dx, 8, -46 + dz, w, 1, d, 0x2d3436)); // Geländer (vorn offen)
-    l.portal(46, -46, 'Das Büro', 'buero', 0x9b9b9b, 8, { y: 8 });
+    l.portal(46, -46, 'Das Büro', 'buero', 0x9b9b9b, PORTAL_NEED.buero, { y: 8 });
     [[35, -38, 1.3], [35.5, -42.5, 2.6], [36, -47, 3.9], [38, -51.5, 5.2], [42.5, -54, 6.5]].forEach(([x, z, h], i) => { l.box(x, 0, z, 2.6, h, 2.6, i % 2 ? 0xc8a26b : 0xb8915a); l.prop(box(2.65, 0.25, 0.4, 0xecf0f1), x, h - 0.5, z); l.pickup(x, h + 0.3, z, 'crumb'); });
     [[57, -57, 6, 20, 0x7f8c8d], [60, -45, 5, 14, 0x95a5a6], [47, -61, 5, 16, 0xa4b0be], [66, -54, 4, 11, 0xb2bec3]].forEach(([x, z, w, h, c]) => {
       l.box(x, 0, z, w, h, w, c); for (let y = 2; y < h - 1; y += 2.2) l.prop(box(w + 0.08, 0.7, w + 0.08, 0x74b9ff), x, y, z);
@@ -218,7 +219,7 @@ export const GARTEN = {
 
     // ---- 4. Grillpark: kleiner Picknickhügel östlich der Obstwiese mit Grill, Decke, Bank und Lampions
     l.hill(70, 18, 10, 2.2, { flat: 0.55, color: 0x7cc35f });
-    const py = H(70, 18); l.portal(70, 18, 'Grillpark', 'park', 0x8e44ad, 14, { y: py });
+    const py = H(70, 18); l.portal(70, 18, 'Grillpark', 'park', 0x8e44ad, PORTAL_NEED.park, { y: py });
     l.box(74, py, 22.5, 1.8, 1, 1.1, 0x2d3436); l.deco(box(1.9, 0.08, 1.2, 0x636e72), 74, py + 1.04, 22.5); [-0.5, 0, 0.5].forEach(d => l.deco(cyl(0.08, 0.08, 0.6, 0xc8502e, 0, 0, 0, 6).rotateZ(Math.PI / 2), 74 + d * 0.3, py + 1.15, 22.5 + d));
     const blanket = new THREE.Group(); blanket.add(box(3, 0.04, 3, 0xe74c3c, 0, 0.02, 0)); for (let i = 0; i < 3; i++) blanket.add(box(3, 0.05, 0.4, 0xffffff, 0, 0.025, -1 + i)); blanket.add(box(0.8, 0.5, 0.5, 0xb5651d, 0.8, 0.25, 0.6)); l.deco(st(blanket), 67, py, 22.5, 0.3);
     l.box(73.5, py, 13.5, 2.6, 0.55, 0.7, 0x9c6b3f); l.box(73.5, py, 13.15, 2.6, 1.15, 0.12, 0x9c6b3f); // Bank
@@ -227,7 +228,7 @@ export const GARTEN = {
     l.lamps = [0xff7675, 0xfdcb6e, 0x55efc4, 0x74b9ff, 0xff9ff3].map((c, i) => { const s = sphere(0.32, c, 0, -0.35, 0, 8); s.material.emissive = new THREE.Color(c).multiplyScalar(0.4); const g = new THREE.Group(); g.add(s); g.add(box(0.02, 0.3, 0.02, 0x2d3436, 0, -0.1, 0)); l.deco(g, 64.6 + i * 2.7, H(63, 12) + 3.4, 12); return g; });
 
     // ---- 5. Rattenrennen: Komposthaufen und Mülltonnen hinter dem Schuppen, mit Start-Ziel-Banner
-    l.portal(20, -72, 'Rattenrennen', 'rattenrennen', 0xff7675, 18);
+    l.portal(20, -72, 'Rattenrennen', 'rattenrennen', 0xff7675, PORTAL_NEED.rattenrennen);
     l.hill(29, -76, 4.5, 2.4, { flat: 0.2, color: 0x6d4c41, side: 0x4e342e });
     [[28, -74.5, 0xa0522d], [29.5, -77, 0x8bc34a], [30.5, -75, 0xf39c12]].forEach(([x, z, c]) => l.deco(sphere(0.35, c, 0, 0, 0, 5), x, H(x, z) + 0.15, z)); // Apfelbutzen und Schalen
     bin(12, -74, 0x27ae60); bin(13.4, -75.4, 0x2d3436); bin(11.2, -76, 0x0984e3);
@@ -240,7 +241,7 @@ export const GARTEN = {
 
     // ---- 6. Strand: Sandfläche mit Sonnenschirm, Liegestuhl, Sandburg und Wasserball
     l.box(-50, 0, 46, 20, 0.12, 16, 0xf3e0a6);
-    l.portal(-50, 44, 'Strand', 'strand', 0xffd36e, 22, { y: 0.12 });
+    l.portal(-50, 44, 'Strand', 'strand', 0xffd36e, PORTAL_NEED.strand, { y: 0.12 });
     const umb = new THREE.Group(); umb.add(cyl(0.07, 0.07, 3, 0xffffff, 0, 1.5, 0, 6)); for (let i = 0; i < 8; i++) { const c = cone(2, 0.8, i % 2 ? 0xffffff : 0xe74c3c, 0, 3.1, 0, 8); c.geometry = new THREE.ConeGeometry(2, 0.8, 8, 1, true, i * Math.PI / 4, Math.PI / 4); umb.add(c); } l.deco(st(umb), -56, 0.12, 50);
     l.box(-54, 0.12, 52.5, 1.2, 0.4, 2.4, 0x74b9ff); l.deco(box(1.2, 1, 0.12, 0x74b9ff), -54, 0.9, 51.4).rotation.x = -0.4; // Liegestuhl
     l.box(-44, 0.12, 50, 2.4, 0.8, 2.4, 0xe9c46a); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => { l.prop(cyl(0.35, 0.4, 1, 0xe9c46a, 0, 0, 0, 6), -44 + dx, 1.4, 50 + dz); l.prop(cone(0.42, 0.5, 0xd4a64a, 0, 0, 0, 6), -44 + dx, 2.15, 50 + dz); }); // Sandburg
@@ -251,7 +252,7 @@ export const GARTEN = {
     // ---- 7. Hafen: Kaimauer mit Leuchtturm, über einen Holzsteg vom Strand aus erreichbar
     l.box(-63, 0, 66, 13.6, 3.7, 11.6, 0x95a5a6); l.box(-63, 3.7, 66, 14, 0.4, 12, 0xa47148);
     l.ramp(-46, 64, -56, 64, 3.2, 0, 4.1, 0xa47148);
-    l.portal(-64, 67, 'Hafen', 'hafen', 0x48dbfb, 30, { y: 4.1, ry: Math.PI / 2 });
+    l.portal(-64, 67, 'Hafen', 'hafen', 0x48dbfb, PORTAL_NEED.hafen, { y: 4.1, ry: Math.PI / 2 });
     const lh = new THREE.Group(); for (let i = 0; i < 4; i++) lh.add(cyl(1.25 - i * 0.12, 1.3 - i * 0.12, 1.8, i % 2 ? 0xffffff : 0xe74c3c, 0, 0.9 + i * 1.8, 0, 12));
     lh.add(cyl(0.9, 0.9, 1.3, 0xdff9fb, 0, 7.85, 0, 10)); lh.add(cone(1.1, 1.2, 0xe74c3c, 0, 9.1, 0, 10)); l.deco(st(lh), -67, 4.1, 61.8);
     l.solids.push({ min: { x: -68.3, y: 4.1, z: 60.5 }, max: { x: -65.7, y: 13.6, z: 63.1 }, active: true, cam: true });
@@ -266,7 +267,7 @@ export const GARTEN = {
 
     // ---- 8. Dorf: Bauernhof-Hügel mit Windmühle, Heuballen, Kürbissen, Hühnern und Vogelscheuche
     l.hill(54, 56, 14, 4, { flat: 0.45, color: 0x8fd17a });
-    const dy = H(54, 56); l.portal(54, 56, 'Dorf', 'dorf', 0xfeca57, 40, { y: dy });
+    const dy = H(54, 56); l.portal(54, 56, 'Dorf', 'dorf', 0xfeca57, PORTAL_NEED.dorf, { y: dy });
     const mx = 62, mz = 63, my = H(mx, mz);
     l.box(mx, my - 0.3, mz, 3.2, 6.3, 3.2, 0xf5f0e1); l.deco(cone(2.6, 2.2, 0x8b1e1e, 0, 0, 0, 4), mx, my + 7.1, mz, Math.PI / 4);
     l.deco(box(1, 1.6, 0.1, 0x6d4c41), mx - 1.15, my + 0.8, mz - 1.15, Math.PI / 4);
@@ -284,7 +285,7 @@ export const GARTEN = {
     const pipe = new THREE.Group(); pipe.add(cyl(3, 3, 8, 0x95a5a6, 0, 0, 0, 16)); pipe.add(cyl(3.3, 3.3, 0.6, 0x7f8c8d, 0, 4, 0, 16)); pipe.add(cyl(2.5, 2.5, 0.65, 0x111111, 0, 4.02, 0, 14));
     for (let i = -2; i <= 2; i++) pipe.add(box(0.15, 0.2, 4.6 - Math.abs(i) * 0.7, 0x2d3436, i * 0.9, 4.3, 0));
     pipe.rotation.set(Math.PI / 2, 0, 0); const pw = new THREE.Group(); pw.add(pipe); l.deco(st(pw), -54.5, 2.9, -54.5, Math.PI / 4);
-    l.portal(-47, -47, 'Kanal', 'kanal', 0x2ecc71, 52);
+    l.portal(-47, -47, 'Kanal', 'kanal', 0x2ecc71, PORTAL_NEED.kanal);
     [[-51.5, -51.5, 2.2], [-44, -50.5, 1.2], [-50.5, -43.5, 1.1]].forEach(([x, z, r]) => { const m = cyl(r, r, 0.04, 0x7bed9f, 0, 0, 0, 12); m.material.emissive = new THREE.Color(0x1e8449); l.deco(m, x, 0.03, z); });
     l.deco(cyl(0.9, 0.9, 0.06, 0x2d3436, 0, 0, 0, 12), -42, 0.04, -44.5); for (let i = -1; i <= 1; i++) l.deco(box(1.5, 0.07, 0.12, 0x636e72), -42, 0.06, -44.5 + i * 0.4);
     l.deco(makeRat(0.6), -45.5, 0, -52, 0.6); l.deco(makeRat(0.5), -52, 0, -45, 2.2);
