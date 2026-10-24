@@ -209,6 +209,8 @@ const STEPS = {
 for (const key of only) {
   await ev(k => window.game.enterLevel(k), key); await W(1500);
   console.log(key + ':'); await STEPS[key]();
+  // Rätsel (src/puzzles.js) spielt tests/raetsel.mjs richtig durch; hier nur als gelöst markieren. Rückkehr-Rätsel brauchen eine spätere Fähigkeit
+  console.log('  Rätsel:', await ev(() => { const l = window.game.level; return l.puzzles.filter(z => !z.need || window.game.has(z.need)).map(z => { z.won = true; z.bone.caged = false; l.unbury(z.bone); return z.id; }).join(' '); }));
   for (const q of await ev(() => window.game.level.pickups.filter(q => q.boneId && !q.taken && !q.backtrack).map(q => [q.x, q.y, q.z]))) { await tp(q[0], await feet(q, 0.5), q[2]); await W(700); } // Nachlese (ohne Rückkehr-Knochen)
   const res = await ev(k => window.game.levelProgress(k), key);
   console.log(`  Knochen ${res.have}/${res.total}`, await ev(k => Object.keys(window.game.save.bones).filter(b => b.startsWith(k + ':')).map(b => b.split(':')[1]).join(' '), key));

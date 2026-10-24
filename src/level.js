@@ -5,6 +5,7 @@ import { box, makeFood, makeSign, makeTree, makeBush, makeGoggles, cyl, sphere, 
 import { installGadgets } from './abilities.js';
 import { collectPatches, surfaceAt } from './surface.js';
 import { installDetails } from './details.js';
+import { installPuzzles } from './puzzles.js';
 import { makeSky, makeClouds, makeWater, makePond, makePortalDisk, makeBackdrop, makeSkyLife, makeGrass, makeBubbleColumn, toonGradient, FX, addSeeThrough, addCaustics, CAUSTIC, WIND, makeAmbient, makeShoreFoam, makeGlow, addCloudShadow, CLOUDS, GRASS, makeRainbow, makeShootingStar, makeSmoke, glowTex, WATER } from './fx.js';
 import { Critters } from './critters.js';
 import { placeFoes } from './enemies.js';
@@ -716,3 +717,4 @@ export class Level {
 }
 installGadgets(Level);
 installDetails(Level);
+installPuzzles(Level);
