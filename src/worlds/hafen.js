@@ -11,7 +11,7 @@ const CONT = [0xe74c3c, 0x3498db, 0x27ae60, 0xe67e22, 0x9b59b6, 0x16a085, 0xf1c4
 function bollard() { const g = new THREE.Group(); g.add(cyl(0.45, 0.55, 1, 0x2d3436, 0, 0.5, 0, 8)); g.add(cyl(0.6, 0.6, 0.2, 0x2d3436, 0, 1.05, 0, 8)); return g; }
 
 export const HAFEN = {
-  name: 'Der Hafen', time: 'wolkig', backdrop: 'meer', sky: 0x74b9ff, ground: 0x35556a, floorY: BED, killY: -30, size: 150, minFloor: 1.9, need: 8, goalKind: 'fish', camFloor: -Infinity,
+  name: 'Der Hafen', surface: 'sand', time: 'wolkig', backdrop: 'meer', sky: 0x74b9ff, ground: 0x35556a, floorY: BED, killY: -30, size: 150, minFloor: 1.9, need: 8, goalKind: 'fish', camFloor: -Infinity,
   waterFog: 0x22607a, waterView: 26,
   music: { scale: 'mixo', root: 262, bpm: 124, seed: 42, style: 'harbor' },
   build(l) {
@@ -108,7 +108,7 @@ export const HAFEN = {
     // ---- Südosten: Frachtschiff mit Laderaum, Hafenbecken mit Anker
     l.zone(60, 90, 50, () => {
       l.box(60, BED + 2, 92, 44, 14, 20, 0x2c3e50); l.deco(box(44.2, 1.2, 20.2, 0xc0392b), 60, BED + 2.6, 92); // Rumpf
-      l.box(60, 6, 92, 42, 0.4, 18, 0x95a5a6); // Deck (Oberkante 6.4)
+      l.box(60, 6, 92, 42, 0.4, 18, 0x95a5a6, { surface: 'metal' }); // Deck (Oberkante 6.4)
       l.box(76, 6.4, 92, 8, 8, 10, 0xecf0f1); l.box(76, 14.4, 92, 9, 0.5, 11, 0x34495e); // Brücke
       l.deco(cyl(0.8, 0.8, 6, 0xe67e22, 0, 3, 0, 10), 70, 6.4, 92);
       [[48, 88], [54, 96], [60, 88]].forEach(([x, z], i) => l.box(x, 6.4, z, 6, 2.6, 2.6, CONT[i + 2]));

@@ -8,7 +8,7 @@ import { box, cyl, sphere, makeSign, makeNpcDog, makeRoundTree } from '../models
 const WALL = 0xf5f6fa, SLAB = 0xb2bec3, STAIR = 0x7f8c8d, F1 = 12, F2 = 24, ROOF = 36, S = 32;
 
 export const BUERO = {
-  name: 'Das Hochhaus', time: 'abend', backdrop: 'stadt', sky: 0xdfe6e9, ground: 0x636e72, size: S, need: 6, goalKind: 'treat',
+  name: 'Das Hochhaus', surface: 'stone', time: 'abend', backdrop: 'stadt', sky: 0xdfe6e9, ground: 0x636e72, size: S, need: 6, goalKind: 'treat',
   music: { scale: 'dorian', root: 247, bpm: 112, seed: 21, style: 'office' },
   build(l) {
     const g = l.game, slab = (x0, x1, z0, z1, y, c = SLAB) => { const s = l.box((x0 + x1) / 2, y - 0.6, (z0 + z1) / 2, x1 - x0, 0.6, z1 - z0, c, { cam: true, dynamic: true }); s.mesh.castShadow = false; }; // Decken werfen keinen Schatten, sonst wäre es drinnen stockdunkel

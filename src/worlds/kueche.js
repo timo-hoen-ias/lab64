@@ -12,7 +12,7 @@ function wallZ(l, z, x0, x1, gaps = []) { let a = x0; for (const [g0, g1] of [..
 function wallX(l, x, z0, z1, gaps = []) { let a = z0; for (const [g0, g1] of [...gaps, [z1, z1]]) { if (g0 > a) l.box(x, 0, (a + g0) / 2, 1, H, g0 - a, WALL); a = g1; } }
 
 export const KUECHE = {
-  name: 'Das Erdgeschoss', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 60, need: 8, goalKind: 'ham',
+  name: 'Das Erdgeschoss', surface: 'wood', indoor: true, sky: 0xfff1c9, ground: 0xe7d2a8, size: 60, need: 8, goalKind: 'ham',
   music: { scale: 'mixo', root: 294, bpm: 132, seed: 3, style: 'kitchen' },
   build(l) {
     const g = l.game;
@@ -23,6 +23,7 @@ export const KUECHE = {
 
     // ---- Küche (Kern, wie bisher)
     for (let x = -16; x < 16; x += 4) for (let z = -16; z < 16; z += 4) if ((x + z) % 8 === 0) l.group.add(box(4, 0.05, 4, 0xd6bf94, x + 2, 0.03, z + 2));
+    l.surface(0, 0, 32, 32, 'tile', 0.055); // Küchenfliesen (Schachbrett)
     l.box(-12, 0, -14, 12, 1, 4, WOOD); l.box(-12, 1, -16.5, 12, 0.4, 2, 0xf5f5f5);
     l.box(-16, 0, -11, 3, 0.6, 2, WOOD); l.box(-13.5, 0, -11, 2, 1.0, 2, WOOD);
     l.box(6, 0, -14, 10, 1.5, 4, WOOD); l.box(6, 1.5, -14, 10, 0.3, 4, 0x777777);

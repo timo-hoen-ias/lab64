@@ -6,7 +6,7 @@ import { box, cyl, cone, sphere, makeRoundTree, makeFlowers, makeButterfly, make
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 export const GARTEN = {
-  name: 'Molls Garten', time: 'mittag', backdrop: 'huegel', grass: true, sky: 0x7fd0ff, ground: 0x6bbf59, size: 80, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
+  name: 'Molls Garten', surface: 'grass', time: 'mittag', backdrop: 'huegel', grass: true, sky: 0x7fd0ff, ground: 0x6bbf59, size: 80, music: { scale: 'major', root: 262, bpm: 118, seed: 7, style: 'garden' },
   hazard: (x, z) => (x / 9.5) ** 2 + ((z - 20) / 6.5) ** 2 < 1, // keine Krümel in den Teich
   build(l) {
     l.spawn.set(0, 1, 6);

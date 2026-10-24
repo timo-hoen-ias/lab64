@@ -11,7 +11,7 @@ function chicken() { const g = new THREE.Group(); g.add(box(0.7, 0.55, 0.9, 0xfa
 function house(l, x, z, c, y = 0, w = 10, h = 5) { l.box(x, y, z, w, h, w, c); l.box(x, y + h, z, w + 0.5, 0.4, w + 0.5, WOOD); l.deco(cone(w * 0.75, 3.5, ROOF, 0, 0, 0, 4), x, y + h + 2.1, z, Math.PI / 4); }
 
 export const DORF = {
-  name: 'Das Dorf', time: 'abend', backdrop: 'berge', grass: true, sky: 0x9fc8f0, ground: 0x9ccc65, size: 150, need: 8, goalKind: 'bread',
+  name: 'Das Dorf', surface: 'grass', time: 'abend', backdrop: 'berge', grass: true, sky: 0x9fc8f0, ground: 0x9ccc65, size: 150, need: 8, goalKind: 'bread',
   music: { scale: 'major', root: 294, bpm: 126, seed: 77, swing: 0.09, style: 'village' },
   build(l) {
     const g = l.game, T = (x, z) => l.top(x, z);

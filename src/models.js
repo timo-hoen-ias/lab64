@@ -103,7 +103,7 @@ const GALLOP = [0.54, 0.42, 0, 0.1]; // Rotationsgalopp: hinten links, hinten re
 // Hundeanimation: speed (0..1, darüber z. B. Zoomies = schnellere Schritte), airborne, dt, bite (0..1), vy (Fallgeschwindigkeit), turn (Drehrate)
 // Langsam trabt Moll, bei Vollgas galoppiert sie mit Rückenbeugung; beide Gangarten werden je nach Tempo überblendet.
 export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0, swim = false) {
-  const u = dog.userData; u.t += dt * (4 + Math.min(1, speed) * 10);
+  const u = dog.userData; u.t += dt * (4 + Math.min(1, speed) * 10); u.steps = [];
   u.legs.forEach(leg => { leg.scale.y = 1; });
   if (swim) { // Hundepaddeln: Kopf hoch, Beine strampeln, Schwanz als Ruder
     u.t += dt * 6; u.idle = 0; u.sm = 0;
@@ -121,8 +121,11 @@ export function animateDog(dog, speed, airborne, dt, bite = 0, vy = 0, turn = 0,
   if (!airborne) u.gait = (u.gait ?? 0) + (THREE.MathUtils.smoothstep(sp, 0.62, 0.88) - (u.gait ?? 0)) * Math.min(1, dt * 5);
   const G = u.gait ?? 0, on = Math.min(1, s * 5) * (1 - A); // G: 0 = Trab, 1 = Galopp; on: Laufbewegung sichtbar
   // Schrittphase: Trab 1,5–3 Schritte/s, Galopp längere Sprünge mit ~3 Sprüngen/s
-  u.ph = ((u.ph ?? 0) + dt * THREE.MathUtils.lerp(1.5 + 1.6 * sp, 2.6 + 0.6 * sp, G) * (1 - A * 0.7)) % 1;
+  const ph0 = u.ph ?? 0; u.ph = (ph0 + dt * THREE.MathUtils.lerp(1.5 + 1.6 * sp, 2.6 + 0.6 * sp, G) * (1 - A * 0.7)) % 1;
   const ph = u.ph, ta = 0.22 + 0.28 * s;
+  // Pfotenaufsätze dieses Frames (Beinindex, 0/1 = vorn): eine Pfote setzt auf, wenn die Phase ihren Versatz überschreitet → Schrittgeräusche
+  const adv = (ph - ph0 + 1) % 1;
+  if (!airborne && on > 0.35 && adv > 0) (G < 0.5 ? TROT : GALLOP).forEach((o, i) => { const q = (o - ph0 + 1) % 1; if (q > 0 && q <= adv) u.steps.push(i); });
   u.legs.forEach((leg, i) => {
     const fr = i < 2;
     const [ta0, tl] = stride((ph - TROT[i] + 1) % 1, 0.55, fr ? -ta - 0.05 : -ta + 0.08, fr ? ta - 0.08 : ta + 0.05, 0.2);

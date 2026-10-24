@@ -76,7 +76,7 @@ export class Player {
     // Springen
     if (this.onGround || swim) { this.coyote = 0.12; this.canDouble = true; } else this.coyote -= dt;
     if (!this.frozen && !dive && input.pressed('jump')) {
-      if (this.coyote > 0) { this.vel.y = JUMP * (this.zoom ? 1.08 : 1); this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
+      if (this.coyote > 0) { this.vel.y = JUMP * (this.zoom ? 1.08 : 1); this.coyote = 0; this.onGround = false; this.game.audio.sfx('jump'); this.game.audio.jumpOff(level.surfaceAt(this.pos.x, this.pos.y, this.pos.z)); FX.dust(this.game.fx, this.pos, 6); this.stretch = 0.2; }
       else if (has('wandsprung') && (this._wall = this._wallNear(level))) { // Wandsprung: von der Backsteinwand abstoßen
         const w = this._wall; this.vel.y = JUMP; this.vel.x = w.nx * 8.5; this.vel.z = w.nz * 8.5; this.yaw = Math.atan2(w.nx, w.nz); this.wallLock = 0.35; this.autoHop = true; this.canDouble = true; this.gliding = false;
         this.game.audio.sfx('jump'); FX.dust(this.game.fx, { x: this.pos.x - w.nx * 0.4, y: this.pos.y + 0.6, z: this.pos.z - w.nz * 0.4 }, 8);
@@ -136,9 +136,9 @@ export class Player {
     }
     this.onGround = landed;
     if (this.stomp && (this.onGround || wet)) { // Bauchklatscher gelandet
-      this.stomp = false; if (!wet) { level.onStomp(this.pos); this.game.audio.sfx('stomp'); this.game.shake(0.35); this.game.input.vibrate(200); this.squash = 0.4; }
+      this.stomp = false; if (!wet) { level.onStomp(this.pos); this.game.audio.sfx('stomp'); this.game.audio.landOn(level.surfaceAt(this.pos.x, this.pos.y, this.pos.z), 30); this.game.shake(0.35); this.game.input.vibrate(200); this.squash = 0.4; }
     }
-    if (this.onGround && !wasGround && this.vel.y <= 0) { this.game.audio.sfx('land'); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); if (this._lastVy < -12) FX.land(this.game.fx, this.pos, Math.min(2, -this._lastVy / 14)); }
+    if (this.onGround && !wasGround && this.vel.y <= 0) { this.surface = level.surfaceAt(this.pos.x, this.pos.y, this.pos.z); this.game.audio.landOn(this.surface, -this._lastVy); this.squash = 0.25; FX.dust(this.game.fx, this.pos, Math.min(14, 4 + Math.round(-this._lastVy * 0.6))); if (this._lastVy < -12) FX.land(this.game.fx, this.pos, Math.min(2, -this._lastVy / 14)); }
     this._lastVy = this.vel.y;
     // Laufstaub
     if (this.onGround && !wet && this.speedFrac > 0.7) { this._dustT = (this._dustT || 0) - dt; if (this._dustT <= 0) { this._dustT = 0.12; FX.dust(this.game.fx, this.pos, 1); if (level.grass && Math.random() < 0.35) FX.petals(this.game.fx, this.pos); } }
@@ -181,6 +181,12 @@ export class Player {
     else this.mesh.scale.set(1, 1, 1);
     this.mesh.visible = this.hurtT <= 0 || Math.floor(this.hurtT * 12) % 2 === 0;
     animateDog(this.mesh, Math.hypot(this.vel.x, this.vel.z) / RUN, !this.onGround && !wet, dt, this.bite, this.vel.y, this.turn, wet); // echtes Tempo (Stick-Ausschlag und Beschleunigung) wählt Trab oder Galopp
+    // Pfotenschritte im Takt der Animation, Klang je nach Untergrund (Gras, Holz, Fliesen, Pfütze …); im Trab setzen zwei Pfoten fast gleichzeitig auf
+    const steps = this.mesh.userData.steps;
+    if (steps.length && this.onGround && !wet) {
+      this.surface = level.surfaceAt(this.pos.x, this.pos.y, this.pos.z); const sp = Math.hypot(this.vel.x, this.vel.z) / RUN;
+      steps.forEach((i, n) => this.game.audio.step(this.surface, sp, i > 1, n * 0.012));
+    }
     const u = this.mesh.userData; if (this.gliding) { u.earL.rotation.set(0, 0, -1.4); u.earR.rotation.set(0, 0, 1.4); u.head.rotation.y = 0; u.earsSpin = (u.earsSpin || 0) + dt * 30; u.head.children.forEach(c => { if (c === u.earL || c === u.earR) c.rotation.y = u.earsSpin; }); } else { u.earL.rotation.y = 0; u.earR.rotation.y = 0; }
     // Leerlauf: nur wenn Moll still am Boden steht und keine Taste gedrückt ist; jede Eingabe weckt sie sofort
     const busy = this.frozen || wet || !this.onGround || this.hurtT > 0 || this.bite > 0 || Math.hypot(this.vel.x, this.vel.z) > 0.5

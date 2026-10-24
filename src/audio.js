@@ -5,6 +5,9 @@ import { SONGS, MIXES, compile } from './music.js';
 // Formanten (F1, F2 in Hz) je Vokal: färben das Gebrabbel, damit „a“ anders blubbert als „i“
 const FORMANTS = { a: [800, 1250], e: [480, 1900], i: [300, 2300], o: [500, 880], u: [340, 720], ä: [650, 1700], ö: [450, 1500], ü: [300, 1650], y: [300, 1650] };
 
+// Pfoten je Untergrund ungefähr gleich laut machen (Gras rauscht leise, Holz klopft laut)
+const PAW_GAIN = { grass: 2, tile: 1.5, leaves: 1.4, metal: 1.2, wood: 0.7, stone: 0.65 };
+
 export class AudioEngine {
   constructor() { this.ctx = null; this.song = null; this.enabled = true; this.mix = 'normal'; }
 
@@ -266,6 +269,56 @@ export class AudioEngine {
     [[F[0], 4, 1.6], [F[1], 7, 0.9]].forEach(([f, q, g]) => { const bp = c.createBiquadFilter(), gg = c.createGain(); bp.type = 'bandpass'; bp.frequency.value = f * fs; bp.Q.value = q; gg.gain.value = g; o.connect(bp); bp.connect(gg); gg.connect(out); });
     const dry = c.createGain(); dry.gain.value = v.dry ?? 0.18; o.connect(dry); dry.connect(out);
     out.connect(this.sfxGain); o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  // ---- Pfoten: Schritte, Absprung und Landung je nach Untergrund (surface.js) ----
+  // Gefiltertes Rauschen aus einem gemeinsamen Puffer (zufälliger Ausschnitt): f = Filterfrequenz, f1 = Ziel für einen Filter-Sweep
+  _burst(t, dur, vol, type, f, q = 1, f1 = 0) {
+    const c = this.ctx;
+    if (!this._nb) { const n = c.sampleRate * 2; this._nb = c.createBuffer(1, n, c.sampleRate); const d = this._nb.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+    const s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = this._nb; fl.type = type; fl.frequency.setValueAtTime(f, t); fl.Q.value = q; if (f1) fl.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(0.004, dur * 0.2)); g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(this.sfxGain); s.start(t, Math.random() * 1.8, dur + 0.02);
+  }
+  // Ein Pfotenaufsatz. k = Lautstärke (1 = normaler Schritt), heavy 0..1 = wuchtiger und länger (Landung), r = Tonhöhe
+  _paw(surf, t, k = 1, heavy = 0, r = 1) {
+    k *= PAW_GAIN[surf] ?? 1;
+    const L = 1 + heavy * 1.5, B = this._burst.bind(this), T = (f, dur, v, type = 'sine', sl = 0) => this._tone(f * r, t, dur * L, type, v * k, null, sl * r), rnd = () => Math.random();
+    switch (surf) {
+      case 'grass': B(t, 0.07 * L, 0.09 * k, 'bandpass', 2600 * r, 0.7); B(t + 0.015 + rnd() * 0.02, 0.035 * L, 0.05 * k, 'highpass', 5000 * r); break; // Halme rascheln
+      case 'leaves': for (let i = 0; i < 3 + heavy * 3; i++) B(t + rnd() * 0.07 * L, 0.025, 0.08 * k, 'bandpass', (2000 + rnd() * 2500) * r, 1.2); break; // Laub knistert
+      case 'dirt': B(t, 0.06 * L, 0.14 * k, 'lowpass', 700 * r); T(110, 0.05, 0.06, 'sine', -40); break;
+      case 'sand': B(t, 0.09 * L, 0.08 * k, 'bandpass', 2200 * r, 1.2, 1500 * r); for (let i = 0; i < 4; i++) B(t + rnd() * 0.07 * L, 0.012, 0.035 * k, 'highpass', 4500 * r); break; // Knirschen
+      case 'snow': B(t, 0.1 * L, 0.1 * k, 'bandpass', 1300 * r, 2.5, 900 * r); B(t + 0.03, 0.05, 0.05 * k, 'lowpass', 2500 * r); break;
+      case 'wood': T(180, 0.07, 0.15, 'sine', -60); T(420, 0.04, 0.035, 'triangle'); B(t, 0.015, 0.06 * k, 'bandpass', 3500 * r, 3); break; // hohles Klopfen + Krallen
+      case 'stone': B(t, 0.012, 0.1 * k, 'bandpass', 3000 * r, 3); B(t + 0.008 + rnd() * 0.01, 0.01, 0.06 * k, 'bandpass', 3400 * r, 3); B(t, 0.035 * L, 0.06 * k, 'lowpass', 400 * r); break; // Krallen klicken
+      case 'tile': B(t, 0.01, 0.12 * k, 'bandpass', 4200 * r, 4); B(t + 0.012 + rnd() * 0.01, 0.01, 0.08 * k, 'bandpass', 4800 * r, 4); T(220, 0.03, 0.04, 'sine', -60); break;
+      case 'carpet': B(t, 0.06 * L, 0.1 * k, 'lowpass', 350 * r); T(90, 0.04, 0.035, 'sine', -30); break; // dumpf
+      case 'metal': [[640, 0.12, 0.035], [1530, 0.08, 0.022], [2470, 0.05, 0.014]].forEach(([f, d, v]) => T(f * (0.97 + rnd() * 0.06), d * (1 + heavy * 2), v)); B(t, 0.01, 0.06 * k, 'bandpass', 5000 * r, 3); break; // Blech klingt nach
+      case 'water': B(t, 0.12 * L, 0.13 * k, 'bandpass', 1100 * r, 1.5, 380 * r); if (rnd() < 0.6 || heavy) T(300 + rnd() * 200, 0.06, 0.05, 'sine', 600); break; // Platsch + Blubb
+      default: B(t, 0.05 * L, 0.1 * k, 'lowpass', 900 * r);
+    }
+  }
+  _pawsOff() { return !this.ctx || (this.vol && this.vol[1] <= 0); }
+  // Schritt einer Pfote (synchron zur Laufanimation). speed 0..1+, hind = Hinterpfote (etwas leiser und tiefer)
+  step(surf, speed = 1, hind = false, delay = 0) {
+    if (this._pawsOff()) return;
+    this._paw(surf, this.ctx.currentTime + 0.003 + delay, (0.5 + 0.5 * Math.min(1.2, speed)) * (hind ? 0.75 : 1), 0, (hind ? 0.88 : 1) * (0.92 + Math.random() * 0.16));
+  }
+  // Absprung: beide Hinterpfoten stoßen sich ab
+  jumpOff(surf, t = null) {
+    if (this._pawsOff()) return; t ??= this.ctx.currentTime + 0.003;
+    this._paw(surf, t, 1.3, 0.3, 0.9); this._paw(surf, t + 0.018, 1.1, 0.3, 0.85);
+  }
+  // Landung: erst Vorder-, dann Hinterpfoten, dazu ein Plumps; impact = Fallgeschwindigkeit
+  landOn(surf, impact = 8, t = null) { // t = Startzeit (für Offline-Hörproben)
+    if (this._pawsOff()) return; t ??= this.ctx.currentTime + 0.003; const w = Math.min(1, impact / 22), k = 1.1 + w * 1.6;
+    this._paw(surf, t, k, w); this._paw(surf, t + 0.014, k * 0.8, w, 0.95); this._paw(surf, t + 0.06, k * 0.9, w, 0.85); this._paw(surf, t + 0.075, k * 0.7, w, 0.8);
+    const soft = surf === 'carpet' || surf === 'sand' || surf === 'snow' || surf === 'grass';
+    this._tone(soft ? 95 : 130, t, 0.1 + w * 0.12, 'sine', (0.05 + w * 0.2) * (surf === 'water' ? 0.4 : 1), null, soft ? -45 : -70); // Körper-Plumps
+    if (surf === 'water') this._burst(t, 0.25 + w * 0.3, 0.1 + w * 0.15, 'bandpass', 1400, 0.8, 300); // Spritzer
+    if (surf === 'sand' || surf === 'dirt') this._burst(t + 0.02, 0.15 + w * 0.2, 0.04 + w * 0.06, 'lowpass', 1500, 0.7, 500); // rieselt
   }
 
   sfx(name) {
