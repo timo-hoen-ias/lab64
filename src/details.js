@@ -385,7 +385,7 @@ const WORLDS = {
     // Bodenklavier im Wohnzimmer: Tasten spielen Töne. Wer „Alle meine Entchen“ spielt, bekommt Besuch.
     const keys = [], kx0 = -50, kz = -8.5, scale = [0, 2, 4, 5, 7, 9, 11, 12];
     for (let i = 0; i < 8; i++) { const k = box(1.15, 0.12, 3, 0xfafafa, 0, 0, 0); l.put(k, kx0 + i * 1.25, 0.06, kz); keys.push(k); }
-    [0, 1, 3, 4, 5].forEach(i => l.put(box(0.6, 0.18, 1.6, 0x2d3436, 0, 0, 0), kx0 + i * 1.25 + 0.62, 0.09, kz - 0.7));
+    [0, 1, 3, 4, 5].forEach(i => l.put(box(0.6, 0.18, 1.56, 0x2d3436, 0, 0, 0), kx0 + i * 1.25 + 0.62, 0.09, kz - 0.68)); // schwarze Tasten enden knapp vor den weißen (kein Flackern)
     l.put(box(10.4, 0.4, 0.3, 0x2d3436, 0, 0, 0), kx0 + 4.4, 0.2, kz - 1.65);
     const pi = { cur: -1, hist: [], duck: false }, ENTCHEN = '0,1,2,3,4,4';
     l.ticks.push(() => {
