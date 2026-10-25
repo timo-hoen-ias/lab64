@@ -44,6 +44,23 @@ export class Input {
     window.addEventListener('touchstart', enableTouch, { passive: true, once: true });
     if (window.matchMedia('(pointer: coarse)').matches) enableTouch();
 
+    // iOS Safari ignoriert user-scalable=no: Doppeltipp- und Pinch-Zoom selbst abfangen.
+    // Stick und Knöpfe hängen an Pointer-Events und laufen davon unberührt weiter.
+    const formEl = t => t.closest && t.closest('input,select,textarea');
+    let lastTap = 0;
+    document.addEventListener('touchend', e => {
+      const now = e.timeStamp;
+      if (now - lastTap < 350 && e.cancelable && !formEl(e.target)) {
+        e.preventDefault();
+        // der Klick fällt dadurch weg – schnelle zweite Tipps auf Menüknöpfe trotzdem auslösen
+        const btn = e.target.closest && e.target.closest('button,a,[role=button]');
+        if (btn) btn.click();
+      }
+      lastTap = now;
+    }, { passive: false });
+    document.addEventListener('touchmove', e => { if (e.touches.length > 1 && e.cancelable) e.preventDefault(); }, { passive: false });
+    for (const ev of ['gesturestart', 'gesturechange', 'gestureend', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+
     // Virtueller Stick
     let stickId = null, cx = 0, cy = 0;
     const R = 50;
