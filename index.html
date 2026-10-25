@@ -22,6 +22,7 @@
     --sa-l:env(safe-area-inset-left,0px); --sa-r:env(safe-area-inset-right,0px);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  *{touch-action:manipulation}
   html,body{margin:0;height:100%;overflow:hidden;background:#6fc3ff;font-family:"Fredoka","Trebuchet MS",Verdana,sans-serif;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
   canvas#game{display:block;width:100%;height:100%}
   /* HUD liegt in einer mittigen Spalte: auf Ultrawide-Monitoren höchstens 16:9 breit (mind. 1100px), damit man nicht in die Ecken schauen muss. Handys bleiben volle Breite. */
